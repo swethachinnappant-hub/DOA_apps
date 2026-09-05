@@ -1,0 +1,44 @@
+# Flutter/Dart
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Android
+android/.gradle/
+android/app/debug/
+android/app/profile/
+android/app/release/
+android/local.properties
+android/key.properties
+*.jks
+*.keystore
+
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Runner.xcworkspace/xcshareddata/
+ios/Flutter/Generated.xcconfig
+
+# macOS
+macos/Pods/
+macos/Flutter/GeneratedPluginRegistrant.swift
+
+# Web
+web/favicon.png
+
+# IDE
+.vscode/
+.idea/
+*.iml
+*.swp
+*.swo
+
+# Misc
+*.log
+*.pyc
+.DS_Store
+pubspec.lock

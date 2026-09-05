@@ -1,0 +1,49 @@
+# Flutter/Dart
+.dart_tool/
+.packages
+build/
+*.iml
+.idea/
+.vscode/
+
+# Android
+**/android/.gradle/
+**/android/captures/
+**/android/gradlew
+**/android/gradlew.bat
+**/android/local.properties
+**/android/**/GeneratedPluginRegistrant.java
+**/android/key.properties
+*.jks
+*.keystore
+
+# iOS
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Runner/GeneratedPluginRegistrant.*
+
+# macOS
+**/macos/Pods/
+**/macos/Flutter/GeneratedPluginRegistrant.*
+
+# Web
+**/web/favicon.png
+**/web/icons/Icon-192.png
+**/web/icons/Icon-512.png
+**/web/icons/Icon-maskable-192.png
+**/web/icons/Icon-maskable-512.png
+**/web/manifest.json
+
+# Windows
+**/windows/flutter/generated_plugin_registrant.cc
+**/windows/flutter/generated_plugin_registrant.h
+
+# Linux
+**/linux/flutter/generated_plugin_registrant.cc
+**/linux/flutter/generated_plugin_registrant.h
+
+# Platform-specific
+*.lock
+pubspec.lock

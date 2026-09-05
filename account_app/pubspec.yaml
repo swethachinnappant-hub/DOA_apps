@@ -1,0 +1,28 @@
+name: account_app
+description: "Chirag Associates - AI Powered Accounting ERP & CRM Platform"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  common_widgets:
+    path: ../common_widgets
+  go_router: ^14.8.1
+  provider: ^6.1.2
+  fl_chart: ^0.70.2
+  shimmer: ^3.0.0
+  shared_preferences: ^2.3.4
+  http: ^1.2.2
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

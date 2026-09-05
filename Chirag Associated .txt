@@ -1,0 +1,670 @@
+Chirag Associate Total Accounting Solutions
+
+Chirag Associates
+
+AI Powered Accounting ERP & CRM Platform
+
+Software Requirement Document (Version 1.0)
+
+1. Project Vision
+
+Develop a cloud-based Web Application + Android + iOS Mobile Application that completely digitalizes the accounting process of clients and reduces manual data entry by more than 90%.
+
+The platform should automate GST compliance, accounting, document management, CRM, communication, and client collaboration using Artificial Intelligence (AI).
+
+⸻
+
+2. Objectives
+
+Current Problems
+
+	•	Manual collection of invoices
+	•	Manual accounting entries
+	•	Manual GST preparation
+	•	Time-consuming reconciliation
+	•	Delayed filing
+	•	Heavy manpower requirement
+	•	Missing documents
+	•	Difficulty during GST Audit & Department Scrutiny
+
+Proposed Solution
+
+One single platform where
+
+	•	Client uploads invoices
+	•	AI reads invoices automatically
+	•	Accounting entries are created automatically
+	•	Accountant verifies
+	•	GST Returns are generated
+	•	Tally sync happens
+	•	Records remain permanently stored
+
+⸻
+
+3. User Roles
+
+A. Super Admin
+
+Complete control of the software
+
+Functions
+
+	•	Company Settings
+	•	User Management
+	•	Subscription Management
+	•	Reports
+	•	Pricing
+	•	Audit Logs
+	•	Data Backup
+	•	Dashboard
+	•	Branch Management
+
+⸻
+
+B. Admin
+
+Office Administrator
+
+Functions
+
+	•	Client Creation
+	•	Assign Accountant
+	•	Assign CA
+	•	Assign Marketing Executive
+	•	Track Work
+	•	Monitor GST Status
+	•	Monitor Pending Tasks
+	•	Document Management
+
+⸻
+
+C. Accountant Login
+
+Each accountant manages only assigned clients.
+
+Functions
+
+	•	Assigned Client Dashboard
+	•	Sales Verification
+	•	Purchase Verification
+	•	GST Working
+	•	Ledger Verification
+	•	Voucher Entry
+	•	Client Communication
+	•	Pending Task List
+	•	Tally Sync
+
+⸻
+
+D. Chartered Accountant (CA Portal)
+
+Special portal for Audit Clients.
+
+Applicable for
+
+Annual Turnover above ₹2 Crore (configurable).
+
+Functions
+
+	•	Audit Working Papers
+	•	Financial Statements
+	•	Balance Sheet
+	•	Profit & Loss
+	•	Income Tax
+	•	GST Review
+	•	Approval Workflow
+	•	Client Communication
+
+⸻
+
+E. Marketing Executive
+
+Lead Management Portal
+
+Functions
+
+	•	Add Leads
+	•	Lead Follow-up
+	•	Meeting Schedule
+	•	Call Log
+	•	Proposal
+	•	Quotation
+	•	Client Conversion
+	•	Sales Dashboard
+
+Target
+
+Manage more than 10,000 Clients
+
+⸻
+
+F. Client Login
+
+Mobile App + Web Portal
+
+Clients can
+
+	•	Upload Sales Bills
+	•	Upload Purchase Bills
+	•	Upload Debit Notes
+	•	Upload Credit Notes
+	•	Upload Bank Statements
+	•	Upload Cash Expenses
+	•	Upload Cheque Images
+	•	Upload Receipts
+	•	Upload Payment Proof
+	•	View Reports
+	•	View GST Status
+	•	View Ledger
+	•	Download Reports
+
+⸻
+
+4. AI Invoice Scanner
+
+This is the core module.
+
+Client uploads
+
+	•	PDF
+	•	JPEG
+	•	PNG
+	•	Camera Image
+
+AI automatically detects
+
+	•	GSTIN
+	•	Invoice Number
+	•	Invoice Date
+	•	Supplier Name
+	•	Customer Name
+	•	Taxable Value
+	•	CGST
+	•	SGST
+	•	IGST
+	•	HSN
+	•	Quantity
+	•	Rate
+	•	Total Amount
+
+Automatically creates
+
+	•	Purchase Entry
+	•	Sales Entry
+	•	Voucher
+
+No manual typing.
+
+⸻
+
+5. OCR + AI Validation
+
+Before saving
+
+AI should check
+
+Duplicate Invoice
+
+Wrong GSTIN
+
+Wrong Date
+
+Duplicate Amount
+
+Duplicate Invoice Number
+
+GST mismatch
+
+Tax mismatch
+
+⸻
+
+6. Checker Maker Workflow
+
+Step 1
+
+Client uploads invoice
+
+↓
+
+Step 2
+
+AI reads invoice
+
+↓
+
+Step 3
+
+Data goes to Accountant
+
+↓
+
+Step 4
+
+Accountant verifies
+
+↓
+
+Step 5
+
+Approved
+
+↓
+
+Step 6
+
+Entry posted
+
+↓
+
+Step 7
+
+GST Return Updated
+
+⸻
+
+7. Dashboard
+
+Client Dashboard
+
+Sales
+
+Purchase
+
+GST Payable
+
+GST Credit
+
+Cash
+
+Bank
+
+Debtors
+
+Creditors
+
+Profit
+
+Monthly Sales Chart
+
+Monthly Purchase Chart
+
+Pending Documents
+
+GST Filing Status
+
+⸻
+
+8. GST Module
+
+GSTR-1
+
+GSTR-3B
+
+GSTR-2B
+
+Purchase Register
+
+Sales Register
+
+ITC Reconciliation
+
+Mismatch Report
+
+Late Filing Alert
+
+GST Calendar
+
+Return Filing Status
+
+⸻
+
+9. Tally Integration
+
+Two-way Sync
+
+Import
+
+Export
+
+Voucher Creation
+
+Ledger Sync
+
+Stock Sync
+
+Bank Entries
+
+Automatic Voucher Posting
+
+⸻
+
+10. Billing Software
+
+Client can generate
+
+Tax Invoice
+
+Quotation
+
+Proforma Invoice
+
+Delivery Challan
+
+Purchase Order
+
+Estimate
+
+Payment Receipt
+
+Credit Note
+
+Debit Note
+
+E-mail & WhatsApp sharing
+
+PDF Download
+
+⸻
+
+11. CRM Module
+
+Customer Master
+
+Vendor Master
+
+Employee Master
+
+Reminder
+
+Notes
+
+Tasks
+
+Documents
+
+Meeting
+
+Call History
+
+Follow-up
+
+⸻
+
+12. AI Chat Assistant
+
+Built-in ChatBot
+
+Examples
+
+“What is my GST payable?”
+
+“Show June Sales”
+
+“Show Purchase Register”
+
+“Download Ledger”
+
+“Pending Documents?”
+
+“Bank Balance?”
+
+“What is my profit?”
+
+“Which invoices are missing?”
+
+Works like ChatGPT inside the app.
+
+⸻
+
+13. Media Management
+
+Every uploaded image
+
+Invoice
+
+PDF
+
+Cheque
+
+Receipt
+
+Document
+
+Stored permanently.
+
+Features
+
+Search
+
+Download
+
+Preview
+
+Archive
+
+Folder Wise
+
+Year Wise
+
+Month Wise
+
+Client Wise
+
+⸻
+
+14. Audit Record
+
+Every document remains stored.
+
+During
+
+GST Notice
+
+Income Tax Notice
+
+Department Audit
+
+Scrutiny
+
+One click
+
+Generate ZIP Folder
+
+Export
+
+Download
+
+Share
+
+⸻
+
+15. Notification System
+
+Mobile Notification
+
+WhatsApp
+
+SMS
+
+Email
+
+For
+
+GST Due
+
+Missing Bills
+
+Pending Approval
+
+Payment Reminder
+
+Bank Balance Alert
+
+Return Filing
+
+⸻
+
+16. Reports
+
+Sales Register
+
+Purchase Register
+
+GST Summary
+
+Bank Book
+
+Cash Book
+
+Ledger
+
+Trial Balance
+
+P&L
+
+Balance Sheet
+
+Outstanding
+
+Ageing
+
+Cash Flow
+
+Expense Analysis
+
+Profit Analysis
+
+⸻
+
+17. Marketing CRM
+
+Lead Source
+
+Website
+
+Reference
+
+Campaign
+
+Walk-in
+
+Cold Calling
+
+Google Ads
+
+Facebook
+
+Instagram
+
+Status
+
+New Lead
+
+Interested
+
+Follow-up
+
+Meeting
+
+Negotiation
+
+Won
+
+Lost
+
+Dashboard
+
+Conversion Ratio
+
+Revenue
+
+Executive Performance
+
+Target
+
+10,000+ Clients
+
+⸻
+
+18. Security
+
+SSL Encryption
+
+Role-Based Access
+
+OTP Login
+
+Two-Factor Authentication (2FA)
+
+Daily Backup
+
+Cloud Storage
+
+Audit Log
+
+Activity Tracking
+
+⸻
+
+19. Technology Stack (Recommended)
+
+Frontend
+
+	•	Flutter (Android + iOS)
+	•	React.js (Web)
+
+Backend
+
+	•	Node.js / .NET Core
+
+Database
+
+	•	PostgreSQL
+
+AI & OCR
+
+	•	GPT-based AI
+	•	OCR Engine
+	•	Invoice Intelligence
+
+Cloud
+
+	•	AWS / Microsoft Azure / Google Cloud
+
+⸻
+
+20. Future Roadmap (Phase 2)
+
+	•	Income Tax Return Automation
+	•	TDS & TCS Module
+	•	Payroll & HRMS
+	•	Attendance
+	•	Employee Salary
+	•	E-Invoice Integration
+	•	E-Way Bill Integration
+	•	Bank API Integration
+	•	UPI Collection
+	•	Payment Gateway
+	•	WhatsApp Business API
+	•	Voice Assistant
+	•	Multi-language Support
+	•	AI Financial Advisor
+	•	Document e-Sign
+	•	Client Mobile Wallet
+	•	Vendor Portal
+
+⸻
+
+Expected Benefits
+
+	•	90% reduction in manual data entry
+	•	Faster GST filing
+	•	Centralized document management
+	•	AI-powered accounting automation
+	•	Real-time dashboards
+	•	Better client experience
+	•	Complete audit trail
+	•	Scalable to more client 
+	•	Reduced operational costs
+	•	Higher productivity and profitability
