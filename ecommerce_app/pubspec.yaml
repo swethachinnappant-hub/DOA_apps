@@ -4,7 +4,7 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.13.1
+  sdk: ^3.10.0
 
 dependencies:
   flutter:
@@ -13,6 +13,7 @@ dependencies:
     path: ../common_widgets
   go_router: ^14.8.1
   provider: ^6.1.2
+  no_screenshot: ^1.0.0
 
 dev_dependencies:
   flutter_test:

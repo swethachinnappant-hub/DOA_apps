@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'core/router/app_router.dart';
+import 'core/services/screenshot_protection_service.dart';
 import 'features/config/providers/business_config_provider.dart';
 
 void main() async {
@@ -12,6 +13,10 @@ void main() async {
     DeviceOrientation.landscapeLeft,
     DeviceOrientation.landscapeRight,
   ]);
+
+  final screenshotService = ScreenshotProtectionService();
+  await screenshotService.initialize();
+
   runApp(const EcommerceApp());
 }
 
