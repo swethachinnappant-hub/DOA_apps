@@ -311,10 +311,12 @@ class _HeroSlide extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               if (imageUrl != null)
-                Image.network(
-                  imageUrl!,
+                ProductImageTile(
+                  url: imageUrl!,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                  placeholderIcon: icon,
+                  placeholderColor: primaryColor.withValues(alpha: 0.12),
+                  placeholderAccent: primaryColor,
                 ),
               DecoratedBox(
                 decoration: BoxDecoration(

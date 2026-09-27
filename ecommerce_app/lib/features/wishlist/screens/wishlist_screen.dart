@@ -97,19 +97,18 @@ class WishlistScreen extends StatelessWidget {
               child: product.images.isEmpty
                   ? ColoredBox(
                       color: accent,
-                      child: Icon(config.icon,
-                          size: 28,
-                          color: primary.withValues(alpha: 0.5)),
-                    )
-                  : Image.network(
-                      product.images.first,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => ColoredBox(
-                        color: accent,
-                        child: Icon(config.icon,
-                            size: 28,
-                            color: primary.withValues(alpha: 0.5)),
+                      child: Icon(
+                        config.icon,
+                        size: 28,
+                        color: primary.withValues(alpha: 0.5),
                       ),
+                    )
+                  : ProductImageTile(
+                      url: product.images.first,
+                      fit: BoxFit.cover,
+                      placeholderIcon: config.icon,
+                      placeholderColor: accent,
+                      placeholderAccent: primary,
                     ),
             ),
           ),
@@ -171,8 +170,11 @@ class WishlistScreen extends StatelessWidget {
               IconButton(
                 visualDensity: VisualDensity.compact,
                 tooltip: 'Remove from wishlist',
-                icon: Icon(Icons.delete_outline,
-                    size: 18, color: Colors.red[300]),
+                icon: Icon(
+                  Icons.delete_outline,
+                  size: 18,
+                  color: Colors.red[300],
+                ),
                 onPressed: () => store.toggleWishlist(product.id),
               ),
             ],

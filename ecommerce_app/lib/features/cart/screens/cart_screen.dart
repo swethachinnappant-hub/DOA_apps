@@ -46,13 +46,15 @@ class CartScreen extends StatelessWidget {
                   child: ListView.separated(
                     padding: Responsive.padding(context),
                     itemCount: lines.length,
-                    separatorBuilder: (_, _) =>
-                        SizedBox(height: Responsive.spacing(context, mobile: 10)),
+                    separatorBuilder: (_, _) => SizedBox(
+                      height: Responsive.spacing(context, mobile: 10),
+                    ),
                     itemBuilder: (context, index) {
                       final line = lines[index];
                       final product = store.productFor(line);
                       final available = product?.stock ?? 0;
-                      final atLimit = product != null &&
+                      final atLimit =
+                          product != null &&
                           product.ownerId.isNotEmpty &&
                           line.quantity >= available;
 
@@ -151,17 +153,18 @@ class _CartLine extends StatelessWidget {
               child: images.isEmpty
                   ? ColoredBox(
                       color: accent,
-                      child: Icon(fallbackIcon,
-                          size: 26, color: brandColor.withValues(alpha: 0.5)),
-                    )
-                  : Image.network(
-                      images.first,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => ColoredBox(
-                        color: accent,
-                        child: Icon(fallbackIcon,
-                            size: 26, color: brandColor.withValues(alpha: 0.5)),
+                      child: Icon(
+                        fallbackIcon,
+                        size: 26,
+                        color: brandColor.withValues(alpha: 0.5),
                       ),
+                    )
+                  : ProductImageTile(
+                      url: images.first,
+                      fit: BoxFit.cover,
+                      placeholderIcon: fallbackIcon,
+                      placeholderColor: accent,
+                      placeholderAccent: brandColor,
                     ),
             ),
           ),
@@ -224,7 +227,11 @@ class _CartLine extends StatelessWidget {
                       tooltip: 'Remove',
                       visualDensity: VisualDensity.compact,
                       onPressed: onRemove,
-                      icon: Icon(Icons.close, size: 18, color: Colors.grey[500]),
+                      icon: Icon(
+                        Icons.close,
+                        size: 18,
+                        color: Colors.grey[500],
+                      ),
                     ),
                   ],
                 ),
@@ -350,9 +357,7 @@ class _CartSummary extends StatelessWidget {
             _row(
               context,
               'Delivery',
-              !showPrice
-                  ? 'Contact'
-                  : (shipping == 0 ? 'Free' : '₹$shipping'),
+              !showPrice ? 'Contact' : (shipping == 0 ? 'Free' : '₹$shipping'),
             ),
             if (showPrice && shipping > 0) ...[
               const SizedBox(height: 4),

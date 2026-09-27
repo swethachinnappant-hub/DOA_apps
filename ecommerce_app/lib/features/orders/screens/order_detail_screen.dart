@@ -103,10 +103,18 @@ class OrderDetailScreen extends StatelessWidget {
             title: 'Payment',
             child: Column(
               children: [
-                _money(context, 'Item total', '₹${order.subtotal}',
-                    showPrice: rules.showPrices),
-                _money(context, 'GST (18%)', '₹${order.tax}',
-                    showPrice: rules.showPrices),
+                _money(
+                  context,
+                  'Item total',
+                  '₹${order.subtotal}',
+                  showPrice: rules.showPrices,
+                ),
+                _money(
+                  context,
+                  'GST (18%)',
+                  '₹${order.tax}',
+                  showPrice: rules.showPrices,
+                ),
                 _money(
                   context,
                   'Delivery',
@@ -114,8 +122,13 @@ class OrderDetailScreen extends StatelessWidget {
                   showPrice: rules.showPrices,
                 ),
                 const Divider(height: 20),
-                _money(context, 'Total', '₹${order.total}',
-                    showPrice: rules.showPrices, bold: true),
+                _money(
+                  context,
+                  'Total',
+                  '₹${order.total}',
+                  showPrice: rules.showPrices,
+                  bold: true,
+                ),
                 const SizedBox(height: 6),
                 Align(
                   alignment: Alignment.centerLeft,
@@ -218,8 +231,18 @@ class OrderDetailScreen extends StatelessWidget {
 
   static String _date(DateTime time) {
     const names = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     final month = names[time.month < 1 || time.month > 12 ? 0 : time.month - 1];
     final hour = time.hour % 12 == 0 ? 12 : time.hour % 12;
@@ -389,8 +412,8 @@ class _TimelineRow extends StatelessWidget {
                 child: done
                     ? const Icon(Icons.check, size: 15, color: Colors.white)
                     : (current
-                        ? Icon(status.icon, size: 14, color: Colors.white)
-                        : null),
+                          ? Icon(status.icon, size: 14, color: Colors.white)
+                          : null),
               ),
               if (!last)
                 Expanded(
@@ -420,8 +443,7 @@ class _TimelineRow extends StatelessWidget {
                   if (current)
                     Text(
                       status.hint,
-                      style:
-                          TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                 ],
               ),
@@ -463,17 +485,18 @@ class _ItemRow extends StatelessWidget {
               child: item.images.isEmpty
                   ? ColoredBox(
                       color: accent,
-                      child: Icon(Icons.image_outlined,
-                          size: 20, color: brand.withValues(alpha: 0.5)),
-                    )
-                  : Image.network(
-                      item.images.first,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => ColoredBox(
-                        color: accent,
-                        child: Icon(Icons.broken_image_outlined,
-                            size: 20, color: Colors.grey),
+                      child: Icon(
+                        Icons.image_outlined,
+                        size: 20,
+                        color: brand.withValues(alpha: 0.5),
                       ),
+                    )
+                  : ProductImageTile(
+                      url: item.images.first,
+                      fit: BoxFit.cover,
+                      placeholderIcon: Icons.broken_image_outlined,
+                      placeholderColor: accent,
+                      placeholderAccent: brand,
                     ),
             ),
           ),
@@ -497,10 +520,7 @@ class _ItemRow extends StatelessWidget {
                     item.variantLabel,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 11.5, color: Colors.grey[600]),
                   ),
                 ],
                 const SizedBox(height: 2),

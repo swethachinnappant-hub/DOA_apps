@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import 'package:common_widgets/common_widgets.dart';
 
+import '../../../core/demo_catalog.dart';
 import '../../../core/product.dart';
 import '../../../core/store/commerce_store.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -113,9 +114,7 @@ class _OwnerProductFormScreenState extends State<OwnerProductFormScreen> {
   }
 
   Future<void> _addSampleImage() async {
-    final seed = DateTime.now().millisecondsSinceEpoch;
-    setState(() => _images
-        .add('https://picsum.photos/seed/owner_$seed/640/800'));
+    setState(() => _images.add(DemoCatalog.imageForCategory(_category ?? '')));
   }
 
   void _removeImage(int index) {
@@ -157,7 +156,8 @@ class _OwnerProductFormScreenState extends State<OwnerProductFormScreen> {
       name: _name.text.trim(),
       brand: _brand.text.trim(),
       category: _category!,
-      sku: _existing?.sku ??
+      sku:
+          _existing?.sku ??
           'OWN-${DateTime.now().millisecondsSinceEpoch.toString().substring(6)}',
       price: price,
       mrp: mrp,
@@ -253,7 +253,8 @@ class _OwnerProductFormScreenState extends State<OwnerProductFormScreen> {
                     validator: (v) {
                       final value = (v ?? '').trim();
                       if (value.isEmpty) return 'Enter a product name';
-                      if (value.length > 80) return 'Keep it under 80 characters';
+                      if (value.length > 80)
+                        return 'Keep it under 80 characters';
                       return null;
                     },
                   ),
@@ -414,8 +415,11 @@ class _OwnerProductFormScreenState extends State<OwnerProductFormScreen> {
                       liveRegion: true,
                       child: Row(
                         children: [
-                          const Icon(Icons.error_outline,
-                              size: 16, color: Colors.red),
+                          const Icon(
+                            Icons.error_outline,
+                            size: 16,
+                            color: Colors.red,
+                          ),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
@@ -423,7 +427,9 @@ class _OwnerProductFormScreenState extends State<OwnerProductFormScreen> {
                               maxLines: 3,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                  color: Colors.red, fontSize: 13),
+                                color: Colors.red,
+                                fontSize: 13,
+                              ),
                             ),
                           ),
                         ],
@@ -597,16 +603,10 @@ class _ImageTile extends StatelessWidget {
           child: SizedBox(
             width: 92,
             height: 132,
-            child: Image.network(
-              url,
+            child: ProductImageTile(
+              url: url,
               fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => ColoredBox(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                child: const Center(
-                  child: Icon(Icons.broken_image_outlined,
-                      color: Colors.grey, size: 22),
-                ),
-              ),
+              placeholderIcon: Icons.broken_image_outlined,
             ),
           ),
         ),
@@ -623,7 +623,10 @@ class _ImageTile extends StatelessWidget {
               child: const Text(
                 'Cover',
                 style: TextStyle(
-                    fontSize: 10, color: Colors.white, fontWeight: FontWeight.w600),
+                  fontSize: 10,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ),
@@ -821,14 +824,16 @@ class _Dropdown extends StatelessWidget {
             if (allowClear)
               const DropdownMenuItem<String>(
                 value: _clearValue,
-                child: Text('None',
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
+                child: Text(
+                  'None',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             for (final item in items)
               DropdownMenuItem<String>(
                 value: item,
-                child:
-                    Text(item, maxLines: 1, overflow: TextOverflow.ellipsis),
+                child: Text(item, maxLines: 1, overflow: TextOverflow.ellipsis),
               ),
           ],
           onChanged: (v) => onChanged(v == _clearValue ? null : v),

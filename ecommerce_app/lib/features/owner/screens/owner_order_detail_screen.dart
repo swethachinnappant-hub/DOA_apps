@@ -95,7 +95,10 @@ class OwnerOrderDetailScreen extends StatelessWidget {
             child: Column(
               children: [
                 for (var i = 0; i < order.items.length; i++)
-                  _ItemRow(item: order.items[i], last: i == order.items.length - 1),
+                  _ItemRow(
+                    item: order.items[i],
+                    last: i == order.items.length - 1,
+                  ),
               ],
             ),
           ),
@@ -283,12 +286,11 @@ class _Timeline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final reached = status == OrderStatus.cancelled || status == OrderStatus.returned;
+    final reached =
+        status == OrderStatus.cancelled || status == OrderStatus.returned;
 
     // For a cancelled order, show the path as it stood when it stopped.
-    final currentIndex = reached
-        ? _flow.length - 1
-        : _flow.indexOf(status);
+    final currentIndex = reached ? _flow.length - 1 : _flow.indexOf(status);
 
     return Column(
       children: [
@@ -319,7 +321,9 @@ class _TimelineRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = current ? status.color : (done ? Colors.green : Colors.grey[300]!);
+    final color = current
+        ? status.color
+        : (done ? Colors.green : Colors.grey[300]!);
 
     return IntrinsicHeight(
       child: Row(
@@ -341,8 +345,8 @@ class _TimelineRow extends StatelessWidget {
                 child: done
                     ? const Icon(Icons.check, size: 15, color: Colors.white)
                     : (current
-                        ? Icon(status.icon, size: 14, color: Colors.white)
-                        : null),
+                          ? Icon(status.icon, size: 14, color: Colors.white)
+                          : null),
               ),
               if (!last)
                 Expanded(
@@ -372,10 +376,7 @@ class _TimelineRow extends StatelessWidget {
                   if (current)
                     Text(
                       status.hint,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                 ],
               ),
@@ -448,22 +449,19 @@ class _ItemRow extends StatelessWidget {
               height: 52,
               child: item.images.isEmpty
                   ? ColoredBox(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .surfaceContainerHighest,
-                      child: const Icon(Icons.image_outlined,
-                          size: 18, color: Colors.grey),
-                    )
-                  : Image.network(
-                      item.images.first,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => ColoredBox(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest,
-                        child: const Icon(Icons.broken_image_outlined,
-                            size: 18, color: Colors.grey),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
+                      child: const Icon(
+                        Icons.image_outlined,
+                        size: 18,
+                        color: Colors.grey,
                       ),
+                    )
+                  : ProductImageTile(
+                      url: item.images.first,
+                      fit: BoxFit.cover,
+                      placeholderIcon: Icons.broken_image_outlined,
                     ),
             ),
           ),
@@ -477,7 +475,9 @@ class _ItemRow extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                      fontSize: 13, fontWeight: FontWeight.w600),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 if (item.variantLabel.isNotEmpty) ...[
                   const SizedBox(height: 2),
@@ -497,8 +497,10 @@ class _ItemRow extends StatelessWidget {
             children: [
               Text(
                 '₹${item.lineTotal}',
-                style:
-                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               Text(
                 '×${item.quantity}',

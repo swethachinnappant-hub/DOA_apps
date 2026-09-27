@@ -37,7 +37,11 @@ class CarouselDots extends StatelessWidget {
             color: active ? activeColor : inactiveColor,
             borderRadius: AppRadius.allPill,
             boxShadow: const [
-              BoxShadow(color: Color(0x33000000), blurRadius: 4, offset: Offset(0, 1)),
+              BoxShadow(
+                color: Color(0x33000000),
+                blurRadius: 4,
+                offset: Offset(0, 1),
+              ),
             ],
           ),
         );
@@ -74,15 +78,22 @@ class ProductImageTile extends StatelessWidget {
 
     if (url.isEmpty) return placeholder;
 
-    return Image.network(
+    final isRemote = url.startsWith('https://') || url.startsWith('http://');
+    if (isRemote) {
+      return Image.network(
+        url,
+        fit: fit,
+        gaplessPlayback: true,
+        errorBuilder: (_, _, _) => placeholder,
+        loadingBuilder: (context, child, progress) =>
+            progress == null ? child : placeholder,
+      );
+    }
+    return Image.asset(
       url,
       fit: fit,
       gaplessPlayback: true,
       errorBuilder: (_, _, _) => placeholder,
-      loadingBuilder: (context, child, progress) {
-        if (progress == null) return child;
-        return placeholder;
-      },
     );
   }
 }

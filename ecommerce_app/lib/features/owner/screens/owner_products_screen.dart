@@ -52,15 +52,12 @@ class OwnerProductsScreen extends StatelessWidget {
               padding: Responsive.padding(context),
               sliver: SliverList.separated(
                 itemCount: products.length,
-                separatorBuilder: (_, _) => SizedBox(
-                  height: Responsive.spacing(context, mobile: 12),
-                ),
+                separatorBuilder: (_, _) =>
+                    SizedBox(height: Responsive.spacing(context, mobile: 12)),
                 itemBuilder: (context, index) => _ProductRow(
                   product: products[index],
-                  onChanged: (value) => store.setStock(
-                    products[index].id,
-                    value,
-                  ),
+                  onChanged: (value) =>
+                      store.setStock(products[index].id, value),
                 ),
               ),
             ),
@@ -101,7 +98,9 @@ class _ProductRow extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _Thumb(url: product.images.isEmpty ? null : product.images.first),
+                  _Thumb(
+                    url: product.images.isEmpty ? null : product.images.first,
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -138,8 +137,8 @@ class _ProductRow extends StatelessWidget {
                               child: _Flag(
                                 text: available
                                     ? (low
-                                        ? 'Only ${product.stock} left'
-                                        : 'Live')
+                                          ? 'Only ${product.stock} left'
+                                          : 'Live')
                                     : 'Out of stock',
                                 color: available
                                     ? (low ? Colors.orange : Colors.green)
@@ -171,10 +170,7 @@ class _ProductRow extends StatelessWidget {
                     ),
                   ),
                   const Spacer(),
-                  _StockStepper(
-                    value: product.stock,
-                    onChanged: onChanged,
-                  ),
+                  _StockStepper(value: product.stock, onChanged: onChanged),
                 ],
               ),
             ],
@@ -276,14 +272,10 @@ class _Thumb extends StatelessWidget {
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 child: Icon(Icons.image_outlined, size: 22, color: Colors.grey),
               )
-            : Image.network(
-                url!,
+            : ProductImageTile(
+                url: url!,
                 fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => ColoredBox(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  child:
-                      Icon(Icons.broken_image_outlined, size: 22, color: Colors.grey),
-                ),
+                placeholderIcon: Icons.broken_image_outlined,
               ),
       ),
     );
