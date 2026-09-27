@@ -4,142 +4,336 @@ import 'package:provider/provider.dart';
 import 'package:common_widgets/common_widgets.dart';
 import '../../config/providers/business_config_provider.dart';
 import '../../../core/business_config.dart';
+import '../../../core/product.dart';
+import '../../../core/store/commerce_store.dart';
+import '../../../widgets/product_card.dart';
 
 class CatalogueScreen extends StatefulWidget {
-  const CatalogueScreen({super.key});
+  /// Category and price band handed in from a deep link, e.g. a home tile
+  /// that promises to open this category or price range.
+  final String? initialCategory;
+  final int? priceMin;
+  final int? priceMax;
+
+  const CatalogueScreen({
+    super.key,
+    this.initialCategory,
+    this.priceMin,
+    this.priceMax,
+  });
 
   @override
   State<CatalogueScreen> createState() => _CatalogueScreenState();
 }
 
 class _CatalogueScreenState extends State<CatalogueScreen> {
-  String _selectedCategory = 'All';
+  late String _selectedCategory;
+  late int? _priceMin;
+  late int? _priceMax;
   String _sortBy = 'Newest';
   bool _isGrid = true;
 
   @override
+  void initState() {
+    super.initState();
+    _selectedCategory = widget.initialCategory ?? 'All';
+    _priceMin = widget.priceMin;
+    _priceMax = widget.priceMax;
+  }
+
+  bool get _hasPriceBand => _priceMin != null || _priceMax != null;
+
+  String get _priceBandLabel {
+    final symbol = context.read<BusinessConfigProvider>().config.currencySymbol;
+    if (_priceMin != null && _priceMax != null) {
+      return '$symbol$_priceMin – $symbol$_priceMax';
+    }
+    if (_priceMax != null) return 'Under $symbol$_priceMax';
+    return '$symbol$_priceMin & above';
+  }
+
+  @override
   Widget build(BuildContext context) {
     final config = context.watch<BusinessConfigProvider>().config;
+    final store = context.watch<CommerceStore>();
     final allCategories = ['All', ...config.categories];
-    final products = List.generate(12, (i) => {
-      'name': '${config.categories[i % config.categories.length]} Product ${i + 1}',
-      'price': '${config.currencySymbol}${(i + 1) * 499}',
-      'sku': 'SKU-${(i + 1).toString().padLeft(4, '0')}',
-      'category': config.categories[i % config.categories.length],
-    });
+    final products = store.shopProducts;
+    final visible = _selectedCategory == 'All'
+        ? products
+        : products.where((p) => p.category == _selectedCategory).toList();
+    final inBand = _hasPriceBand
+        ? visible
+            .where(
+              (p) =>
+                  (_priceMin == null || p.price >= _priceMin!) &&
+                  (_priceMax == null || p.price <= _priceMax!),
+            )
+            .toList()
+        : visible;
+    final sorted = _sort(inBand);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Catalogue'),
         actions: [
           IconButton(
-            icon: Icon(_isGrid ? Icons.list : Icons.grid_view),
+            tooltip: _isGrid ? 'List view' : 'Grid view',
+            icon: Icon(_isGrid ? Icons.view_list_outlined : Icons.grid_view),
             onPressed: () => setState(() => _isGrid = !_isGrid),
           ),
+          const SizedBox(width: AppSpacing.xs),
         ],
       ),
       body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Search
+          const SizedBox(height: AppSpacing.md),
           Padding(
-            padding: Responsive.padding(context),
-            child: AppSearchField(hint: config.searchHint, onFilterPressed: () {}),
+            padding:
+                const EdgeInsets.symmetric(horizontal: AppSpacing.screenH),
+            child: AppSearchField(hint: config.searchHint),
           ),
-          // Categories
+          const SizedBox(height: AppSpacing.md),
           SizedBox(
-            height: 40,
+            height: 34,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              padding: EdgeInsets.symmetric(horizontal: 16),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: AppSpacing.screenH),
               itemCount: allCategories.length,
-              separatorBuilder: (_, _) => SizedBox(width: 8),
+              separatorBuilder: (_, _) =>
+                  const SizedBox(width: AppSpacing.chipGap),
               itemBuilder: (context, index) {
                 final cat = allCategories[index];
                 final selected = cat == _selectedCategory;
-                return ChoiceChip(
-                  label: Text(cat, maxLines: 1, overflow: TextOverflow.ellipsis),
-                  selected: selected,
-                  onSelected: (_) => setState(() => _selectedCategory = cat),
-                  selectedColor: config.primaryColor,
-                  labelStyle: TextStyle(color: selected ? Colors.white : null, fontSize: Responsive.fontSize(context, mobile: 12)),
+                return GestureDetector(
+                  onTap: () => setState(() => _selectedCategory = cat),
+                  child: AnimatedContainer(
+                    duration: AppDurations.fast,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md,
+                      vertical: AppSpacing.sm,
+                    ),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? config.primaryColor
+                          : AppPalette.surface,
+                      borderRadius: AppRadius.allPill,
+                      border: Border.all(
+                        color: selected
+                            ? config.primaryColor
+                            : AppPalette.border,
+                      ),
+                    ),
+                    child: Text(
+                      cat,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.label.copyWith(
+                        color: selected
+                            ? config.onPrimaryColor
+                            : AppPalette.textSecondary,
+                      ),
+                    ),
+                  ),
                 );
               },
             ),
           ),
-          SizedBox(height: 8),
-          // Sort
+          if (_hasPriceBand)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.screenH,
+                AppSpacing.sm,
+                AppSpacing.screenH,
+                0,
+              ),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: InkWell(
+                  onTap: _clearPriceBand,
+                  borderRadius: AppRadius.allPill,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: config.accentColor,
+                      borderRadius: AppRadius.allPill,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            _priceBandLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTypography.label.copyWith(
+                              color: config.primaryColor,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.xs),
+                        Icon(
+                          Icons.close,
+                          size: 15,
+                          color: config.primaryColor,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.screenH,
+              AppSpacing.md,
+              AppSpacing.sm,
+              AppSpacing.sm,
+            ),
             child: Row(
               children: [
-                Text('${products.length} items', style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 12), color: Colors.grey[600])),
-                Spacer(),
-                DropdownButton<String>(
-                  value: _sortBy,
-                  underline: SizedBox(),
-                  isDense: true,
-                  items: ['Newest', 'Price: Low', 'Price: High', 'Name'].map((s) => DropdownMenuItem(value: s, child: Text(s, style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 12))))).toList(),
-                  onChanged: (v) => setState(() => _sortBy = v ?? 'Newest'),
+                Text(
+                  '${sorted.length} items',
+                  style: AppTypography.caption,
+                ),
+                const Spacer(),
+                DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _sortBy,
+                    isDense: true,
+                    borderRadius: AppRadius.allMd,
+                    icon: const Icon(Icons.expand_more, size: 20),
+                    style: AppTypography.label,
+                    items: const ['Newest', 'Price: Low', 'Price: High', 'Rating']
+                        .map(
+                          (s) => DropdownMenuItem(
+                            value: s,
+                            child: Text(s, style: AppTypography.label),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (v) =>
+                        setState(() => _sortBy = v ?? 'Newest'),
+                  ),
                 ),
               ],
             ),
           ),
-          SizedBox(height: 8),
-          // Products
           Expanded(
-            child: _isGrid
-                ? GridView.builder(
-                    padding: Responsive.padding(context),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: Responsive.crossAxisCount(context),
-                      childAspectRatio: Responsive.childAspectRatio(context),
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                    ),
-                    itemCount: products.length,
-                    itemBuilder: (context, index) => _ProductCard(product: products[index], config: config),
+            child: sorted.isEmpty
+                ? _EmptyState(
+                    onReset: () => setState(() {
+                      _selectedCategory = 'All';
+                      _priceMin = null;
+                      _priceMax = null;
+                    }),
                   )
-                : ListView.separated(
-                    padding: Responsive.padding(context),
-                    itemCount: products.length,
-                    separatorBuilder: (_, _) => SizedBox(height: 8),
-                    itemBuilder: (context, index) => _ProductListTile(product: products[index], config: config),
-                  ),
+                : _isGrid
+                    ? GridView.builder(
+                        padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.screenH,
+                          AppSpacing.xs,
+                          AppSpacing.screenH,
+                          AppSpacing.screenV,
+                        ),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: Responsive.gridColumns(context),
+                          childAspectRatio:
+                              Responsive.cardAspectRatio(context),
+                          crossAxisSpacing: AppSpacing.md,
+                          mainAxisSpacing: AppSpacing.md,
+                        ),
+                        itemCount: sorted.length,
+                        itemBuilder: (context, index) => ProductCard(
+                          product: sorted[index],
+                          primaryColor: config.primaryColor,
+                          accentColor: config.accentColor,
+                          currency: config.currencySymbol,
+                          showRating: !config.rules.showPrices,
+                          showPrice: config.rules.showPrices,
+                          liked: store.isWishlisted(sorted[index].id),
+                          onWishlist: () =>
+                              store.toggleWishlist(sorted[index].id),
+                          onTap: () =>
+                              context.push('/product/${sorted[index].id}'),
+                        ),
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.screenH,
+                          AppSpacing.xs,
+                          AppSpacing.screenH,
+                          AppSpacing.screenV,
+                        ),
+                        itemCount: sorted.length,
+                        separatorBuilder: (_, _) =>
+                            const SizedBox(height: AppSpacing.listGap),
+                        itemBuilder: (context, index) => _ProductListTile(
+                          product: sorted[index],
+                          config: config,
+                          liked: store.isWishlisted(sorted[index].id),
+                          onWishlist: () =>
+                              store.toggleWishlist(sorted[index].id),
+                          onTap: () =>
+                              context.push('/product/${sorted[index].id}'),
+                        ),
+                      ),
           ),
         ],
       ),
     );
   }
+
+  void _clearPriceBand() {
+    setState(() {
+      _priceMin = null;
+      _priceMax = null;
+    });
+  }
+
+  List<Product> _sort(List<Product> items) {
+    switch (_sortBy) {
+      case 'Price: Low':
+        return [...items]..sort((a, b) => a.price.compareTo(b.price));
+      case 'Price: High':
+        return [...items]..sort((a, b) => b.price.compareTo(a.price));
+      case 'Rating':
+        return [...items]..sort((a, b) => b.rating.compareTo(a.rating));
+      default:
+        return items;
+    }
+  }
 }
 
-class _ProductCard extends StatelessWidget {
-  final Map<String, String> product;
-  final BusinessConfig config;
-  const _ProductCard({required this.product, required this.config});
+class _EmptyState extends StatelessWidget {
+  final VoidCallback onReset;
+
+  const _EmptyState({required this.onReset});
 
   @override
   Widget build(BuildContext context) {
-    return AppCard(
-      onTap: () => context.push('/product/0'),
+    return Center(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(color: config.accentColor, borderRadius: BorderRadius.circular(8)),
-              child: Center(child: Icon(config.icon, size: 36, color: config.primaryColor.withValues(alpha: 0.5))),
-            ),
+          const Icon(Icons.search_off_rounded,
+              size: 42, color: AppPalette.textHint),
+          const SizedBox(height: AppSpacing.md),
+          Text('Nothing here yet', style: AppTypography.subtitle),
+          const SizedBox(height: AppSpacing.xs),
+          Text('Try a different category',
+              style: AppTypography.caption),
+          const SizedBox(height: AppSpacing.lg),
+          AppButton(
+            text: 'View all products',
+            type: AppButtonType.outlined,
+            onPressed: onReset,
           ),
-          const SizedBox(height: 8),
-          Text(product['name']!, style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 12), fontWeight: FontWeight.w600), maxLines: 2, overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 4),
-          Text(product['sku']!, style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 10), color: Colors.grey[500]), maxLines: 1, overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 4),
-          config.rules.showPrices
-              ? Text(product['price']!, style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 14), fontWeight: FontWeight.bold, color: config.primaryColor), maxLines: 1, overflow: TextOverflow.ellipsis)
-              : Text('Contact for Price', style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 12), fontWeight: FontWeight.bold, color: Colors.grey), maxLines: 1, overflow: TextOverflow.ellipsis),
         ],
       ),
     );
@@ -147,46 +341,133 @@ class _ProductCard extends StatelessWidget {
 }
 
 class _ProductListTile extends StatelessWidget {
-  final Map<String, String> product;
+  final Product product;
   final BusinessConfig config;
-  const _ProductListTile({required this.product, required this.config});
+  final bool liked;
+  final VoidCallback onWishlist;
+  final VoidCallback onTap;
+
+  const _ProductListTile({
+    required this.product,
+    required this.config,
+    required this.liked,
+    required this.onWishlist,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return AppCard(
-      onTap: () => context.push('/product/0'),
-      child: Row(
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(color: config.accentColor, borderRadius: BorderRadius.circular(8)),
-            child: Center(child: Icon(config.icon, size: 28, color: config.primaryColor.withValues(alpha: 0.5))),
+    final showPrice = config.rules.showPrices;
+
+    return Material(
+      color: AppPalette.surface,
+      borderRadius: AppRadius.allMd,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadius.allMd,
+        child: Ink(
+          decoration: BoxDecoration(
+            borderRadius: AppRadius.allMd,
+            border: Border.all(color: AppPalette.border),
           ),
-          SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.sm),
+            child: Row(
               children: [
-                Text(product['name']!, style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 14), fontWeight: FontWeight.w600), maxLines: 2, overflow: TextOverflow.ellipsis),
-                SizedBox(height: 4),
-                Text(product['sku']!, style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 11), color: Colors.grey[500]), maxLines: 1, overflow: TextOverflow.ellipsis),
+                SizedBox(
+                  height: 92,
+                  width: 72,
+                  child: ProductImageCarousel(
+                    images: product.images,
+                    placeholderIcon: product.icon,
+                    placeholderColor: config.accentColor,
+                    placeholderAccent: config.primaryColor,
+                    showDots: false,
+                    borderRadius: AppRadius.allSm,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        product.brand.toUpperCase(),
+                        style: AppTypography.overline.copyWith(
+                          fontSize: 9.5,
+                          color: AppPalette.textHint,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        product.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.subtitle.copyWith(fontSize: 13.5),
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      Row(
+                        children: [
+                          RatingChip(rating: product.rating),
+                          const SizedBox(width: AppSpacing.sm),
+                          Flexible(
+                            child: Text(
+                              product.deliveryLabel,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTypography.caption.copyWith(
+                                fontSize: 11,
+                                color: AppPalette.textHint,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      if (showPrice)
+                        Row(
+                          children: [
+                            Text(
+                              '${config.currencySymbol}${product.price}',
+                              style: AppTypography.price.copyWith(fontSize: 14.5),
+                            ),
+                            if (product.hasDiscount) ...[
+                              const SizedBox(width: 5),
+                              Text(
+                                '${config.currencySymbol}${product.mrp}',
+                                style: AppTypography.priceStrike
+                                    .copyWith(fontSize: 11),
+                              ),
+                              const SizedBox(width: 5),
+                              Text(
+                                '${product.discountPercent}% off',
+                                style: AppTypography.caption.copyWith(
+                                  fontSize: 11,
+                                  color: AppPalette.success,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ],
+                        )
+                      else
+                        Text(
+                          'Contact for Price',
+                          style: AppTypography.subtitle.copyWith(
+                            fontSize: 13,
+                            color: AppPalette.textSecondary,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                WishlistButton(liked: liked, onTap: onWishlist),
               ],
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              config.rules.showPrices
-                  ? Text(product['price']!, style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 14), fontWeight: FontWeight.bold, color: config.primaryColor), maxLines: 1, overflow: TextOverflow.ellipsis)
-                  : Text('Contact for Price', style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 12), fontWeight: FontWeight.bold, color: Colors.grey), maxLines: 1, overflow: TextOverflow.ellipsis),
-              SizedBox(height: 4),
-              Icon(Icons.favorite_border, size: 18, color: Colors.grey[400]),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/design_tokens.dart';
 import '../core/responsive.dart';
 
 class AppCard extends StatelessWidget {
@@ -19,7 +20,7 @@ class AppCard extends StatelessWidget {
     required this.child,
     this.padding,
     this.margin,
-    this.radius = 12,
+    this.radius = AppRadius.md,
     this.color,
     this.shadow,
     this.onTap,
@@ -31,8 +32,7 @@ class AppCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cardPadding = padding ?? Responsive.padding(context, mobile: 16);
+    final cardPadding = padding ?? const EdgeInsets.all(AppSpacing.lg);
 
     Widget card = Container(
       width: width,
@@ -40,23 +40,24 @@ class AppCard extends StatelessWidget {
       padding: cardPadding,
       margin: margin,
       decoration: BoxDecoration(
-        color: color ?? theme.cardColor,
+        color: color ?? AppPalette.surface,
         borderRadius: BorderRadius.circular(radius),
-        border: border,
+        border: border ?? const Border.fromBorderSide(BorderSide(color: AppPalette.border)),
         gradient: gradient,
-        boxShadow: shadow ?? [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        boxShadow: shadow ?? AppShadows.none,
       ),
       child: child,
     );
 
     if (onTap != null) {
-      card = GestureDetector(onTap: onTap, behavior: HitTestBehavior.opaque, child: card);
+      card = Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(radius),
+          child: card,
+        ),
+      );
     }
 
     return card;

@@ -60,7 +60,12 @@ class AppTextField extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: Responsive.fontSize(context, mobile: 13, tablet: 14, desktop: 15),
+              fontSize: Responsive.fontSize(
+                context,
+                mobile: 13,
+                tablet: 14,
+                desktop: 15,
+              ),
               fontWeight: FontWeight.w500,
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -84,7 +89,12 @@ class AppTextField extends StatelessWidget {
           textInputAction: textInputAction,
           onFieldSubmitted: onFieldSubmitted,
           style: TextStyle(
-            fontSize: Responsive.fontSize(context, mobile: 14, tablet: 15, desktop: 16),
+            fontSize: Responsive.fontSize(
+              context,
+              mobile: 14,
+              tablet: 15,
+              desktop: 16,
+            ),
           ),
           decoration: InputDecoration(
             hintText: hint,
@@ -95,8 +105,13 @@ class AppTextField extends StatelessWidget {
             filled: true,
             fillColor: enabled
                 ? Theme.of(context).colorScheme.surface
-                : Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                : Theme.of(
+                    context,
+                  ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide(color: Theme.of(context).dividerColor),
@@ -107,15 +122,23 @@ class AppTextField extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2),
+              borderSide: BorderSide(
+                color: Theme.of(context).primaryColor,
+                width: 2,
+              ),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Theme.of(context).colorScheme.error),
+              borderSide: BorderSide(
+                color: Theme.of(context).colorScheme.error,
+              ),
             ),
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Theme.of(context).colorScheme.error, width: 2),
+              borderSide: BorderSide(
+                color: Theme.of(context).colorScheme.error,
+                width: 2,
+              ),
             ),
           ),
         ),
@@ -165,8 +188,12 @@ class AppSearchField extends StatelessWidget {
               color: Theme.of(context).primaryColor,
             ),
             style: IconButton.styleFrom(
-              backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              backgroundColor: Theme.of(
+                context,
+              ).primaryColor.withValues(alpha: 0.1),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
           ),
         ],
@@ -208,14 +235,19 @@ class AppDropdown<T> extends StatelessWidget {
           Text(
             label!,
             style: TextStyle(
-              fontSize: Responsive.fontSize(context, mobile: 13, tablet: 14, desktop: 15),
+              fontSize: Responsive.fontSize(
+                context,
+                mobile: 13,
+                tablet: 14,
+                desktop: 15,
+              ),
               fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(height: 8),
         ],
         DropdownButtonFormField<T>(
-          value: value,
+          initialValue: value,
           items: items,
           onChanged: onChanged,
           validator: validator,
@@ -226,7 +258,10 @@ class AppDropdown<T> extends StatelessWidget {
             prefixIcon: prefixIcon,
             filled: true,
             fillColor: Theme.of(context).colorScheme.surface,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide(color: Theme.of(context).dividerColor),
@@ -237,7 +272,10 @@ class AppDropdown<T> extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2),
+              borderSide: BorderSide(
+                color: Theme.of(context).primaryColor,
+                width: 2,
+              ),
             ),
           ),
         ),
@@ -245,4 +283,3 @@ class AppDropdown<T> extends StatelessWidget {
     );
   }
 }
-

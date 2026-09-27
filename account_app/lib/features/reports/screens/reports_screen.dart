@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/responsive.dart';
-import '../../../shared/widgets/widgets.dart';
+import 'package:common_widgets/common_widgets.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -21,6 +20,24 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Future<void> _loadData() async {
     await Future.delayed(const Duration(seconds: 2));
     if (mounted) setState(() => _isLoading = false);
+  }
+
+  void _openReport(String title, String description) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(title),
+        content: Text(
+          '$description\n\nChoose a date range from the report filters when the accounting data service is connected.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -56,14 +73,54 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   Widget _buildReportCategories() {
     final categories = [
-      {'title': 'Sales Register', 'icon': Icons.shopping_cart, 'color': Colors.green, 'desc': 'View all sales invoices'},
-      {'title': 'Purchase Register', 'icon': Icons.shopping_bag, 'color': Colors.blue, 'desc': 'View all purchase bills'},
-      {'title': 'GST Reports', 'icon': Icons.receipt, 'color': Colors.purple, 'desc': 'GSTR-1, GSTR-3B, etc.'},
-      {'title': 'Ledger Summary', 'icon': Icons.book, 'color': Colors.teal, 'desc': 'Customer & Supplier Ledger'},
-      {'title': 'Stock Summary', 'icon': Icons.inventory, 'color': Colors.orange, 'desc': 'Current Stock Report'},
-      {'title': 'Outstanding', 'icon': Icons.people, 'color': Colors.red, 'desc': 'Receivables & Payables'},
-      {'title': 'Profit & Loss', 'icon': Icons.trending_up, 'color': Colors.green, 'desc': 'P&L Statement Report'},
-      {'title': 'Balance Sheet', 'icon': Icons.account_balance, 'color': Colors.blue, 'desc': 'Financial Position'},
+      {
+        'title': 'Sales Register',
+        'icon': Icons.shopping_cart,
+        'color': Colors.green,
+        'desc': 'View all sales invoices',
+      },
+      {
+        'title': 'Purchase Register',
+        'icon': Icons.shopping_bag,
+        'color': Colors.blue,
+        'desc': 'View all purchase bills',
+      },
+      {
+        'title': 'GST Reports',
+        'icon': Icons.receipt,
+        'color': Colors.purple,
+        'desc': 'GSTR-1, GSTR-3B, etc.',
+      },
+      {
+        'title': 'Ledger Summary',
+        'icon': Icons.book,
+        'color': Colors.teal,
+        'desc': 'Customer & Supplier Ledger',
+      },
+      {
+        'title': 'Stock Summary',
+        'icon': Icons.inventory,
+        'color': Colors.orange,
+        'desc': 'Current Stock Report',
+      },
+      {
+        'title': 'Outstanding',
+        'icon': Icons.people,
+        'color': Colors.red,
+        'desc': 'Receivables & Payables',
+      },
+      {
+        'title': 'Profit & Loss',
+        'icon': Icons.trending_up,
+        'color': Colors.green,
+        'desc': 'P&L Statement Report',
+      },
+      {
+        'title': 'Balance Sheet',
+        'icon': Icons.account_balance,
+        'color': Colors.blue,
+        'desc': 'Financial Position',
+      },
     ];
 
     return AppCard(
@@ -85,23 +142,38 @@ class _ReportsScreenState extends State<ReportsScreen> {
             itemBuilder: (context, index) {
               final cat = categories[index];
               return AppCard(
-                onTap: () {},
+                onTap: () =>
+                    _openReport(cat['title'] as String, cat['desc'] as String),
                 padding: Responsive.padding(context, mobile: 10),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
-                      width: Responsive.spacing(context, mobile: 40), height: Responsive.spacing(context, mobile: 40),
+                      width: Responsive.spacing(context, mobile: 40),
+                      height: Responsive.spacing(context, mobile: 40),
                       decoration: BoxDecoration(
                         color: (cat['color'] as Color).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Icon(cat['icon'] as IconData, color: cat['color'] as Color, size: 20),
+                      child: Icon(
+                        cat['icon'] as IconData,
+                        color: cat['color'] as Color,
+                        size: 20,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Flexible(
-                      child: Text(cat['title'] as String, textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w600, fontSize: Responsive.fontSize(context, mobile: 11)), maxLines: 2, overflow: TextOverflow.ellipsis),
+                      child: Text(
+                        cat['title'] as String,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: Responsive.fontSize(context, mobile: 11),
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
                 ),
@@ -136,7 +208,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       title: title,
       leading: Icon(icon, color: Theme.of(context).primaryColor),
       trailing: Icon(Icons.chevron_right, color: Colors.grey[400]),
-      onTap: () {},
+      onTap: () => _openReport(title, 'Preview of $title'),
       showDivider: true,
     );
   }

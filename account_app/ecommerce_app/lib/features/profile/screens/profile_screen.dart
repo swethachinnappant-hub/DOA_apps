@@ -24,7 +24,14 @@ class ProfileScreen extends StatelessWidget {
                 CircleAvatar(
                   radius: 30,
                   backgroundColor: config.primaryColor,
-                  child: Text('CA', style: TextStyle(fontSize: 20, color: Colors.white, fontWeight: FontWeight.bold)),
+                  child: Text(
+                    'CA',
+                    style: TextStyle(
+                      fontSize: 20,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
                 SizedBox(width: 16),
                 Expanded(
@@ -32,13 +39,46 @@ class ProfileScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text('Chirag Associates', style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 16), fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
-                      Text('Rajkot, Gujarat', style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 12), color: Colors.grey[600]), maxLines: 1, overflow: TextOverflow.ellipsis),
-                      Text('GSTIN: 24AABCC1234D1ZD', style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 11), color: Colors.grey[500]), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      Text(
+                        'Chirag Associates',
+                        style: TextStyle(
+                          fontSize: Responsive.fontSize(context, mobile: 16),
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        'Rajkot, Gujarat',
+                        style: TextStyle(
+                          fontSize: Responsive.fontSize(context, mobile: 12),
+                          color: Colors.grey[600],
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        'GSTIN: 24AABCC1234D1ZD',
+                        style: TextStyle(
+                          fontSize: Responsive.fontSize(context, mobile: 11),
+                          color: Colors.grey[500],
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ],
                   ),
                 ),
-                IconButton(icon: Icon(Icons.edit_outlined, color: config.primaryColor), onPressed: () {}),
+                IconButton(
+                  icon: Icon(Icons.edit_outlined, color: config.primaryColor),
+                  tooltip: 'Edit profile',
+                  onPressed: () => AppDialog.info(
+                    context,
+                    title: 'Edit profile',
+                    message:
+                        'Profile changes are managed by your business administrator in this preview.',
+                  ),
+                ),
               ],
             ),
           ),
@@ -48,15 +88,36 @@ class ProfileScreen extends StatelessWidget {
           SectionHeader(title: 'Account', padding: EdgeInsets.only(top: 16)),
           SizedBox(height: Responsive.spacing(context, mobile: 12)),
           _menuItem(context, Icons.person_outline, 'Edit Profile', config),
-          _menuItem(context, Icons.location_on_outlined, 'Manage Addresses', config),
+          _menuItem(
+            context,
+            Icons.location_on_outlined,
+            'Manage Addresses',
+            config,
+          ),
           _menuItem(context, Icons.payment_outlined, 'Payment Methods', config),
-          _menuItem(context, Icons.receipt_long_outlined, 'Invoice History', config),
+          _menuItem(
+            context,
+            Icons.receipt_long_outlined,
+            'Invoice History',
+            config,
+          ),
           SizedBox(height: Responsive.spacing(context, mobile: 20)),
 
           SectionHeader(title: 'Settings', padding: EdgeInsets.only(top: 16)),
           SizedBox(height: Responsive.spacing(context, mobile: 12)),
-          _menuItem(context, Icons.security, 'Business Rules', config, onTap: () => context.push('/business-rules')),
-          _menuItem(context, Icons.notifications_outlined, 'Notifications', config),
+          _menuItem(
+            context,
+            Icons.security,
+            'Business Rules',
+            config,
+            onTap: () => context.push('/business-rules'),
+          ),
+          _menuItem(
+            context,
+            Icons.notifications_outlined,
+            'Notifications',
+            config,
+          ),
           _menuItem(context, Icons.language, 'Language', config),
           _menuItem(context, Icons.help_outline, 'Help & Support', config),
           _menuItem(context, Icons.info_outline, 'About', config),
@@ -82,16 +143,39 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _menuItem(BuildContext context, IconData icon, String title, BusinessConfig config, {VoidCallback? onTap}) {
+  Widget _menuItem(
+    BuildContext context,
+    IconData icon,
+    String title,
+    BusinessConfig config, {
+    VoidCallback? onTap,
+  }) {
     return Padding(
       padding: EdgeInsets.only(bottom: 8),
       child: AppCard(
-        onTap: onTap ?? () {},
+        onTap:
+            onTap ??
+            () => AppDialog.info(
+              context,
+              title: title,
+              message:
+                  'This account section is not connected to a business data service yet.',
+            ),
         child: Row(
           children: [
             Icon(icon, color: config.primaryColor, size: 22),
             SizedBox(width: 12),
-            Expanded(child: Text(title, style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 14), fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis)),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: Responsive.fontSize(context, mobile: 14),
+                  fontWeight: FontWeight.w500,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
             Icon(Icons.chevron_right, color: Colors.grey[400]),
           ],
         ),

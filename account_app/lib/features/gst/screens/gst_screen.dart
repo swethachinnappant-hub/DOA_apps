@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/responsive.dart';
-import '../../../shared/widgets/widgets.dart';
+import 'package:common_widgets/common_widgets.dart';
 
 class GstScreen extends StatefulWidget {
   const GstScreen({super.key});

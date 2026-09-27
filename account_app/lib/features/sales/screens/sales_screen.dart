@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/responsive.dart';
-import '../../../shared/widgets/widgets.dart';
+import 'package:common_widgets/common_widgets.dart';
 
 class SalesScreen extends StatefulWidget {
   const SalesScreen({super.key});
@@ -11,6 +10,9 @@ class SalesScreen extends StatefulWidget {
 
 class _SalesScreenState extends State<SalesScreen> {
   bool _isLoading = true;
+  String _query = '';
+  String _statusFilter = 'All';
+  final List<Map<String, String>> _addedSales = [];
 
   @override
   void initState() {
@@ -66,56 +68,155 @@ class _SalesScreenState extends State<SalesScreen> {
   Widget _buildSearchBar() {
     return AppSearchField(
       hint: 'Search by invoice number, customer...',
-      onFilterPressed: () {},
+      onChanged: (value) => setState(() => _query = value.trim().toLowerCase()),
+      onFilterPressed: _chooseStatus,
+    );
+  }
+
+  Future<void> _chooseStatus() async {
+    final status = await showModalBottomSheet<String>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final option in ['All', 'Paid', 'Pending'])
+              ListTile(
+                title: Text(option),
+                trailing: option == _statusFilter
+                    ? const Icon(Icons.check)
+                    : null,
+                onTap: () => Navigator.pop(sheetContext, option),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (status != null) setState(() => _statusFilter = status);
+  }
+
+  void _showSaleDetails(Map<String, dynamic> sale) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(sale['invoiceNo'] as String),
+        content: Text(
+          'Customer: ${sale['customer']}\nDate: ${sale['date']}\nAmount: ${sale['amount']}\nStatus: ${sale['status']}',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildStatsRow() {
     return Row(
       children: [
-        Expanded(child: InfoCard(title: "Today's Sales", value: '₹1,25,000', color: Colors.green, icon: Icons.trending_up)),
+        Expanded(
+          child: InfoCard(
+            title: "Today's Sales",
+            value: '₹1,25,000',
+            color: Colors.green,
+            icon: Icons.trending_up,
+          ),
+        ),
         const SizedBox(width: 12),
-        Expanded(child: InfoCard(title: 'This Month', value: '₹12,45,000', color: Colors.blue, icon: Icons.calendar_month)),
+        Expanded(
+          child: InfoCard(
+            title: 'This Month',
+            value: '₹12,45,000',
+            color: Colors.blue,
+            icon: Icons.calendar_month,
+          ),
+        ),
         const SizedBox(width: 12),
-        Expanded(child: InfoCard(title: 'Pending', value: '₹3,25,000', color: Colors.orange, icon: Icons.pending)),
+        Expanded(
+          child: InfoCard(
+            title: 'Pending',
+            value: '₹3,25,000',
+            color: Colors.orange,
+            icon: Icons.pending,
+          ),
+        ),
       ],
     );
   }
 
   Widget _buildSalesList() {
     final sales = [
-      {'invoiceNo': 'INV/24-25/001', 'customer': 'Client A', 'amount': '₹25,000', 'status': 'Paid', 'date': '11/07/2025'},
-      {'invoiceNo': 'INV/24-25/002', 'customer': 'Client B', 'amount': '₹18,500', 'status': 'Pending', 'date': '10/07/2025'},
-      {'invoiceNo': 'INV/24-25/003', 'customer': 'Client C', 'amount': '₹32,000', 'status': 'Paid', 'date': '09/07/2025'},
-      {'invoiceNo': 'INV/24-25/004', 'customer': 'Client D', 'amount': '₹15,750', 'status': 'Pending', 'date': '08/07/2025'},
+      {
+        'invoiceNo': 'INV/24-25/001',
+        'customer': 'Client A',
+        'amount': '₹25,000',
+        'status': 'Paid',
+        'date': '11/07/2025',
+      },
+      {
+        'invoiceNo': 'INV/24-25/002',
+        'customer': 'Client B',
+        'amount': '₹18,500',
+        'status': 'Pending',
+        'date': '10/07/2025',
+      },
+      {
+        'invoiceNo': 'INV/24-25/003',
+        'customer': 'Client C',
+        'amount': '₹32,000',
+        'status': 'Paid',
+        'date': '09/07/2025',
+      },
+      {
+        'invoiceNo': 'INV/24-25/004',
+        'customer': 'Client D',
+        'amount': '₹15,750',
+        'status': 'Pending',
+        'date': '08/07/2025',
+      },
     ];
+    sales.insertAll(0, _addedSales);
+    final visibleSales = sales
+        .where(
+          (sale) =>
+              '${sale['invoiceNo']} ${sale['customer']}'.toLowerCase().contains(
+                _query,
+              ) &&
+              (_statusFilter == 'All' || sale['status'] == _statusFilter),
+        )
+        .toList();
 
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SectionHeader(
-            title: 'Recent Sales',
-            trailing: TextButton(onPressed: () {}, child: const Text('View All')),
-          ),
+          SectionHeader(title: 'Recent Sales'),
           const SizedBox(height: 8),
-          ...sales.map((s) => AmountListTile(
-                title: s['invoiceNo']!,
-                subtitle: '${s['customer']} • ${s['date']}',
-                amount: s['amount']!,
-                status: s['status'],
-                statusColor: _getStatusColor(s['status']!),
-                leading: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(Icons.receipt, color: Theme.of(context).primaryColor, size: 20),
+          ...visibleSales.map(
+            (s) => AmountListTile(
+              title: s['invoiceNo']!,
+              subtitle: '${s['customer']} • ${s['date']}',
+              amount: s['amount']!,
+              status: s['status'],
+              statusColor: _getStatusColor(s['status']!),
+              leading: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                onTap: () {},
-              )),
+                child: Icon(
+                  Icons.receipt,
+                  color: Theme.of(context).primaryColor,
+                  size: 20,
+                ),
+              ),
+              onTap: () => _showSaleDetails(s),
+            ),
+          ),
         ],
       ),
     );
@@ -123,46 +224,116 @@ class _SalesScreenState extends State<SalesScreen> {
 
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
-      case 'paid': return Colors.green;
-      case 'pending': return Colors.orange;
-      default: return Colors.grey;
+      case 'paid':
+        return Colors.green;
+      case 'pending':
+        return Colors.orange;
+      default:
+        return Colors.grey;
     }
   }
 
-  void _showAddSaleDialog() {
-    AppDialog.bottomSheet(
+  Future<void> _showAddSaleDialog() async {
+    final customer = TextEditingController();
+    final invoice = TextEditingController();
+    final date = TextEditingController(
+      text: MaterialLocalizations.of(context).formatShortDate(DateTime.now()),
+    );
+    final amount = TextEditingController();
+    await AppDialog.bottomSheet(
       context,
       title: 'New Sales Entry',
       content: Column(
         children: [
-          AppDropdown<String>(
+          AppTextField(
             label: 'Customer',
-            hint: 'Select Customer',
-            items: const [],
-            onChanged: (_) {},
+            hint: 'Customer name',
+            controller: customer,
           ),
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: AppTextField(label: 'Invoice No.', hint: 'INV-000123')),
+              Expanded(
+                child: AppTextField(
+                  label: 'Invoice No.',
+                  hint: 'INV-000123',
+                  controller: invoice,
+                ),
+              ),
               const SizedBox(width: 16),
-              Expanded(child: AppTextField(label: 'Date', hint: '11/07/2025')),
+              Expanded(
+                child: AppTextField(
+                  label: 'Date',
+                  hint: '11/07/2025',
+                  controller: date,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
-          AppTextField(label: 'Items', hint: 'Add Items'),
+          AppTextField(label: 'Items', hint: 'Item description'),
           const SizedBox(height: 16),
-          AppTextField(label: 'Total Amount', hint: '₹0.00'),
+          AppTextField(
+            label: 'Total Amount',
+            hint: 'Amount in INR',
+            controller: amount,
+            keyboardType: TextInputType.number,
+          ),
           const SizedBox(height: 24),
           Row(
             children: [
-              Expanded(child: AppButton(text: 'Cancel', type: AppButtonType.outlined, onPressed: () => Navigator.pop(context))),
+              Expanded(
+                child: AppButton(
+                  text: 'Cancel',
+                  type: AppButtonType.outlined,
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
               const SizedBox(width: 16),
-              Expanded(child: AppButton(text: 'Save & Submit', onPressed: () => Navigator.pop(context))),
+              Expanded(
+                child: AppButton(
+                  text: 'Save & Submit',
+                  onPressed: () {
+                    final value = double.tryParse(
+                      amount.text.replaceAll(',', '').trim(),
+                    );
+                    if (customer.text.trim().isEmpty ||
+                        invoice.text.trim().isEmpty ||
+                        value == null ||
+                        value <= 0) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Enter a customer, invoice number and valid amount',
+                          ),
+                        ),
+                      );
+                      return;
+                    }
+                    setState(
+                      () => _addedSales.insert(0, {
+                        'invoiceNo': invoice.text.trim(),
+                        'customer': customer.text.trim(),
+                        'amount': '\u20B9${value.toStringAsFixed(2)}',
+                        'status': 'Pending',
+                        'date': date.text.trim(),
+                      }),
+                    );
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(const SnackBar(content: Text('Sale saved')));
+                  },
+                ),
+              ),
             ],
           ),
         ],
       ),
     );
+    customer.dispose();
+    invoice.dispose();
+    date.dispose();
+    amount.dispose();
   }
 }

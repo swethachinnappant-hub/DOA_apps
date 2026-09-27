@@ -250,10 +250,6 @@ class NavigationShell extends StatelessWidget {
                 ],
               ),
             ),
-            IconButton(
-              icon: const Icon(Icons.logout, color: Colors.white, size: 20),
-              onPressed: () {},
-            ),
           ],
         ],
       ),

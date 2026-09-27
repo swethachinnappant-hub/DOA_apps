@@ -60,11 +60,11 @@ class Responsive {
     final type = getDeviceType(context);
     switch (type) {
       case DeviceType.desktop:
-        return 1.4;
+        return 0.82;
       case DeviceType.tablet:
-        return 1.2;
+        return 0.72;
       case DeviceType.mobile:
-        return 1.0;
+        return 0.62;
     }
   }
 

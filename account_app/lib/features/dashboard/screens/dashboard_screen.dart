@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../../../core/responsive.dart';
-import '../../../shared/widgets/widgets.dart';
+import 'package:common_widgets/common_widgets.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -72,7 +71,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Text(
                   'Welcome Back!',
                   style: TextStyle(
-                    fontSize: Responsive.fontSize(context, mobile: 16, tablet: 18, desktop: 20),
+                    fontSize: Responsive.fontSize(
+                      context,
+                      mobile: 16,
+                      tablet: 18,
+                      desktop: 20,
+                    ),
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
@@ -83,7 +87,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Text(
                   'Here\'s what\'s happening today',
                   style: TextStyle(
-                    fontSize: Responsive.fontSize(context, mobile: 11, tablet: 12),
+                    fontSize: Responsive.fontSize(
+                      context,
+                      mobile: 11,
+                      tablet: 12,
+                    ),
                     color: Colors.white70,
                   ),
                   maxLines: 1,
@@ -100,7 +108,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             child: const Text(
               'Online',
-              style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.w600, fontSize: 10),
+              style: TextStyle(
+                color: Colors.greenAccent,
+                fontWeight: FontWeight.w600,
+                fontSize: 10,
+              ),
             ),
           ),
         ],
@@ -110,12 +122,54 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildStatsGrid() {
     final stats = [
-      {'title': 'Total Sales', 'value': '₹12,45,000', 'icon': Icons.trending_up, 'color': Colors.green, 'change': '+12.5%', 'isPositive': true},
-      {'title': 'Total Purchases', 'value': '₹8,75,000', 'icon': Icons.shopping_bag, 'color': Colors.blue, 'change': '+8.2%', 'isPositive': true},
-      {'title': 'Bank Balance', 'value': '₹2,15,000', 'icon': Icons.account_balance, 'color': Colors.purple, 'change': '+5.1%', 'isPositive': true},
-      {'title': 'Cash in Hand', 'value': '₹1,35,000', 'icon': Icons.payments, 'color': Colors.teal, 'change': '+3.8%', 'isPositive': true},
-      {'title': 'Debtors', 'value': '₹3,25,000', 'icon': Icons.people, 'color': Colors.orange, 'change': '-2.3%', 'isPositive': false},
-      {'title': 'Creditors', 'value': '₹2,45,000', 'icon': Icons.people_outline, 'color': Colors.red, 'change': '+1.5%', 'isPositive': true},
+      {
+        'title': 'Total Sales',
+        'value': '₹12,45,000',
+        'icon': Icons.trending_up,
+        'color': Colors.green,
+        'change': '+12.5%',
+        'isPositive': true,
+      },
+      {
+        'title': 'Total Purchases',
+        'value': '₹8,75,000',
+        'icon': Icons.shopping_bag,
+        'color': Colors.blue,
+        'change': '+8.2%',
+        'isPositive': true,
+      },
+      {
+        'title': 'Bank Balance',
+        'value': '₹2,15,000',
+        'icon': Icons.account_balance,
+        'color': Colors.purple,
+        'change': '+5.1%',
+        'isPositive': true,
+      },
+      {
+        'title': 'Cash in Hand',
+        'value': '₹1,35,000',
+        'icon': Icons.payments,
+        'color': Colors.teal,
+        'change': '+3.8%',
+        'isPositive': true,
+      },
+      {
+        'title': 'Debtors',
+        'value': '₹3,25,000',
+        'icon': Icons.people,
+        'color': Colors.orange,
+        'change': '-2.3%',
+        'isPositive': false,
+      },
+      {
+        'title': 'Creditors',
+        'value': '₹2,45,000',
+        'icon': Icons.people_outline,
+        'color': Colors.red,
+        'change': '+1.5%',
+        'isPositive': true,
+      },
     ];
 
     return GridView.builder(
@@ -168,20 +222,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           SectionHeader(title: 'Sales Trend'),
           SizedBox(
-            height: Responsive.maxValue(context, mobile: 200, tablet: 250, desktop: 300),
+            height: Responsive.maxValue(
+              context,
+              mobile: 200,
+              tablet: 250,
+              desktop: 300,
+            ),
             child: LineChart(
               LineChartData(
                 gridData: const FlGridData(show: true),
                 titlesData: FlTitlesData(
-                  leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 40)),
-                  bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 30)),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(showTitles: true, reservedSize: 40),
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(showTitles: true, reservedSize: 30),
+                  ),
                 ),
                 borderData: FlBorderData(show: true),
                 lineBarsData: [
                   LineChartBarData(
                     spots: const [
-                      FlSpot(0, 3), FlSpot(1, 5), FlSpot(2, 4),
-                      FlSpot(3, 7), FlSpot(4, 6), FlSpot(5, 8), FlSpot(6, 9),
+                      FlSpot(0, 3),
+                      FlSpot(1, 5),
+                      FlSpot(2, 4),
+                      FlSpot(3, 7),
+                      FlSpot(4, 6),
+                      FlSpot(5, 8),
+                      FlSpot(6, 9),
                     ],
                     isCurved: true,
                     color: Theme.of(context).primaryColor,
@@ -189,7 +257,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     dotData: const FlDotData(show: true),
                     belowBarData: BarAreaData(
                       show: true,
-                      color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                      color: Theme.of(
+                        context,
+                      ).primaryColor.withValues(alpha: 0.1),
                     ),
                   ),
                 ],
@@ -230,7 +300,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     width: 28,
                     height: 28,
                     decoration: BoxDecoration(
-                      color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                      color: Theme.of(
+                        context,
+                      ).primaryColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Center(
@@ -249,7 +321,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     child: Text(
                       entry.value['name']!,
                       style: TextStyle(
-                        fontSize: Responsive.fontSize(context, mobile: 13, tablet: 14),
+                        fontSize: Responsive.fontSize(
+                          context,
+                          mobile: 13,
+                          tablet: 14,
+                        ),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -260,7 +336,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     child: Text(
                       entry.value['amount']!,
                       style: TextStyle(
-                        fontSize: Responsive.fontSize(context, mobile: 13, tablet: 14),
+                        fontSize: Responsive.fontSize(
+                          context,
+                          mobile: 13,
+                          tablet: 14,
+                        ),
                         fontWeight: FontWeight.w600,
                       ),
                       maxLines: 1,
@@ -278,37 +358,64 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildRecentTransactions() {
     final transactions = [
-      {'type': 'Sales', 'party': 'Client A', 'amount': '₹25,000', 'status': 'Paid', 'date': '11/07/2025'},
-      {'type': 'Purchase', 'party': 'Vendor B', 'amount': '₹18,500', 'status': 'Pending', 'date': '10/07/2025'},
-      {'type': 'Sales', 'party': 'Client C', 'amount': '₹32,000', 'status': 'Paid', 'date': '09/07/2025'},
-      {'type': 'Bank', 'party': 'Cheque Issue', 'amount': '₹15,000', 'status': 'Completed', 'date': '09/07/2025'},
+      {
+        'type': 'Sales',
+        'party': 'Client A',
+        'amount': '₹25,000',
+        'status': 'Paid',
+        'date': '11/07/2025',
+      },
+      {
+        'type': 'Purchase',
+        'party': 'Vendor B',
+        'amount': '₹18,500',
+        'status': 'Pending',
+        'date': '10/07/2025',
+      },
+      {
+        'type': 'Sales',
+        'party': 'Client C',
+        'amount': '₹32,000',
+        'status': 'Paid',
+        'date': '09/07/2025',
+      },
+      {
+        'type': 'Bank',
+        'party': 'Cheque Issue',
+        'amount': '₹15,000',
+        'status': 'Completed',
+        'date': '09/07/2025',
+      },
     ];
 
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SectionHeader(
-            title: 'Recent Transactions',
-            trailing: TextButton(onPressed: () {}, child: const Text('View All')),
-          ),
+          const SectionHeader(title: 'Recent Transactions'),
           const SizedBox(height: 12),
-          ...transactions.map((t) => AmountListTile(
-                title: t['party']!,
-                subtitle: '${t['type']} • ${t['date']}',
-                amount: t['amount']!,
-                status: t['status'],
-                statusColor: _getStatusColor(t['status']!),
-                leading: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: _getStatusColor(t['status']!).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(_getTransactionIcon(t['type']!), color: _getStatusColor(t['status']!), size: 20),
+          ...transactions.map(
+            (t) => AmountListTile(
+              title: t['party']!,
+              subtitle: '${t['type']} • ${t['date']}',
+              amount: t['amount']!,
+              status: t['status'],
+              statusColor: _getStatusColor(t['status']!),
+              leading: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: _getStatusColor(t['status']!).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-              )),
+                child: Icon(
+                  _getTransactionIcon(t['type']!),
+                  color: _getStatusColor(t['status']!),
+                  size: 20,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -316,18 +423,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
-      case 'paid': case 'completed': return Colors.green;
-      case 'pending': return Colors.orange;
-      default: return Colors.grey;
+      case 'paid':
+      case 'completed':
+        return Colors.green;
+      case 'pending':
+        return Colors.orange;
+      default:
+        return Colors.grey;
     }
   }
 
   IconData _getTransactionIcon(String type) {
     switch (type.toLowerCase()) {
-      case 'sales': return Icons.trending_up;
-      case 'purchase': return Icons.shopping_bag;
-      case 'bank': return Icons.account_balance;
-      default: return Icons.receipt;
+      case 'sales':
+        return Icons.trending_up;
+      case 'purchase':
+        return Icons.shopping_bag;
+      case 'bank':
+        return Icons.account_balance;
+      default:
+        return Icons.receipt;
     }
   }
 }

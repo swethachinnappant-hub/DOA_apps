@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:common_widgets/common_widgets.dart';
 
 enum BusinessType {
   jewellery,
@@ -88,6 +89,20 @@ class BusinessRules {
   };
 }
 
+class ColorPaletteOption {
+  final String name;
+  final Color primary;
+  final Color secondary;
+  final Color accent;
+
+  const ColorPaletteOption({
+    required this.name,
+    required this.primary,
+    required this.secondary,
+    required this.accent,
+  });
+}
+
 class BusinessConfig {
   final BusinessType type;
   final String name;
@@ -121,15 +136,20 @@ class BusinessConfig {
     this.rules = const BusinessRules(),
   });
 
-  BusinessConfig copyWith({BusinessRules? rules}) {
+  BusinessConfig copyWith({
+    BusinessRules? rules,
+    Color? primaryColor,
+    Color? secondaryColor,
+    Color? accentColor,
+  }) {
     return BusinessConfig(
       type: type,
       name: name,
       tagline: tagline,
       icon: icon,
-      primaryColor: primaryColor,
-      secondaryColor: secondaryColor,
-      accentColor: accentColor,
+      primaryColor: primaryColor ?? this.primaryColor,
+      secondaryColor: secondaryColor ?? this.secondaryColor,
+      accentColor: accentColor ?? this.accentColor,
       categories: categories,
       categoryIcons: categoryIcons,
       productFields: productFields,
@@ -139,6 +159,16 @@ class BusinessConfig {
       rules: rules ?? this.rules,
     );
   }
+
+  BusinessConfig get defaults => BusinessConfig.configs[type]!;
+
+  bool get hasCustomColors =>
+      primaryColor != defaults.primaryColor ||
+      secondaryColor != defaults.secondaryColor ||
+      accentColor != defaults.accentColor;
+
+  Color get onPrimaryColor =>
+      primaryColor.computeLuminance() > 0.55 ? Colors.black : Colors.white;
 
   static const Map<BusinessType, BusinessConfig> configs = {
     BusinessType.jewellery: BusinessConfig(
@@ -390,55 +420,41 @@ class BusinessConfig {
 
   static List<BusinessType> get allTypes => BusinessType.values;
 
-  ThemeData getTheme({Brightness brightness = Brightness.light}) {
-    final isLight = brightness == Brightness.light;
-    return ThemeData(
-      useMaterial3: true,
-      brightness: brightness,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: primaryColor,
-        brightness: brightness,
-        primary: primaryColor,
-        secondary: secondaryColor,
-      ),
-      scaffoldBackgroundColor: isLight ? const Color(0xFFF8F9FA) : const Color(0xFF121212),
-      appBarTheme: AppBarTheme(
-        backgroundColor: primaryColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-      ),
-      cardTheme: CardThemeData(
-        elevation: 0,
-        color: isLight ? Colors.white : const Color(0xFF1E1E1E),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: isLight ? Colors.white : const Color(0xFF1E1E1E),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: isLight ? const Color(0xFFE0E0E0) : const Color(0xFF333333)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: isLight ? const Color(0xFFE0E0E0) : const Color(0xFF333333)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: primaryColor, width: 2),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: primaryColor,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          elevation: 0,
-        ),
-      ),
+  /// Curated brand palettes.
+  ///
+  /// Chosen to feel expensive rather than garish: deep jewel tones for the
+  /// primary, a lighter harmonious partner for secondary, and a tinted
+  /// off-white accent used for image wells and soft surfaces. Every
+  /// `primary` is dark enough to carry white text, so buttons and badges stay
+  /// legible.
+  static const List<ColorPaletteOption> colorOptions = [
+    // Classic luxury
+    ColorPaletteOption(name: 'Royal Gold', primary: Color(0xFF8B6914), secondary: Color(0xFFD4A843), accent: Color(0xFFF7EDD8)),
+    ColorPaletteOption(name: 'Champagne', primary: Color(0xFF7A6432), secondary: Color(0xFFE0CDA0), accent: Color(0xFFFBF6EA)),
+    ColorPaletteOption(name: 'Antique Bronze', primary: Color(0xFF6B4A2A), secondary: Color(0xFFBE8F5A), accent: Color(0xFFF6EDE2)),
+    ColorPaletteOption(name: 'Midnight Navy', primary: Color(0xFF1E3A5F), secondary: Color(0xFF3B82F6), accent: Color(0xFFEBF1F9)),
+    ColorPaletteOption(name: 'Sapphire', primary: Color(0xFF1D4ED8), secondary: Color(0xFF60A5FA), accent: Color(0xFFE8EFFE)),
+    ColorPaletteOption(name: 'Deep Maroon', primary: Color(0xFF7F1D3A), secondary: Color(0xFFC2185B), accent: Color(0xFFFBE9EF)),
+    ColorPaletteOption(name: 'Royal Purple', primary: Color(0xFF5B21B6), secondary: Color(0xFF8B5CF6), accent: Color(0xFFF0E9FD)),
+    ColorPaletteOption(name: 'Plum Velvet', primary: Color(0xFF4A1942), secondary: Color(0xFF9B3E77), accent: Color(0xFFF7EAF2)),
+    ColorPaletteOption(name: 'Emerald', primary: Color(0xFF065F46), secondary: Color(0xFF10B981), accent: Color(0xFFDCF2E9)),
+    ColorPaletteOption(name: 'Teal', primary: Color(0xFF0F766E), secondary: Color(0xFF2DD4BF), accent: Color(0xFFDAF3F1)),
+    ColorPaletteOption(name: 'Forest Ink', primary: Color(0xFF1F3A2E), secondary: Color(0xFF4F7A5F), accent: Color(0xFFEAF2EC)),
+    ColorPaletteOption(name: 'Copper', primary: Color(0xFF9A3412), secondary: Color(0xFFF97316), accent: Color(0xFFFDEEE2)),
+    ColorPaletteOption(name: 'Rose Quartz', primary: Color(0xFF9D174D), secondary: Color(0xFFF472B6), accent: Color(0xFFFCE8F2)),
+    ColorPaletteOption(name: 'Blush', primary: Color(0xFF9F1239), secondary: Color(0xFFFDA4AF), accent: Color(0xFFFDEEF1)),
+    // Modern neutrals
+    ColorPaletteOption(name: 'Onyx', primary: Color(0xFF111827), secondary: Color(0xFF6B7280), accent: Color(0xFFEEF0F3)),
+    ColorPaletteOption(name: 'Graphite', primary: Color(0xFF374151), secondary: Color(0xFF9CA3AF), accent: Color(0xFFF1F2F4)),
+    ColorPaletteOption(name: 'Warm Taupe', primary: Color(0xFF57534E), secondary: Color(0xFFA8A29E), accent: Color(0xFFF5F2EF)),
+    ColorPaletteOption(name: 'Ivory Gold', primary: Color(0xFF854D0E), secondary: Color(0xFFE7C766), accent: Color(0xFFFCF6E3)),
+  ];
+
+  ThemeData getTheme() {
+    return AppTheme.buildTheme(
+      primary: primaryColor,
+      secondary: secondaryColor,
+      accent: accentColor,
     );
   }
 }

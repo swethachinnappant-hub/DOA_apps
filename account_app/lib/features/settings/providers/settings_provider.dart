@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class SettingsProvider extends ChangeNotifier {
-  ThemeMode _themeMode = ThemeMode.system;
+  ThemeMode _themeMode = ThemeMode.light;
   String _language = 'English';
   bool _notificationsEnabled = true;
   bool _biometricEnabled = true;

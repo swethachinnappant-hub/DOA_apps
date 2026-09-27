@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../config/providers/business_config_provider.dart';
+import '../providers/auth_provider.dart';
 import 'package:common_widgets/common_widgets.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -23,9 +24,23 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     _fadeIn = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.5)));
     _scaleUp = Tween<double>(begin: 0.8, end: 1.0).animate(CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.5, curve: Curves.easeOut)));
     _controller.forward();
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) context.go('/config');
-    });
+    Future.delayed(const Duration(seconds: 3), _navigate);
+  }
+
+  /// Lands the user where their role belongs: straight into the seller console
+  /// or shop if they are still signed in, otherwise through shop setup.
+  Future<void> _navigate() async {
+    if (!mounted) return;
+    final auth = context.read<AuthProvider>();
+
+    // Give the stored session a moment to be read back, but never hang here.
+    final deadline = DateTime.now().add(const Duration(seconds: 2));
+    while (auth.isRestoring && mounted && DateTime.now().isBefore(deadline)) {
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    }
+    if (!mounted) return;
+
+    context.go(auth.isSignedIn ? auth.homePath : '/config');
   }
 
   @override
@@ -37,6 +52,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     final config = context.watch<BusinessConfigProvider>().config;
+    final onPrimary = config.onPrimaryColor;
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -59,20 +75,20 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
+                      color: onPrimary.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(config.icon, size: Responsive.fontSize(context, mobile: 60, tablet: 80), color: Colors.white),
+                    child: Icon(config.icon, size: Responsive.fontSize(context, mobile: 60, tablet: 80), color: onPrimary),
                   ),
                   SizedBox(height: Responsive.spacing(context, mobile: 24)),
-                  Text(config.name, style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 28, tablet: 36), fontWeight: FontWeight.bold, color: Colors.white), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(config.name, style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 28, tablet: 36), fontWeight: FontWeight.bold, color: onPrimary), maxLines: 1, overflow: TextOverflow.ellipsis),
                   SizedBox(height: Responsive.spacing(context, mobile: 8)),
-                  Text(config.tagline, style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 14, tablet: 16), color: Colors.white70), maxLines: 2, overflow: TextOverflow.ellipsis),
+                  Text(config.tagline, style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 14, tablet: 16), color: onPrimary.withValues(alpha: 0.8)), maxLines: 2, overflow: TextOverflow.ellipsis),
                   SizedBox(height: Responsive.spacing(context, mobile: 40)),
                   SizedBox(
                     width: 24,
                     height: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
+                    child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(onPrimary)),
                   ),
                 ],
               ),

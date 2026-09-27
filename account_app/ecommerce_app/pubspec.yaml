@@ -4,13 +4,13 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.13.1
+  sdk: ^3.10.0
 
 dependencies:
   flutter:
     sdk: flutter
   common_widgets:
-    path: ../common_widgets
+    path: ../../common_widgets
   go_router: ^14.8.1
   provider: ^6.1.2
 

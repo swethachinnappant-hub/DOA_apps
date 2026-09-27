@@ -1,10 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../../config/providers/business_config_provider.dart';
-import '../../../core/business_config.dart';
+
 import 'package:common_widgets/common_widgets.dart';
 
+import '../../../core/pricing.dart';
+import '../../../core/store/commerce_store.dart';
+import '../../auth/providers/auth_provider.dart';
+import '../../config/providers/business_config_provider.dart';
+
+/// Turns the shopper's bag into a real [Order] in the store.
+///
+/// Everything shown here is read from the cart, so the totals can never drift
+/// from what checkout actually charges, and the address chosen is the one
+/// written onto the order.
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
 
@@ -16,10 +25,77 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   String _paymentMethod = 'UPI';
   int _selectedAddress = 0;
 
+  static const List<({String label, String value})> _addresses = [
+    (
+      label: 'Home',
+      value: '14 MG Road, Bengaluru, Karnataka 560001',
+    ),
+    (
+      label: 'Office',
+      value: 'Tower B, Tech Park, Hyderabad, Telangana 500081',
+    ),
+  ];
+
+  static const List<({String name, IconData icon, String note})> _payments = [
+    (name: 'UPI', icon: Icons.payment, note: 'PhonePe, GPay, Paytm'),
+    (
+      name: 'Credit/Debit Card',
+      icon: Icons.credit_card,
+      note: 'Visa, Mastercard, RuPay',
+    ),
+    (name: 'Net Banking', icon: Icons.account_balance, note: 'All banks'),
+    (
+      name: 'Cash on Delivery',
+      icon: Icons.money,
+      note: 'Pay when it arrives',
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
     final config = context.watch<BusinessConfigProvider>().config;
     final rules = config.rules;
+    final store = context.watch<CommerceStore>();
+    final user = context.watch<AuthProvider>().user;
+
+    final lines = store.cart;
+    final subtotal = store.cartSubtotal;
+    final tax = Pricing.tax(subtotal);
+    final shipping = Pricing.shipping(subtotal);
+    final total = Pricing.total(subtotal);
+    final showPrice = rules.showPrices;
+
+    if (lines.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Checkout')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.shopping_bag_outlined,
+                    size: 58, color: Colors.grey[300]),
+                const SizedBox(height: 16),
+                const Text('Nothing to check out'),
+                const SizedBox(height: 8),
+                Text(
+                  'Add a product to your bag first.',
+                  style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+                ),
+                const SizedBox(height: 20),
+                AppButton(
+                  text: 'Browse products',
+                  color: config.primaryColor,
+                  onPressed: () => context.go('/app'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(title: const Text('Checkout')),
       body: SingleChildScrollView(
@@ -28,114 +104,343 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Delivery Address
-            SectionHeader(title: 'Delivery Address', padding: EdgeInsets.only(top: 16)),
-            SizedBox(height: Responsive.spacing(context, mobile: 12)),
-            _addressCard(context, 'Chirag Associates, Main Road, Rajkot, Gujarat 360001', 0, config),
-            _addressCard(context, 'Warehouse, Industrial Area, Ahmedabad, Gujarat 380001', 1, config),
-            SizedBox(height: Responsive.spacing(context, mobile: 20)),
-
-            // Order Summary
-            SectionHeader(title: 'Order Summary', padding: EdgeInsets.only(top: 16)),
-            SizedBox(height: Responsive.spacing(context, mobile: 12)),
-            AppCard(child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _summaryRow('Gold Chain Set (2)', '₹9,998', config, showPrice: rules.showPrices),
-                _summaryRow('Gold Ring Set (1)', '₹2,499', config, showPrice: rules.showPrices),
-                Divider(),
-                _summaryRow('Subtotal', '₹12,497', config, showPrice: rules.showPrices),
-                _summaryRow('GST (18%)', '₹2,250', config, showPrice: rules.showPrices),
-                _summaryRow('Shipping', 'Free', config),
-                Divider(),
-                _summaryRow('Total', '₹14,747', config, isBold: true, showPrice: rules.showPrices),
-              ],
-            )),
-            SizedBox(height: Responsive.spacing(context, mobile: 20)),
-
-            // Payment Method
-            SectionHeader(title: 'Payment Method', padding: EdgeInsets.only(top: 16)),
-            SizedBox(height: Responsive.spacing(context, mobile: 12)),
-            _paymentOption('UPI', Icons.payment, 'PhonePe, GPay, Paytm'),
-            _paymentOption('Credit/Debit Card', Icons.credit_card, 'Visa, Mastercard, RuPay'),
-            _paymentOption('Net Banking', Icons.account_balance, 'All banks'),
-            _paymentOption('Cash on Delivery', Icons.money, 'Pay on delivery'),
-            SizedBox(height: Responsive.spacing(context, mobile: 20)),
-
-            // Place Order
-            AppButton(
-              text: rules.showPrices ? 'Place Order - ₹14,747' : 'Place Order',
-              onPressed: () {
-                AppDialog.show(
-                  context,
-                  title: 'Order Placed!',
-                  content: const Text('Your order has been placed successfully. You will receive confirmation shortly.'),
-                  actions: [
-                    DialogAction(label: 'View Orders', onPressed: () => context.push('/orders')),
-                    DialogAction(label: 'Continue Shopping', onPressed: () => context.go('/app')),
-                  ],
-                );
-              },
+            SectionHeader(
+              title: 'Delivery address',
+              padding: EdgeInsets.only(top: 16),
             ),
-            SizedBox(height: 24),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _addressCard(BuildContext context, String address, int index, BusinessConfig config) {
-    final selected = index == _selectedAddress;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedAddress = index),
-      child: AppCard(
-        child: Row(
-          children: [
-            Radio<int>(
-              value: index,
+            SizedBox(height: Responsive.spacing(context, mobile: 12)),
+            RadioGroup<int>(
               groupValue: _selectedAddress,
               onChanged: (v) => setState(() => _selectedAddress = v ?? 0),
-              activeColor: config.primaryColor,
+              child: Column(
+                children: [
+                  for (var i = 0; i < _addresses.length; i++)
+                    _AddressCard(
+                      label: _addresses[i].label,
+                      address: _addresses[i].value,
+                      selected: i == _selectedAddress,
+                      accent: config.primaryColor,
+                      value: i,
+                    ),
+                ],
+              ),
             ),
-            Expanded(
-              child: Text(address, style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 13), color: selected ? null : Colors.grey[600]), maxLines: 3, overflow: TextOverflow.ellipsis),
+            SizedBox(height: Responsive.spacing(context, mobile: 20)),
+
+            SectionHeader(
+              title: 'Order summary',
+              padding: EdgeInsets.only(top: 16),
             ),
+            SizedBox(height: Responsive.spacing(context, mobile: 12)),
+            AppCard(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final line in lines)
+                    _LineSummary(
+                      name: line.name,
+                      qty: line.quantity,
+                      amount: line.lineTotal,
+                      showPrice: showPrice,
+                    ),
+                  const Divider(height: 20),
+                  _row(context, 'Subtotal', '₹$subtotal', showPrice: showPrice),
+                  _row(context, 'GST (${(Pricing.gstRate * 100).round()}%)', '₹$tax', showPrice: showPrice),
+                  _row(
+                    context,
+                    'Delivery',
+                    shipping == 0 ? 'Free' : '₹$shipping',
+                    showPrice: showPrice,
+                  ),
+                  const Divider(height: 20),
+                  _row(context, 'Total', '₹$total',
+                      showPrice: showPrice, bold: true, brand: config.primaryColor),
+                ],
+              ),
+            ),
+            SizedBox(height: Responsive.spacing(context, mobile: 20)),
+
+            SectionHeader(
+              title: 'Payment method',
+              padding: EdgeInsets.only(top: 16),
+            ),
+            SizedBox(height: Responsive.spacing(context, mobile: 12)),
+            RadioGroup<String>(
+              groupValue: _paymentMethod,
+              onChanged: (v) => setState(() => _paymentMethod = v ?? 'UPI'),
+              child: Column(
+                children: [
+                  for (final option in _payments)
+                    _PaymentCard(
+                      name: option.name,
+                      icon: option.icon,
+                      note: option.note,
+                      selected: option.name == _paymentMethod,
+                    ),
+                ],
+              ),
+            ),
+            SizedBox(height: Responsive.spacing(context, mobile: 24)),
+
+            AppButton(
+              text: showPrice ? 'Place order · ₹$total' : 'Place order',
+              isExpanded: true,
+              onPressed: () => _placeOrder(
+                context,
+                store: store,
+                address: _addresses[_selectedAddress].value,
+                userLabel: user?.displayName ?? 'Guest',
+                customerId: user?.id ?? 'guest',
+              ),
+            ),
+            SizedBox(height: Responsive.spacing(context, mobile: 24)),
           ],
         ),
       ),
     );
   }
 
-  Widget _paymentOption(String title, IconData icon, String subtitle) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 8),
-      child: AppCard(
-        child: RadioListTile<String>(
-          value: title,
-          groupValue: _paymentMethod,
-          onChanged: (v) => setState(() => _paymentMethod = v ?? 'UPI'),
-          title: Row(
-            children: [
-              Icon(icon, size: 20),
-              SizedBox(width: 8),
-              Flexible(child: Text(title, style: TextStyle(fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis)),
-            ],
-          ),
-          subtitle: Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis),
-        ),
-      ),
+  Future<void> _placeOrder(
+    BuildContext context, {
+    required CommerceStore store,
+    required String address,
+    required String userLabel,
+    required String customerId,
+  }) async {
+    final order = store.placeOrder(
+      customerId: customerId,
+      customerName: userLabel,
+      deliveryAddress: address,
+      paymentMethod: _paymentMethod,
     );
+
+    if (order == null || !mounted) return;
+
+    // AppDialog does not close itself from an action, and showDialog mounts
+    // the dialog on the root navigator, so aim there rather than at whatever
+    // shell navigator happens to own this screen.
+    void dismiss() => Navigator.of(context, rootNavigator: true).maybePop();
+    var next = 'shop';
+
+    await AppDialog.show<void>(
+      context,
+      title: 'Order placed!',
+      content: Text(
+        '${order.id} for ${order.itemCount} item(s) is on its way. '
+        'You will get updates as the seller moves it along.',
+      ),
+      actions: [
+        DialogAction(
+          label: 'Track order',
+          onPressed: () {
+            next = 'track';
+            dismiss();
+          },
+        ),
+        DialogAction(
+          label: 'Continue shopping',
+          onPressed: () {
+            next = 'shop';
+            dismiss();
+          },
+        ),
+      ],
+    );
+
+    if (!context.mounted) return;
+    if (next == 'track') {
+      context.push('/order/${order.id}');
+    } else {
+      context.go('/app');
+    }
   }
 
-  Widget _summaryRow(String label, String value, BusinessConfig config, {bool isBold = false, bool showPrice = true}) {
-    final displayValue = showPrice ? value : 'Contact for Price';
+  Widget _row(
+    BuildContext context,
+    String label,
+    String value, {
+    bool showPrice = true,
+    bool bold = false,
+    Color? brand,
+  }) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Flexible(child: Text(label, style: TextStyle(fontSize: Responsive.fontSize(context, mobile: isBold ? 16 : 13), fontWeight: isBold ? FontWeight.bold : FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis)),
-          Text(displayValue, style: TextStyle(fontSize: Responsive.fontSize(context, mobile: isBold ? 16 : 13), fontWeight: isBold ? FontWeight.bold : FontWeight.w500, color: isBold ? config.primaryColor : (showPrice ? null : Colors.grey)), maxLines: 1, overflow: TextOverflow.ellipsis),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: Responsive.fontSize(context, mobile: bold ? 15 : 13),
+                fontWeight: bold ? FontWeight.bold : FontWeight.w500,
+              ),
+            ),
+          ),
+          Flexible(
+            child: Text(
+              showPrice ? value : 'Contact for Price',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: Responsive.fontSize(context, mobile: bold ? 15 : 13),
+                fontWeight: bold ? FontWeight.bold : FontWeight.w500,
+                color: bold ? brand : (showPrice ? null : Colors.grey),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AddressCard extends StatelessWidget {
+  const _AddressCard({
+    required this.label,
+    required this.address,
+    required this.selected,
+    required this.accent,
+    required this.value,
+  });
+
+  final String label;
+  final String address;
+  final bool selected;
+  final Color accent;
+  final int value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: AppCard(
+        child: Row(
+          children: [
+            Radio<int>(value: value, activeColor: accent),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13.5,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    address,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: Responsive.fontSize(context, mobile: 12.5),
+                      color: selected ? null : Colors.grey[600],
+                      height: 1.35,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PaymentCard extends StatelessWidget {
+  const _PaymentCard({
+    required this.name,
+    required this.icon,
+    required this.note,
+    required this.selected,
+  });
+
+  final String name;
+  final IconData icon;
+  final String note;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: AppCard(
+        child: RadioListTile<String>(
+          value: name,
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+          title: Row(
+            children: [
+              Icon(icon, size: 19),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
+          ),
+          subtitle: Text(
+            note,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 11.5, color: Colors.grey[600]),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LineSummary extends StatelessWidget {
+  const _LineSummary({
+    required this.name,
+    required this.qty,
+    required this.amount,
+    required this.showPrice,
+  });
+
+  final String name;
+  final int qty;
+  final int amount;
+  final bool showPrice;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              '$name × $qty',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: Responsive.fontSize(context, mobile: 13),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Text(
+            showPrice ? '₹$amount' : 'Contact',
+            style: TextStyle(
+              fontSize: Responsive.fontSize(context, mobile: 13),
+              fontWeight: FontWeight.w600,
+              color: showPrice ? null : Colors.grey,
+            ),
+          ),
         ],
       ),
     );

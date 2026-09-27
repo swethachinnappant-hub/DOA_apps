@@ -30,8 +30,9 @@ class BusinessRulesScreen extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => context.go('/app'),
-            child: Text('Done', style: TextStyle(color: Colors.white)),
+            child: const Text('Done'),
           ),
+          const SizedBox(width: AppSpacing.sm),
         ],
       ),
       body: SingleChildScrollView(

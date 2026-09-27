@@ -17,8 +17,12 @@ class SkeletonBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: Theme.of(context).brightness == Brightness.dark ? Colors.grey[800]! : Colors.grey[300]!,
-      highlightColor: Theme.of(context).brightness == Brightness.dark ? Colors.grey[700]! : Colors.grey[100]!,
+      baseColor: Theme.of(context).brightness == Brightness.dark
+          ? Colors.grey[800]!
+          : Colors.grey[300]!,
+      highlightColor: Theme.of(context).brightness == Brightness.dark
+          ? Colors.grey[700]!
+          : Colors.grey[100]!,
       child: Container(
         width: width,
         height: height,
@@ -50,7 +54,11 @@ class SkeletonText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SkeletonBox(width: width ?? double.infinity, height: height, borderRadius: 4);
+    return SkeletonBox(
+      width: width ?? double.infinity,
+      height: height,
+      borderRadius: 4,
+    );
   }
 }
 
@@ -73,8 +81,12 @@ class SkeletonCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: Theme.of(context).brightness == Brightness.dark ? Colors.grey[800]! : Colors.grey[300]!,
-      highlightColor: Theme.of(context).brightness == Brightness.dark ? Colors.grey[700]! : Colors.grey[100]!,
+      baseColor: Theme.of(context).brightness == Brightness.dark
+          ? Colors.grey[800]!
+          : Colors.grey[300]!,
+      highlightColor: Theme.of(context).brightness == Brightness.dark
+          ? Colors.grey[700]!
+          : Colors.grey[100]!,
       child: Container(
         height: height,
         margin: margin,
@@ -94,7 +106,7 @@ class SkeletonDashboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    return SingleChildScrollView(
       padding: Responsive.padding(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

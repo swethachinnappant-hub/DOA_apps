@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/design_tokens.dart';
 import '../core/responsive.dart';
 
 class AppListTile extends StatelessWidget {
@@ -204,23 +205,31 @@ class SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: padding ?? Responsive.horizontalPadding(context, mobile: 16).copyWith(top: 16),
+      padding: padding ??
+          EdgeInsets.fromLTRB(
+            AppSpacing.screenH,
+            AppSpacing.xl,
+            AppSpacing.screenH,
+            AppSpacing.xs,
+          ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Flexible(
             child: Text(
               title,
-              style: TextStyle(
-                fontSize: Responsive.fontSize(context, mobile: 16, tablet: 18, desktop: 20),
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.onSurface,
+              style: AppTypography.sectionTitle.copyWith(
+                fontSize: Responsive.fontSize(context, mobile: 15.5, tablet: 17, desktop: 18),
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          ?trailing,
+          if (trailing != null) ...[
+            const SizedBox(width: AppSpacing.sm),
+            trailing!,
+          ],
         ],
       ),
     );

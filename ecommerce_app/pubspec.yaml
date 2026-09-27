@@ -13,6 +13,7 @@ dependencies:
     path: ../common_widgets
   go_router: ^14.8.1
   provider: ^6.1.2
+  shared_preferences: ^2.3.4
   no_screenshot: ^1.0.0
 
 dev_dependencies:

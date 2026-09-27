@@ -94,15 +94,15 @@ class NavigationShell extends StatelessWidget {
 
     return Container(
       width: compact ? 72 : 260,
-      decoration: BoxDecoration(
-        color: theme.primaryColor,
-      ),
+      decoration: BoxDecoration(color: theme.primaryColor),
       child: Column(
         children: [
           _buildLogo(context, compact),
           Expanded(
             child: ListView.builder(
-              padding: EdgeInsets.symmetric(vertical: Responsive.spacing(context, mobile: 8)),
+              padding: EdgeInsets.symmetric(
+                vertical: Responsive.spacing(context, mobile: 8),
+              ),
               itemCount: items.length,
               itemBuilder: (context, index) {
                 final item = items[index];
@@ -124,7 +124,9 @@ class NavigationShell extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(compact ? 12 : 20),
       child: Row(
-        mainAxisAlignment: compact ? MainAxisAlignment.center : MainAxisAlignment.start,
+        mainAxisAlignment: compact
+            ? MainAxisAlignment.center
+            : MainAxisAlignment.start,
         children: [
           Container(
             width: Responsive.fontSize(context, mobile: 40, desktop: 50),
@@ -137,7 +139,11 @@ class NavigationShell extends StatelessWidget {
               child: Text(
                 'CA',
                 style: TextStyle(
-                  fontSize: Responsive.fontSize(context, mobile: 16, desktop: 20),
+                  fontSize: Responsive.fontSize(
+                    context,
+                    mobile: 16,
+                    desktop: 20,
+                  ),
                   fontWeight: FontWeight.bold,
                   color: theme.primaryColor,
                 ),
@@ -154,7 +160,11 @@ class NavigationShell extends StatelessWidget {
                   Text(
                     'Chirag',
                     style: TextStyle(
-                      fontSize: Responsive.fontSize(context, mobile: 16, desktop: 18),
+                      fontSize: Responsive.fontSize(
+                        context,
+                        mobile: 16,
+                        desktop: 18,
+                      ),
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
@@ -164,7 +174,11 @@ class NavigationShell extends StatelessWidget {
                   Text(
                     'Associates',
                     style: TextStyle(
-                      fontSize: Responsive.fontSize(context, mobile: 11, desktop: 12),
+                      fontSize: Responsive.fontSize(
+                        context,
+                        mobile: 11,
+                        desktop: 12,
+                      ),
                       color: Colors.white70,
                     ),
                     maxLines: 1,
@@ -179,11 +193,18 @@ class NavigationShell extends StatelessWidget {
     );
   }
 
-  Widget _buildNavItem(BuildContext context, NavigationItemData item, bool isSelected, bool compact) {
+  Widget _buildNavItem(
+    BuildContext context,
+    NavigationItemData item,
+    bool isSelected,
+    bool compact,
+  ) {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: compact ? 8 : 12, vertical: 4),
       decoration: BoxDecoration(
-        color: isSelected ? Colors.white.withValues(alpha: 0.2) : Colors.transparent,
+        color: isSelected
+            ? Colors.white.withValues(alpha: 0.2)
+            : Colors.transparent,
         borderRadius: BorderRadius.circular(8),
       ),
       child: ListTile(
@@ -194,7 +215,11 @@ class NavigationShell extends StatelessWidget {
                 item.label,
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: Responsive.fontSize(context, mobile: 13, desktop: 14),
+                  fontSize: Responsive.fontSize(
+                    context,
+                    mobile: 13,
+                    desktop: 14,
+                  ),
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 ),
                 maxLines: 1,
@@ -212,15 +237,23 @@ class NavigationShell extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(compact ? 8 : 16),
       decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.2))),
+        border: Border(
+          top: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+        ),
       ),
       child: Row(
-        mainAxisAlignment: compact ? MainAxisAlignment.center : MainAxisAlignment.start,
+        mainAxisAlignment: compact
+            ? MainAxisAlignment.center
+            : MainAxisAlignment.start,
         children: [
           CircleAvatar(
             radius: compact ? 16 : 20,
             backgroundColor: Colors.white.withValues(alpha: 0.2),
-            child: Icon(Icons.person, color: Colors.white, size: compact ? 16 : 20),
+            child: Icon(
+              Icons.person,
+              color: Colors.white,
+              size: compact ? 16 : 20,
+            ),
           ),
           if (!compact) ...[
             const SizedBox(width: 12),
@@ -232,7 +265,11 @@ class NavigationShell extends StatelessWidget {
                     'Admin User',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: Responsive.fontSize(context, mobile: 13, desktop: 14),
+                      fontSize: Responsive.fontSize(
+                        context,
+                        mobile: 13,
+                        desktop: 14,
+                      ),
                       fontWeight: FontWeight.w600,
                     ),
                     maxLines: 1,
@@ -242,17 +279,17 @@ class NavigationShell extends StatelessWidget {
                     'admin@chirag.com',
                     style: TextStyle(
                       color: Colors.white70,
-                      fontSize: Responsive.fontSize(context, mobile: 11, desktop: 12),
+                      fontSize: Responsive.fontSize(
+                        context,
+                        mobile: 11,
+                        desktop: 12,
+                      ),
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.logout, color: Colors.white, size: 20),
-              onPressed: () {},
             ),
           ],
         ],
@@ -279,9 +316,5 @@ class NavigationItemData {
   final IconData icon;
   final String label;
 
-  const NavigationItemData({
-    required this.icon,
-    required this.label,
-  });
+  const NavigationItemData({required this.icon, required this.label});
 }
-

@@ -1,65 +1,173 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../../config/providers/business_config_provider.dart';
+
 import 'package:common_widgets/common_widgets.dart';
 
+import '../../../core/models/order.dart';
+import '../../../core/store/commerce_store.dart';
+import '../../auth/providers/auth_provider.dart';
+import '../../config/providers/business_config_provider.dart';
+import '../widgets/order_status_chip.dart';
+
+/// The buyer's order history, read from the live store.
+///
+/// A seller advancing the status elsewhere is reflected here immediately,
+/// since both roles observe the same records.
 class OrdersScreen extends StatelessWidget {
   const OrdersScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final config = context.watch<BusinessConfigProvider>().config;
+    final store = context.watch<CommerceStore>();
+    final user = context.watch<AuthProvider>().user;
     final rules = config.rules;
-    final orders = [
-      {'id': 'ORD-2024-001', 'date': 'Dec 15, 2024', 'status': 'Delivered', 'statusColor': Colors.green, 'items': '3 items', 'total': '₹14,747'},
-      {'id': 'ORD-2024-002', 'date': 'Dec 12, 2024', 'status': 'Shipped', 'statusColor': Colors.blue, 'items': '2 items', 'total': '₹8,999'},
-      {'id': 'ORD-2024-003', 'date': 'Dec 10, 2024', 'status': 'Processing', 'statusColor': Colors.orange, 'items': '5 items', 'total': '₹22,500'},
-      {'id': 'ORD-2024-004', 'date': 'Dec 8, 2024', 'status': 'Pending', 'statusColor': Colors.grey, 'items': '1 item', 'total': '₹3,499'},
-    ];
+
+    final orders = user == null ? const <Order>[] : store.ordersForCustomer(user.id);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Orders')),
-      body: ListView.separated(
-        padding: Responsive.padding(context),
-        itemCount: orders.length,
-        separatorBuilder: (_, _) => SizedBox(height: 8),
-        itemBuilder: (context, index) {
-          final order = orders[index];
-          return AppCard(
-            onTap: () => context.push('/order/$index'),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Flexible(child: Text(order['id'] as String, style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 14), fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis)),
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: (order['statusColor'] as Color?) ?? Colors.grey,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(order['status'] as String, style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 10), color: Colors.white, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Flexible(child: Text('${order['date']} • ${order['items']}', style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 12), color: Colors.grey[600]), maxLines: 1, overflow: TextOverflow.ellipsis)),
-                    rules.showPrices
-                        ? Text(order['total'] as String, style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 14), fontWeight: FontWeight.bold, color: config.primaryColor), maxLines: 1, overflow: TextOverflow.ellipsis)
-                        : Text('Contact for Price', style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 12), fontWeight: FontWeight.bold, color: Colors.grey), maxLines: 1, overflow: TextOverflow.ellipsis),
-                  ],
-                ),
-              ],
+      body: orders.isEmpty
+          ? _EmptyOrders(brand: config.primaryColor)
+          : ListView.separated(
+              padding: Responsive.padding(context),
+              itemCount: orders.length,
+              separatorBuilder: (_, _) =>
+                  SizedBox(height: Responsive.spacing(context, mobile: 10)),
+              itemBuilder: (context, index) {
+                final order = orders[index];
+                return _OrderCard(
+                  order: order,
+                  brand: config.primaryColor,
+                  showPrice: rules.showPrices,
+                );
+              },
             ),
-          );
-        },
+    );
+  }
+}
+
+class _OrderCard extends StatelessWidget {
+  const _OrderCard({
+    required this.order,
+    required this.brand,
+    required this.showPrice,
+  });
+
+  final Order order;
+  final Color brand;
+  final bool showPrice;
+
+  @override
+  Widget build(BuildContext context) {
+    final date = '${order.placedAt.day} ${_month(order.placedAt.month)} '
+        '${order.placedAt.year}';
+
+    return AppCard(
+      onTap: () => context.push('/order/${order.id}'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Flexible(
+                child: Text(
+                  order.id,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: Responsive.fontSize(context, mobile: 14),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              OrderStatusChip(status: order.status, dense: true),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(
+                child: Text(
+                  '$date • ${order.itemCount} item(s)',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: Responsive.fontSize(context, mobile: 12),
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ),
+              Flexible(
+                child: Text(
+                  showPrice ? '₹${order.total}' : 'Contact for Price',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: Responsive.fontSize(context, mobile: 14),
+                    fontWeight: FontWeight.bold,
+                    color: showPrice ? brand : Colors.grey,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _month(int month) {
+    const names = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    return names[month < 1 || month > 12 ? 0 : month - 1];
+  }
+}
+
+class _EmptyOrders extends StatelessWidget {
+  const _EmptyOrders({required this.brand});
+
+  final Color brand;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.receipt_long_outlined, size: 60, color: Colors.grey[300]),
+            const SizedBox(height: 16),
+            Text(
+              'No orders yet',
+              style: TextStyle(
+                fontSize: Responsive.fontSize(context, mobile: 16),
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'When you place an order it appears here with live status updates.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: Colors.grey[500], height: 1.5),
+            ),
+            const SizedBox(height: 20),
+            AppButton(
+              text: 'Browse products',
+              icon: Icons.shopping_bag_outlined,
+              color: brand,
+              onPressed: () => context.go('/catalogue'),
+            ),
+          ],
+        ),
       ),
     );
   }

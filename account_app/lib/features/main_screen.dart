@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../shared/widgets/navigation_shell.dart';
+import 'package:common_widgets/common_widgets.dart';
 import '../../features/dashboard/screens/dashboard_screen.dart';
 import '../../features/sales/screens/sales_screen.dart';
 import '../../features/purchase/screens/purchase_screen.dart';
@@ -44,11 +44,25 @@ class _MainScreenState extends State<MainScreen> {
           ? [
               IconButton(
                 icon: const Icon(Icons.notifications),
-                onPressed: () {},
+                tooltip: 'Notifications',
+                onPressed: () => showDialog<void>(
+                  context: context,
+                  builder: (dialogContext) => AlertDialog(
+                    title: const Text('Notifications'),
+                    content: const Text('You are all caught up.'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(dialogContext),
+                        child: const Text('Close'),
+                      ),
+                    ],
+                  ),
+                ),
               ),
               IconButton(
                 icon: const Icon(Icons.person),
-                onPressed: () {},
+                tooltip: 'Account settings',
+                onPressed: () => setState(() => _currentIndex = 8),
               ),
             ]
           : null,

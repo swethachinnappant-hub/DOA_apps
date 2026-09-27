@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../core/business_config.dart';
-import 'config/providers/business_config_provider.dart';
 import 'package:common_widgets/common_widgets.dart';
+import '../core/store/commerce_store.dart';
+import 'auth/providers/auth_provider.dart';
+import 'config/providers/business_config_provider.dart';
 import 'catalogue/screens/catalogue_screen.dart';
+import 'home/home_sections.dart';
 import 'wishlist/screens/wishlist_screen.dart';
 import 'orders/screens/orders_screen.dart';
 import 'profile/screens/profile_screen.dart';
@@ -19,214 +21,324 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
-  final List<String> _titles = ['Home', 'Catalogue', 'Wishlist', 'Orders', 'Account'];
-  final List<IconData> _icons = [Icons.home, Icons.storefront, Icons.favorite_border, Icons.receipt_long, Icons.person_outline];
+  static const List<String> _titles = [
+    'Home',
+    'Catalogue',
+    'Wishlist',
+    'Orders',
+    'Account',
+  ];
+
+  static const List<IconData> _icons = [
+    Icons.home_outlined,
+    Icons.storefront_outlined,
+    Icons.favorite_border,
+    Icons.receipt_long_outlined,
+    Icons.person_outline,
+  ];
+
+  static const List<IconData> _activeIcons = [
+    Icons.home,
+    Icons.storefront,
+    Icons.favorite,
+    Icons.receipt_long,
+    Icons.person,
+  ];
 
   @override
   Widget build(BuildContext context) {
     final config = context.watch<BusinessConfigProvider>().config;
+    final store = context.watch<CommerceStore>();
+    final user = context.watch<AuthProvider>().user;
+    final hasItems = store.cartCount > 0;
+    final hasUnread = user != null && store.unreadCount(user.id) > 0;
 
     return Scaffold(
+      backgroundColor: AppPalette.background,
       appBar: AppBar(
-        title: Text(_titles[_currentIndex]),
+        titleSpacing: AppSpacing.screenH,
+        title: Row(
+          children: [
+            Container(
+              height: 32,
+              width: 32,
+              decoration: BoxDecoration(
+                color: config.primaryColor,
+                borderRadius: AppRadius.allSm,
+              ),
+              child: Icon(config.icon, size: 18, color: config.onPrimaryColor),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                config.name,
+                style: AppTypography.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
         actions: [
-          IconButton(icon: const Icon(Icons.search), onPressed: () => context.push('/catalogue')),
-          IconButton(icon: const Icon(Icons.shopping_cart_outlined), onPressed: () => context.push('/cart')),
-          IconButton(icon: const Icon(Icons.notifications_outlined), onPressed: () => context.push('/notifications')),
+          _CircleAction(
+            icon: Icons.search,
+            tooltip: 'Search',
+            onTap: () => context.push('/catalogue'),
+          ),
+          _CircleAction(
+            icon: Icons.shopping_bag_outlined,
+            tooltip: 'Cart',
+            onTap: () => context.push('/cart'),
+            badge: hasItems,
+          ),
+          _CircleAction(
+            icon: Icons.notifications_none,
+            tooltip: 'Notifications',
+            onTap: () => context.push('/notifications'),
+            badge: hasUnread,
+          ),
+          const SizedBox(width: AppSpacing.sm),
         ],
       ),
       body: _buildBody(),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: config.primaryColor,
-        unselectedItemColor: Colors.grey,
-        items: List.generate(5, (i) => BottomNavigationBarItem(
-          icon: Icon(_icons[i]),
-          label: _titles[i],
-        )),
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          color: AppPalette.surface,
+          border: Border(top: BorderSide(color: AppPalette.divider)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: SizedBox(
+            height: 62,
+            child: Row(
+              children: List.generate(_titles.length, (i) {
+                final selected = i == _currentIndex;
+                return Expanded(
+                  child: InkWell(
+                    onTap: () => setState(() => _currentIndex = i),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        AnimatedContainer(
+                          duration: AppDurations.fast,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.lg,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: selected
+                                ? config.accentColor
+                                : Colors.transparent,
+                            borderRadius: AppRadius.allPill,
+                          ),
+                          child: Icon(
+                            selected ? _activeIcons[i] : _icons[i],
+                            size: 21,
+                            color: selected
+                                ? config.primaryColor
+                                : AppPalette.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          _titles[i],
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.caption.copyWith(
+                            fontSize: 10.5,
+                            fontWeight: selected
+                                ? FontWeight.w600
+                                : FontWeight.w400,
+                            color: selected
+                                ? config.primaryColor
+                                : AppPalette.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildBody() {
     switch (_currentIndex) {
-      case 0: return _HomeTab();
-      case 1: return _CatalogueTab();
-      case 2: return _WishlistTab();
-      case 3: return _OrdersTab();
-      case 4: return _AccountTab();
-      default: return _HomeTab();
+      case 0:
+        return const _HomeTab();
+      case 1:
+        return const CatalogueScreen();
+      case 2:
+        return const WishlistScreen();
+      case 3:
+        return const OrdersScreen();
+      case 4:
+        return const ProfileScreen();
+      default:
+        return const _HomeTab();
     }
   }
 }
 
-class _HomeTab extends StatelessWidget {
+class _CircleAction extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+  final bool badge;
+
+  const _CircleAction({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+    this.badge = false,
+  });
+
   @override
   Widget build(BuildContext context) {
-    final config = context.watch<BusinessConfigProvider>().config;
-    return SingleChildScrollView(
-      padding: Responsive.padding(context),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Search bar
-          AppSearchField(
-            hint: config.searchHint,
-            onFilterPressed: () {},
-          ),
-          SizedBox(height: Responsive.spacing(context, mobile: 16)),
-
-          // Banner
-          GradientCard(
-            gradient: LinearGradient(colors: [config.primaryColor, config.secondaryColor]),
-            child: Row(
+    return Padding(
+      padding: const EdgeInsets.only(left: AppSpacing.xs),
+      child: Tooltip(
+        message: tooltip,
+        child: InkWell(
+          onTap: onTap,
+          customBorder: const CircleBorder(),
+          child: Container(
+            height: 38,
+            width: 38,
+            alignment: Alignment.center,
+            child: Stack(
+              clipBehavior: Clip.none,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('Welcome to ${config.name}', style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 18, tablet: 22), fontWeight: FontWeight.bold, color: Colors.white), maxLines: 1, overflow: TextOverflow.ellipsis),
-                      const SizedBox(height: 4),
-                      Text(config.tagline, style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 12, tablet: 14), color: Colors.white70), maxLines: 2, overflow: TextOverflow.ellipsis),
-                    ],
+                Icon(icon, size: 21, color: AppPalette.textPrimary),
+                if (badge)
+                  Positioned(
+                    right: -1,
+                    top: -1,
+                    child: Container(
+                      height: 7,
+                      width: 7,
+                      decoration: const BoxDecoration(
+                        color: AppPalette.error,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
                   ),
-                ),
-                Icon(config.icon, size: 60, color: Colors.white.withValues(alpha: 0.3)),
               ],
             ),
           ),
-          SizedBox(height: Responsive.spacing(context, mobile: 20)),
+        ),
+      ),
+    );
+  }
+}
 
-          // Categories
-          SectionHeader(title: 'Categories', padding: EdgeInsets.only(top: 16)),
-          SizedBox(height: Responsive.spacing(context, mobile: 12)),
-          SizedBox(
-            height: 100,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: config.categories.length,
-              separatorBuilder: (_, _) => SizedBox(width: 12),
-              itemBuilder: (context, index) {
-                final cat = config.categories[index];
-                final icon = config.categoryIcons[cat] ?? '📦';
-                return GestureDetector(
-                  onTap: () => context.push('/catalogue'),
-                  child: Container(
-                    width: 80,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).cardColor,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 2))],
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(icon, style: const TextStyle(fontSize: 28)),
-                        const SizedBox(height: 6),
-                        Text(cat, textAlign: TextAlign.center, style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 10), fontWeight: FontWeight.w500), maxLines: 2, overflow: TextOverflow.ellipsis),
-                      ],
-                    ),
+class _HomeTab extends StatelessWidget {
+  const _HomeTab();
+
+  String? _photoFor(CommerceStore store, String category) {
+    for (final product in store.shopProducts) {
+      if (product.category == category && product.images.isNotEmpty) {
+        return product.images.first;
+      }
+    }
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final config = context.watch<BusinessConfigProvider>().config;
+    final store = context.watch<CommerceStore>();
+    final featured = store.shopProducts.take(10).toList();
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: AppSpacing.md),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenH),
+            child: AppSearchField(hint: config.searchHint),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenH),
+            child: HeroCarousel(products: featured),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: AppSpacing.screenH),
+            child: TrustBar(),
+          ),
+          const SizedBox(height: AppSpacing.xxl),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenH),
+            child: SectionHeader(
+              title: 'Shop by Style',
+              padding: EdgeInsets.zero,
+              trailing: TextButton(
+                onPressed: () => context.push(catalogueLocation()),
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
                   ),
-                );
-              },
+                ),
+                child: const Text('View All'),
+              ),
             ),
           ),
-          SizedBox(height: Responsive.spacing(context, mobile: 20)),
+          const SizedBox(height: AppSpacing.md),
+          CategoryCarousel(
+            primaryColor: config.primaryColor,
+            accentColor: config.accentColor,
+            items: config.categories
+                .map(
+                  (cat) => CategoryCarouselItem(
+                    label: cat,
+                    emoji: config.categoryIcons[cat] ?? '\u{1F4E6}',
+                    imageUrl: _photoFor(store, cat),
+                    onTap: () => context.push(catalogueLocation(category: cat)),
+                  ),
+                )
+                .toList(),
+          ),
+          const SizedBox(height: AppSpacing.xxl),
 
-          // Featured Products
-          SectionHeader(title: 'Featured Products', padding: EdgeInsets.only(top: 16), trailing: TextButton(onPressed: () {}, child: Text('View All'))),
-          SizedBox(height: Responsive.spacing(context, mobile: 12)),
-          _buildProductGrid(context, config),
+          const NewArrivalsRail(),
+          const SizedBox(height: AppSpacing.xxl),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenH),
+            child: SectionHeader(
+              title: 'Featured Products',
+              padding: EdgeInsets.zero,
+              trailing: TextButton(
+                onPressed: () => context.push(catalogueLocation()),
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                  ),
+                ),
+                child: const Text('View All'),
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          ProductRail(products: featured),
+          const SizedBox(height: AppSpacing.xxl),
+
+          const PriceBands(),
+          const SizedBox(height: AppSpacing.xxl),
+          const PromiseGrid(),
         ],
       ),
     );
-  }
-
-  Widget _buildProductGrid(BuildContext context, BusinessConfig config) {
-    final rules = config.rules;
-    final products = List.generate(6, (i) => {
-      'name': '${config.categories[i % config.categories.length]} Item ${i + 1}',
-      'price': '${config.currencySymbol}${(i + 1) * 999}',
-      'sku': 'SKU-${(i + 1).toString().padLeft(4, '0')}',
-    });
-
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: Responsive.crossAxisCount(context),
-        childAspectRatio: Responsive.childAspectRatio(context),
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-      ),
-      itemCount: products.length,
-      itemBuilder: (context, index) {
-        final p = products[index];
-        return AppCard(
-          onTap: () => context.push('/product/$index'),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Expanded(
-                child: Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: config.accentColor,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Center(
-                    child: Icon(config.icon, size: 40, color: config.primaryColor.withValues(alpha: 0.5)),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(p['name']!, style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 12), fontWeight: FontWeight.w600), maxLines: 2, overflow: TextOverflow.ellipsis),
-              const SizedBox(height: 4),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Flexible(child: rules.showPrices
-                      ? Text(p['price']!, style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 14), fontWeight: FontWeight.bold, color: config.primaryColor), maxLines: 1, overflow: TextOverflow.ellipsis)
-                      : Text('Contact for Price', style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 12), fontWeight: FontWeight.bold, color: Colors.grey), maxLines: 1, overflow: TextOverflow.ellipsis)),
-                  Icon(Icons.favorite_border, size: 18, color: Colors.grey[400]),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _CatalogueTab extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return CatalogueScreen();
-  }
-}
-
-class _WishlistTab extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return const WishlistScreen();
-  }
-}
-
-class _OrdersTab extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return const OrdersScreen();
-  }
-}
-
-class _AccountTab extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return const ProfileScreen();
   }
 }

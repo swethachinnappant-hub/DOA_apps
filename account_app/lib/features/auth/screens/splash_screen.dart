@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/responsive.dart';
+import 'package:common_widgets/common_widgets.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});

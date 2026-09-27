@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/responsive.dart';
-import '../../../shared/widgets/widgets.dart';
+import 'package:common_widgets/common_widgets.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -12,6 +11,21 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   bool _isLoading = true;
   final _messageController = TextEditingController();
+  String _selectedChat = 'Admin';
+  final List<Map<String, dynamic>> _sentMessages = [];
+
+  void _sendMessage() {
+    final text = _messageController.text.trim();
+    if (text.isEmpty) return;
+    setState(() {
+      _sentMessages.add({
+        'text': text,
+        'isMe': true,
+        'time': TimeOfDay.now().format(context),
+      });
+      _messageController.clear();
+    });
+  }
 
   @override
   void initState() {
@@ -40,7 +54,12 @@ class _ChatScreenState extends State<ChatScreen> {
       children: [
         if (!Responsive.isMobile(context))
           SizedBox(
-            width: Responsive.maxValue(context, mobile: 250, tablet: 300, desktop: 350),
+            width: Responsive.maxValue(
+              context,
+              mobile: 250,
+              tablet: 300,
+              desktop: 350,
+            ),
             child: SkeletonList(itemCount: 5),
           ),
         const Expanded(
@@ -76,7 +95,15 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildDesktopLayout() {
     return Row(
       children: [
-        SizedBox(width: Responsive.maxValue(context, mobile: 250, tablet: 300, desktop: 350), child: _buildChatList()),
+        SizedBox(
+          width: Responsive.maxValue(
+            context,
+            mobile: 250,
+            tablet: 300,
+            desktop: 350,
+          ),
+          child: _buildChatList(),
+        ),
         Expanded(
           child: Column(
             children: [
@@ -92,15 +119,41 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildChatList() {
     final chats = [
-      {'name': 'Admin', 'lastMsg': 'Please check the invoice', 'time': '11:20 AM', 'unread': 2, 'avatar': 'A'},
-      {'name': 'Client A', 'lastMsg': 'Payment received', 'time': '10:15 AM', 'unread': 0, 'avatar': 'C'},
-      {'name': 'Vendor B', 'lastMsg': 'Please send the bill', 'time': 'Yesterday', 'unread': 1, 'avatar': 'V'},
-      {'name': 'Client C', 'lastMsg': 'Thanks!', 'time': 'Yesterday', 'unread': 0, 'avatar': 'C'},
+      {
+        'name': 'Admin',
+        'lastMsg': 'Please check the invoice',
+        'time': '11:20 AM',
+        'unread': 2,
+        'avatar': 'A',
+      },
+      {
+        'name': 'Client A',
+        'lastMsg': 'Payment received',
+        'time': '10:15 AM',
+        'unread': 0,
+        'avatar': 'C',
+      },
+      {
+        'name': 'Vendor B',
+        'lastMsg': 'Please send the bill',
+        'time': 'Yesterday',
+        'unread': 1,
+        'avatar': 'V',
+      },
+      {
+        'name': 'Client C',
+        'lastMsg': 'Thanks!',
+        'time': 'Yesterday',
+        'unread': 0,
+        'avatar': 'C',
+      },
     ];
 
     return Container(
       decoration: BoxDecoration(
-        border: Border(right: BorderSide(color: Theme.of(context).dividerColor)),
+        border: Border(
+          right: BorderSide(color: Theme.of(context).dividerColor),
+        ),
       ),
       child: Column(
         children: [
@@ -128,13 +181,21 @@ class _ChatScreenState extends State<ChatScreen> {
       subtitle: chat['lastMsg'],
       leading: CircleAvatar(
         backgroundColor: Theme.of(context).primaryColor,
-        child: Text(chat['avatar'], style: const TextStyle(color: Colors.white)),
+        child: Text(
+          chat['avatar'],
+          style: const TextStyle(color: Colors.white),
+        ),
       ),
       trailing: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          Text(chat['time'], style: const TextStyle(fontSize: 10, color: Colors.grey), maxLines: 1, overflow: TextOverflow.ellipsis),
+          Text(
+            chat['time'],
+            style: const TextStyle(fontSize: 10, color: Colors.grey),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
           if (chat['unread'] > 0) ...[
             const SizedBox(height: 4),
             Container(
@@ -143,11 +204,21 @@ class _ChatScreenState extends State<ChatScreen> {
                 color: Theme.of(context).primaryColor,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Text('${chat['unread']}', style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+              child: Text(
+                '${chat['unread']}',
+                style: const TextStyle(
+                  fontSize: 10,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ],
       ),
+      onTap: () => setState(() => _selectedChat = chat['name'] as String),
     );
   }
 
@@ -156,7 +227,13 @@ class _ChatScreenState extends State<ChatScreen> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 5, offset: const Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 5,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -169,25 +246,44 @@ class _ChatScreenState extends State<ChatScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                  const Text('Admin', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
-                Text('Online', style: TextStyle(fontSize: 12, color: Colors.green[600]), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(
+                  _selectedChat,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  'Online',
+                  style: TextStyle(fontSize: 12, color: Colors.green[600]),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
-          IconAppButton(icon: Icons.phone, onPressed: () {}),
-          const SizedBox(width: 8),
-          IconAppButton(icon: Icons.videocam, onPressed: () {}),
         ],
       ),
     );
   }
 
   Widget _buildMessages() {
-    final messages = [
-      {'text': 'Please check the invoice from Client A', 'isMe': false, 'time': '11:20 AM'},
+    final messages = <Map<String, dynamic>>[
+      {
+        'text': 'Please check the invoice from Client A',
+        'isMe': false,
+        'time': '11:20 AM',
+      },
       {'text': 'Yes, checking now', 'isMe': true, 'time': '11:25 AM'},
-      {'text': 'Payment received for INV-001', 'isMe': false, 'time': '11:30 AM'},
+      {
+        'text': 'Payment received for INV-001',
+        'isMe': false,
+        'time': '11:30 AM',
+      },
       {'text': 'Thank you!', 'isMe': true, 'time': '11:35 AM'},
+      ..._sentMessages,
     ];
 
     return ListView.builder(
@@ -216,15 +312,24 @@ class _ChatScreenState extends State<ChatScreen> {
           children: [
             Text(
               message['text'],
-              style: TextStyle(fontSize: 14, color: isMe ? Colors.white : Theme.of(context).colorScheme.onSurface),
+              style: TextStyle(
+                fontSize: 14,
+                color: isMe
+                    ? Colors.white
+                    : Theme.of(context).colorScheme.onSurface,
+              ),
               maxLines: 10,
               overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 4),
             Text(
               message['time'],
-              style: TextStyle(fontSize: 10, color: isMe ? Colors.white70 : Colors.grey),
-              maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 10,
+                color: isMe ? Colors.white70 : Colors.grey,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -237,18 +342,24 @@ class _ChatScreenState extends State<ChatScreen> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 5, offset: const Offset(0, -2))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 5,
+            offset: const Offset(0, -2),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          IconAppButton(icon: Icons.attach_file, onPressed: () {}),
-          const SizedBox(width: 8),
           Expanded(
             child: TextField(
               controller: _messageController,
               decoration: InputDecoration(
                 hintText: 'Type a message...',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16),
               ),
             ),
@@ -258,7 +369,7 @@ class _ChatScreenState extends State<ChatScreen> {
             backgroundColor: Theme.of(context).primaryColor,
             child: IconButton(
               icon: const Icon(Icons.send, color: Colors.white, size: 20),
-              onPressed: () {},
+              onPressed: _sendMessage,
             ),
           ),
         ],

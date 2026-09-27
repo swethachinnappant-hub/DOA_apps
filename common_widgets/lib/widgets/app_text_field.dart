@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../core/design_tokens.dart';
 import '../core/responsive.dart';
 
 class AppTextField extends StatelessWidget {
@@ -218,7 +219,7 @@ class AppDropdown<T> extends StatelessWidget {
           const SizedBox(height: 8),
         ],
         DropdownButtonFormField<T>(
-          value: value,
+          initialValue: value,
           items: items,
           onChanged: onChanged,
           validator: validator,
@@ -228,22 +229,25 @@ class AppDropdown<T> extends StatelessWidget {
             hintText: hint,
             prefixIcon: prefixIcon,
             filled: true,
-            fillColor: Theme.of(context).colorScheme.surface,
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: Responsive.spacing(context, mobile: 16),
-              vertical: Responsive.spacing(context, mobile: 14),
+            fillColor: AppPalette.surfaceMuted,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg,
+              vertical: AppSpacing.md,
             ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Theme.of(context).dividerColor),
+            border: const OutlineInputBorder(
+              borderRadius: AppRadius.allMd,
+              borderSide: BorderSide(color: AppPalette.border),
             ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Theme.of(context).dividerColor),
+            enabledBorder: const OutlineInputBorder(
+              borderRadius: AppRadius.allMd,
+              borderSide: BorderSide(color: AppPalette.border),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2),
+              borderRadius: AppRadius.allMd,
+              borderSide: BorderSide(
+                color: Theme.of(context).primaryColor,
+                width: 1.6,
+              ),
             ),
           ),
         ),

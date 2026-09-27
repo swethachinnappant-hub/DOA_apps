@@ -15,18 +15,46 @@ class CatalogueScreen extends StatefulWidget {
 class _CatalogueScreenState extends State<CatalogueScreen> {
   String _selectedCategory = 'All';
   String _sortBy = 'Newest';
+  String _query = '';
   bool _isGrid = true;
 
   @override
   Widget build(BuildContext context) {
     final config = context.watch<BusinessConfigProvider>().config;
     final allCategories = ['All', ...config.categories];
-    final products = List.generate(12, (i) => {
-      'name': '${config.categories[i % config.categories.length]} Product ${i + 1}',
-      'price': '${config.currencySymbol}${(i + 1) * 499}',
-      'sku': 'SKU-${(i + 1).toString().padLeft(4, '0')}',
-      'category': config.categories[i % config.categories.length],
-    });
+    final products = List.generate(
+      12,
+      (i) => {
+        'name':
+            '${config.categories[i % config.categories.length]} Product ${i + 1}',
+        'price': '${config.currencySymbol}${(i + 1) * 499}',
+        'sku': 'SKU-${(i + 1).toString().padLeft(4, '0')}',
+        'category': config.categories[i % config.categories.length],
+      },
+    );
+    final visibleProducts = products
+        .where(
+          (product) =>
+              (_selectedCategory == 'All' ||
+                  product['category'] == _selectedCategory) &&
+              '${product['name']} ${product['sku']}'.toLowerCase().contains(
+                _query,
+              ),
+        )
+        .toList();
+    if (_sortBy == 'Name') {
+      visibleProducts.sort((a, b) => a['name']!.compareTo(b['name']!));
+    } else if (_sortBy == 'Price: Low' || _sortBy == 'Price: High') {
+      visibleProducts.sort((a, b) {
+        final aPrice =
+            int.tryParse(a['price']!.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+        final bPrice =
+            int.tryParse(b['price']!.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+        return _sortBy == 'Price: Low'
+            ? aPrice.compareTo(bPrice)
+            : bPrice.compareTo(aPrice);
+      });
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -43,25 +71,38 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
           // Search
           Padding(
             padding: Responsive.padding(context),
-            child: AppSearchField(hint: config.searchHint, onFilterPressed: () {}),
+            child: AppSearchField(
+              hint: config.searchHint,
+              onChanged: (value) =>
+                  setState(() => _query = value.trim().toLowerCase()),
+            ),
           ),
           // Categories
           SizedBox(
             height: Responsive.spacing(context, mobile: 40),
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              padding: EdgeInsets.symmetric(horizontal: Responsive.spacing(context, mobile: 16)),
+              padding: EdgeInsets.symmetric(
+                horizontal: Responsive.spacing(context, mobile: 16),
+              ),
               itemCount: allCategories.length,
               separatorBuilder: (_, _) => SizedBox(width: 8),
               itemBuilder: (context, index) {
                 final cat = allCategories[index];
                 final selected = cat == _selectedCategory;
                 return ChoiceChip(
-                  label: Text(cat, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  label: Text(
+                    cat,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   selected: selected,
                   onSelected: (_) => setState(() => _selectedCategory = cat),
                   selectedColor: config.primaryColor,
-                  labelStyle: TextStyle(color: selected ? Colors.white : null, fontSize: Responsive.fontSize(context, mobile: 12)),
+                  labelStyle: TextStyle(
+                    color: selected ? Colors.white : null,
+                    fontSize: Responsive.fontSize(context, mobile: 12),
+                  ),
                 );
               },
             ),
@@ -72,13 +113,34 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
             padding: EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                Text('${products.length} items', style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 12), color: Colors.grey[600])),
+                Text(
+                  '${visibleProducts.length} items',
+                  style: TextStyle(
+                    fontSize: Responsive.fontSize(context, mobile: 12),
+                    color: Colors.grey[600],
+                  ),
+                ),
                 Spacer(),
                 DropdownButton<String>(
                   value: _sortBy,
                   underline: SizedBox(),
                   isDense: true,
-                  items: ['Newest', 'Price: Low', 'Price: High', 'Name'].map((s) => DropdownMenuItem(value: s, child: Text(s, style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 12))))).toList(),
+                  items: ['Newest', 'Price: Low', 'Price: High', 'Name']
+                      .map(
+                        (s) => DropdownMenuItem(
+                          value: s,
+                          child: Text(
+                            s,
+                            style: TextStyle(
+                              fontSize: Responsive.fontSize(
+                                context,
+                                mobile: 12,
+                              ),
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
                   onChanged: (v) => setState(() => _sortBy = v ?? 'Newest'),
                 ),
               ],
@@ -96,14 +158,20 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
                     ),
-                    itemCount: products.length,
-                    itemBuilder: (context, index) => _ProductCard(product: products[index], config: config),
+                    itemCount: visibleProducts.length,
+                    itemBuilder: (context, index) => _ProductCard(
+                      product: visibleProducts[index],
+                      config: config,
+                    ),
                   )
                 : ListView.separated(
                     padding: Responsive.padding(context),
-                    itemCount: products.length,
+                    itemCount: visibleProducts.length,
                     separatorBuilder: (_, _) => SizedBox(height: 8),
-                    itemBuilder: (context, index) => _ProductListTile(product: products[index], config: config),
+                    itemBuilder: (context, index) => _ProductListTile(
+                      product: visibleProducts[index],
+                      config: config,
+                    ),
                   ),
           ),
         ],
@@ -128,18 +196,61 @@ class _ProductCard extends StatelessWidget {
           Expanded(
             child: Container(
               width: double.infinity,
-              decoration: BoxDecoration(color: config.accentColor, borderRadius: BorderRadius.circular(8)),
-              child: Center(child: Icon(config.icon, size: 36, color: config.primaryColor.withValues(alpha: 0.5))),
+              decoration: BoxDecoration(
+                color: config.accentColor,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Center(
+                child: Icon(
+                  config.icon,
+                  size: 36,
+                  color: config.primaryColor.withValues(alpha: 0.5),
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 8),
-          Text(product['name']!, style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 12), fontWeight: FontWeight.w600), maxLines: 2, overflow: TextOverflow.ellipsis),
+          Text(
+            product['name']!,
+            style: TextStyle(
+              fontSize: Responsive.fontSize(context, mobile: 12),
+              fontWeight: FontWeight.w600,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
           const SizedBox(height: 4),
-          Text(product['sku']!, style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 10), color: Colors.grey[500]), maxLines: 1, overflow: TextOverflow.ellipsis),
+          Text(
+            product['sku']!,
+            style: TextStyle(
+              fontSize: Responsive.fontSize(context, mobile: 10),
+              color: Colors.grey[500],
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
           const SizedBox(height: 4),
           config.rules.showPrices
-              ? Text(product['price']!, style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 14), fontWeight: FontWeight.bold, color: config.primaryColor), maxLines: 1, overflow: TextOverflow.ellipsis)
-              : Text('Contact for Price', style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 12), fontWeight: FontWeight.bold, color: Colors.grey), maxLines: 1, overflow: TextOverflow.ellipsis),
+              ? Text(
+                  product['price']!,
+                  style: TextStyle(
+                    fontSize: Responsive.fontSize(context, mobile: 14),
+                    fontWeight: FontWeight.bold,
+                    color: config.primaryColor,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                )
+              : Text(
+                  'Contact for Price',
+                  style: TextStyle(
+                    fontSize: Responsive.fontSize(context, mobile: 12),
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
         ],
       ),
     );
@@ -160,8 +271,17 @@ class _ProductListTile extends StatelessWidget {
           Container(
             width: Responsive.spacing(context, mobile: 60),
             height: Responsive.spacing(context, mobile: 60),
-            decoration: BoxDecoration(color: config.accentColor, borderRadius: BorderRadius.circular(8)),
-            child: Center(child: Icon(config.icon, size: 28, color: config.primaryColor.withValues(alpha: 0.5))),
+            decoration: BoxDecoration(
+              color: config.accentColor,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Center(
+              child: Icon(
+                config.icon,
+                size: 28,
+                color: config.primaryColor.withValues(alpha: 0.5),
+              ),
+            ),
           ),
           SizedBox(width: 12),
           Expanded(
@@ -169,9 +289,25 @@ class _ProductListTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(product['name']!, style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 14), fontWeight: FontWeight.w600), maxLines: 2, overflow: TextOverflow.ellipsis),
+                Text(
+                  product['name']!,
+                  style: TextStyle(
+                    fontSize: Responsive.fontSize(context, mobile: 14),
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 SizedBox(height: 4),
-                Text(product['sku']!, style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 11), color: Colors.grey[500]), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(
+                  product['sku']!,
+                  style: TextStyle(
+                    fontSize: Responsive.fontSize(context, mobile: 11),
+                    color: Colors.grey[500],
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
@@ -180,8 +316,26 @@ class _ProductListTile extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               config.rules.showPrices
-                  ? Text(product['price']!, style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 14), fontWeight: FontWeight.bold, color: config.primaryColor), maxLines: 1, overflow: TextOverflow.ellipsis)
-                  : Text('Contact for Price', style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 12), fontWeight: FontWeight.bold, color: Colors.grey), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ? Text(
+                      product['price']!,
+                      style: TextStyle(
+                        fontSize: Responsive.fontSize(context, mobile: 14),
+                        fontWeight: FontWeight.bold,
+                        color: config.primaryColor,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    )
+                  : Text(
+                      'Contact for Price',
+                      style: TextStyle(
+                        fontSize: Responsive.fontSize(context, mobile: 12),
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
               SizedBox(height: 4),
               Icon(Icons.favorite_border, size: 18, color: Colors.grey[400]),
             ],
