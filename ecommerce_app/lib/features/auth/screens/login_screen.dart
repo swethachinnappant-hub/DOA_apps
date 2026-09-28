@@ -192,7 +192,43 @@ class _LoginScreenState extends State<LoginScreen> {
             color: const Color(0xFFF1E9DC),
             borderRadius: BorderRadius.circular(18),
           ),
-          child: _JewelleryGallery(config: config),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 7,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 16, 4, 16),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'THE ART OF GOLD',
+                        style: TextStyle(
+                          color: Color(0xFF866D47),
+                          fontSize: 9,
+                          letterSpacing: 1.6,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Gold, made\npersonal.',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.display.copyWith(
+                          fontSize: 23,
+                          height: 1.06,
+                          color: const Color(0xFF342B20),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Expanded(flex: 5, child: _JewelleryGallery(config: config)),
+            ],
+          ),
         ),
         const SizedBox(height: 26),
         Text(
@@ -455,110 +491,50 @@ class _JewelleryGalleryState extends State<_JewelleryGallery> {
   Widget build(BuildContext context) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(18),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          PageView.builder(
-            controller: _controller,
-            itemCount: _images.length,
-            onPageChanged: (page) => setState(() => _page = page),
-            itemBuilder: (context, index) => Image.asset(
-              _images[index],
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => ColoredBox(
-                color: const Color(0xFFF1E9DC),
-                child: Icon(
+      child: ColoredBox(
+        color: const Color(0xFFF1E9DC),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            PageView.builder(
+              controller: _controller,
+              itemCount: _images.length,
+              onPageChanged: (page) => setState(() => _page = page),
+              itemBuilder: (context, index) => Image.asset(
+                _images[index],
+                fit: BoxFit.contain,
+                errorBuilder: (_, _, _) => Icon(
                   Icons.diamond_outlined,
                   color: widget.config.primaryColor,
                   size: 42,
                 ),
               ),
             ),
-          ),
-          const IgnorePointer(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Color(0x88000000)],
-                  stops: [0.45, 1],
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            top: 12,
-            left: 12,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: const Color(0xFFFDFBF6).withValues(alpha: .92),
-                borderRadius: BorderRadius.circular(30),
-              ),
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 11, vertical: 6),
-                child: Text(
-                  'FINE JEWELLERY',
-                  style: TextStyle(
-                    color: Color(0xFF5C4B32),
-                    fontSize: 8,
-                    letterSpacing: 1.4,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            left: 14,
-            right: 14,
-            bottom: 12,
-            child: Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    'A collection to treasure',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: .2,
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 7,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(_images.length, (index) {
+                  final active = index == _page;
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    width: active ? 14 : 5,
+                    height: 5,
+                    margin: const EdgeInsets.symmetric(horizontal: 2),
+                    decoration: BoxDecoration(
+                      color: active
+                          ? widget.config.primaryColor
+                          : widget.config.primaryColor.withValues(alpha: .35),
+                      borderRadius: BorderRadius.circular(4),
                     ),
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 9,
-                    vertical: 7,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: .28),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    children: List.generate(_images.length, (index) {
-                      final active = index == _page;
-                      return AnimatedContainer(
-                        duration: const Duration(milliseconds: 220),
-                        width: active ? 15 : 5,
-                        height: 5,
-                        margin: EdgeInsets.only(
-                          right: index == _images.length - 1 ? 0 : 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: active
-                              ? Colors.white
-                              : Colors.white.withValues(alpha: .58),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      );
-                    }),
-                  ),
-                ),
-              ],
+                  );
+                }),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

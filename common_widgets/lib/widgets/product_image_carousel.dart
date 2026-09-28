@@ -160,7 +160,7 @@ class ProductImageCarousel extends StatefulWidget {
     this.interval = AppDurations.carousel,
     this.showDots = true,
     this.showCounter = false,
-    this.fit = BoxFit.cover,
+    this.fit = BoxFit.contain,
     this.borderRadius = BorderRadius.zero,
     this.onImageTap,
     this.onPageChanged,
@@ -262,6 +262,7 @@ class ProductImageCarouselState extends State<ProductImageCarousel> {
       child: Stack(
         fit: StackFit.expand,
         children: [
+          const ColoredBox(color: Color(0xFFF8F5EF)),
           NotificationListener<ScrollNotification>(
             onNotification: (notification) {
               if (notification is ScrollStartNotification &&
