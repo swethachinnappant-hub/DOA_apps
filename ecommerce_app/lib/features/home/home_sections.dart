@@ -409,15 +409,19 @@ class ProductRail extends StatelessWidget {
 
     final config = context.watch<BusinessConfigProvider>().config;
     final store = context.watch<CommerceStore>();
-    final width = Responsive.isDesktop(context) ? 250.0 : 188.0;
+    final width = Responsive.isDesktop(context)
+        ? 256.0
+        : Responsive.isTablet(context)
+        ? 216.0
+        : 176.0;
 
     return SizedBox(
-      height: Responsive.isDesktop(context) ? 416 : 326,
+      height: Responsive.isDesktop(context) ? 432 : 344,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenH),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         itemCount: products.length,
-        separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.md),
+        separatorBuilder: (_, _) => const SizedBox(width: 18),
         itemBuilder: (context, index) {
           final product = products[index];
           return SizedBox(

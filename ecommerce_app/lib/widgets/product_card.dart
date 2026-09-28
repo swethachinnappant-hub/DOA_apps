@@ -177,15 +177,12 @@ class _ProductCardState extends State<ProductCard> {
 
     return Material(
       color: AppPalette.surface,
-      borderRadius: AppRadius.allMd,
+      borderRadius: BorderRadius.zero,
       child: InkWell(
         onTap: widget.onTap,
-        borderRadius: AppRadius.allMd,
+        borderRadius: BorderRadius.zero,
         child: Ink(
-          decoration: BoxDecoration(
-            borderRadius: AppRadius.allMd,
-            border: Border.all(color: AppPalette.border),
-          ),
+          decoration: BoxDecoration(borderRadius: BorderRadius.zero),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -201,9 +198,7 @@ class _ProductCardState extends State<ProductCard> {
                       placeholderAccent: widget.primaryColor,
                       autoSlide: true,
                       showDots: p.hasMultipleImages,
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(AppRadius.md),
-                      ),
+                      borderRadius: BorderRadius.zero,
                     ),
                     if (p.badges.isNotEmpty)
                       Positioned(
@@ -254,7 +249,7 @@ class _ProductCardState extends State<ProductCard> {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+                padding: const EdgeInsets.fromLTRB(2, 12, 2, 8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
@@ -290,14 +285,18 @@ class _ProductCardState extends State<ProductCard> {
                               '${widget.currency}${p.price}',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: AppTypography.price.copyWith(fontSize: 14.5),
+                              style: AppTypography.price.copyWith(
+                                fontSize: 14.5,
+                              ),
                             ),
                           ),
                           if (p.hasDiscount) ...[
                             const SizedBox(width: 5),
                             Text(
                               '${widget.currency}${p.mrp}',
-                              style: AppTypography.priceStrike.copyWith(fontSize: 11),
+                              style: AppTypography.priceStrike.copyWith(
+                                fontSize: 11,
+                              ),
                             ),
                           ],
                         ],

@@ -110,10 +110,12 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       body: SafeArea(
         child: isWide
-            ? Row(children: [
-                Expanded(flex: 1, child: _BrandPanel(config: config)),
-                Expanded(flex: 1, child: _buildForm(context, config)),
-              ])
+            ? Row(
+                children: [
+                  Expanded(flex: 1, child: _BrandPanel(config: config)),
+                  Expanded(flex: 1, child: _buildForm(context, config)),
+                ],
+              )
             : SingleChildScrollView(
                 padding: Responsive.padding(context),
                 child: _buildMobileForm(context, config),
@@ -126,32 +128,70 @@ class _LoginScreenState extends State<LoginScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SizedBox(height: Responsive.spacing(context, mobile: 32)),
-        Icon(config.icon,
-            size: 56, color: config.primaryColor, semanticLabel: config.name),
-        SizedBox(height: Responsive.spacing(context, mobile: 12)),
-        Text(
-          config.name,
-          textAlign: TextAlign.center,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontSize: Responsive.fontSize(context, mobile: 24),
-            fontWeight: FontWeight.bold,
-            color: config.primaryColor,
+        SizedBox(height: Responsive.spacing(context, mobile: 8)),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(2),
+          child: SizedBox(
+            height: Responsive.isTablet(context) ? 240 : 190,
+            width: double.infinity,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                if (config.type == BusinessType.jewellery)
+                  const ProductImageTile(
+                    url: 'assets/demo_jewellery/bridal_necklace.png',
+                    fit: BoxFit.cover,
+                    placeholderIcon: Icons.diamond_outlined,
+                  )
+                else
+                  ColoredBox(
+                    color: config.accentColor,
+                    child: Icon(
+                      config.icon,
+                      size: 56,
+                      color: config.primaryColor,
+                    ),
+                  ),
+                const DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.center,
+                      end: Alignment.bottomCenter,
+                      colors: [Colors.transparent, Color(0xAA000000)],
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 18,
+                  right: 18,
+                  bottom: 18,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'FINE JEWELLERY',
+                        style: AppTypography.overline.copyWith(
+                          color: Colors.white,
+                          letterSpacing: 2.2,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        'Made to be treasured',
+                        style: AppTypography.headline.copyWith(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-        Text(
-          config.tagline,
-          textAlign: TextAlign.center,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontSize: Responsive.fontSize(context, mobile: 13),
-            color: Colors.grey[600],
-          ),
-        ),
-        SizedBox(height: Responsive.spacing(context, mobile: 28)),
+        SizedBox(height: Responsive.spacing(context, mobile: 22)),
         _buildForm(context, config),
       ],
     );
@@ -252,10 +292,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: _busy
                         ? null
                         : () => setState(() {
-                              _otpSent = false;
-                              _formError = null;
-                              _otpController.clear();
-                            }),
+                            _otpSent = false;
+                            _formError = null;
+                            _otpController.clear();
+                          }),
                     child: const Text('Change number'),
                   ),
                 ],
@@ -317,54 +357,80 @@ class _BrandPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final onPrimary = config.onPrimaryColor;
     return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [config.primaryColor, config.secondaryColor],
-        ),
-      ),
-      padding: const EdgeInsets.all(48),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(config.icon, size: 72, color: onPrimary),
-              const SizedBox(height: 24),
-              Text(
-                config.name,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 34,
-                  height: 1.1,
-                  fontWeight: FontWeight.bold,
-                  color: onPrimary,
-                ),
+      color: AppPalette.textPrimary,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (config.type == BusinessType.jewellery)
+            const ProductImageTile(
+              url: 'assets/demo_jewellery/bridal_set.png',
+              fit: BoxFit.cover,
+              placeholderIcon: Icons.diamond_outlined,
+            )
+          else
+            ColoredBox(color: config.primaryColor),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.center,
+                end: Alignment.bottomCenter,
+                colors: [Color(0x08000000), Color(0xCC000000)],
               ),
-              const SizedBox(height: 10),
-              Text(
-                config.tagline,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 16,
-                  height: 1.4,
-                  color: onPrimary.withValues(alpha: 0.85),
-                ),
-              ),
-              const SizedBox(height: 32),
-              _FeatureLine(icon: UserRole.customer.icon, label: 'Shop and track your orders'),
-              const SizedBox(height: 14),
-              _FeatureLine(icon: UserRole.owner.icon, label: 'List products and fulfil orders'),
-            ],
+            ),
           ),
-        ),
+          Padding(
+            padding: const EdgeInsets.all(48),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'FINE JEWELLERY',
+                      style: AppTypography.overline.copyWith(
+                        color: Colors.white,
+                        letterSpacing: 2.4,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      config.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.display.copyWith(
+                        fontSize: 38,
+                        height: 1.12,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      config.tagline,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.body.copyWith(
+                        color: Colors.white.withValues(alpha: 0.88),
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    _FeatureLine(
+                      icon: UserRole.customer.icon,
+                      label: 'Explore the collection and track your orders',
+                    ),
+                    const SizedBox(height: 14),
+                    _FeatureLine(
+                      icon: UserRole.owner.icon,
+                      label: 'Manage products and fulfil orders',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

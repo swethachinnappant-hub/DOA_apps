@@ -24,11 +24,25 @@ class BusinessConfigProvider extends ChangeNotifier {
       final typeName = prefs.getString(_kBusinessType);
       final type = _decodeType(typeName) ?? _config.type;
       final base = BusinessConfig.getConfig(type);
+      final savedPrimary = prefs.getInt(_kPrimary);
+      final savedSecondary = prefs.getInt(_kSecondary);
+      final savedAccent = prefs.getInt(_kAccent);
+      final isOldJewelleryDefault =
+          type == BusinessType.jewellery &&
+          savedPrimary == const Color(0xFF8B6914).toARGB32() &&
+          savedSecondary == const Color(0xFFD4A843).toARGB32() &&
+          savedAccent == const Color(0xFFF5E6C8).toARGB32();
 
       _config = base.copyWith(
-        primaryColor: _decodeColor(prefs.getInt(_kPrimary)) ?? base.primaryColor,
-        secondaryColor: _decodeColor(prefs.getInt(_kSecondary)) ?? base.secondaryColor,
-        accentColor: _decodeColor(prefs.getInt(_kAccent)) ?? base.accentColor,
+        primaryColor: isOldJewelleryDefault
+            ? base.primaryColor
+            : _decodeColor(savedPrimary) ?? base.primaryColor,
+        secondaryColor: isOldJewelleryDefault
+            ? base.secondaryColor
+            : _decodeColor(savedSecondary) ?? base.secondaryColor,
+        accentColor: isOldJewelleryDefault
+            ? base.accentColor
+            : _decodeColor(savedAccent) ?? base.accentColor,
       );
     } catch (_) {
       _config = BusinessConfig.getConfig(BusinessType.jewellery);

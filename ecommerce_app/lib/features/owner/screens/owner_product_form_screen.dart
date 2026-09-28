@@ -253,8 +253,9 @@ class _OwnerProductFormScreenState extends State<OwnerProductFormScreen> {
                     validator: (v) {
                       final value = (v ?? '').trim();
                       if (value.isEmpty) return 'Enter a product name';
-                      if (value.length > 80)
+                      if (value.length > 80) {
                         return 'Keep it under 80 characters';
+                      }
                       return null;
                     },
                   ),

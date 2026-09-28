@@ -12,7 +12,8 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeIn;
   late Animation<double> _scaleUp;
@@ -20,15 +21,24 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 2000));
-    _fadeIn = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.5)));
-    _scaleUp = Tween<double>(begin: 0.8, end: 1.0).animate(CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.5, curve: Curves.easeOut)));
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    _fadeIn = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.5)),
+    );
+    _scaleUp = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
+      ),
+    );
     _controller.forward();
-    Future.delayed(const Duration(seconds: 3), _navigate);
+    Future.delayed(const Duration(milliseconds: 1600), _navigate);
   }
 
-  /// Lands the user where their role belongs: straight into the seller console
-  /// or shop if they are still signed in, otherwise through shop setup.
+  /// Lands returning users in their workspace and new users at sign in.
   Future<void> _navigate() async {
     if (!mounted) return;
     final auth = context.read<AuthProvider>();
@@ -40,7 +50,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     }
     if (!mounted) return;
 
-    context.go(auth.isSignedIn ? auth.homePath : '/config');
+    context.go(auth.isSignedIn ? auth.homePath : '/login');
   }
 
   @override
@@ -52,17 +62,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     final config = context.watch<BusinessConfigProvider>().config;
-    final onPrimary = config.onPrimaryColor;
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [config.primaryColor, config.secondaryColor],
-          ),
-        ),
+      backgroundColor: Colors.white,
+      body: SizedBox.expand(
         child: AnimatedBuilder(
           animation: _controller,
           builder: (context, child) => Opacity(
@@ -73,22 +75,58 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.all(22),
                     decoration: BoxDecoration(
-                      color: onPrimary.withValues(alpha: 0.2),
+                      color: AppPalette.surface,
+                      border: Border.all(color: AppPalette.border),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(config.icon, size: Responsive.fontSize(context, mobile: 60, tablet: 80), color: onPrimary),
+                    child: Icon(
+                      config.icon,
+                      size: Responsive.fontSize(
+                        context,
+                        mobile: 56,
+                        tablet: 68,
+                      ),
+                      color: AppPalette.goldDark,
+                    ),
                   ),
-                  SizedBox(height: Responsive.spacing(context, mobile: 24)),
-                  Text(config.name, style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 28, tablet: 36), fontWeight: FontWeight.bold, color: onPrimary), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  SizedBox(height: Responsive.spacing(context, mobile: 22)),
+                  Text(
+                    config.name.toUpperCase(),
+                    style: AppTypography.title.copyWith(
+                      fontSize: Responsive.fontSize(
+                        context,
+                        mobile: 18,
+                        tablet: 21,
+                      ),
+                      letterSpacing: 2.2,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   SizedBox(height: Responsive.spacing(context, mobile: 8)),
-                  Text(config.tagline, style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 14, tablet: 16), color: onPrimary.withValues(alpha: 0.8)), maxLines: 2, overflow: TextOverflow.ellipsis),
-                  SizedBox(height: Responsive.spacing(context, mobile: 40)),
+                  Text(
+                    config.tagline,
+                    textAlign: TextAlign.center,
+                    style: AppTypography.caption.copyWith(
+                      color: AppPalette.textSecondary,
+                      letterSpacing: 0.2,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: Responsive.spacing(context, mobile: 30)),
                   SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(onPrimary)),
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 1.5,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        config.primaryColor,
+                      ),
+                    ),
                   ),
                 ],
               ),

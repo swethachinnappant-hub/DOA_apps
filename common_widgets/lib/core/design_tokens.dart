@@ -24,7 +24,10 @@ class AppSpacing {
   static const double listGap = 12;
   static const double chipGap = 8;
 
-  static const EdgeInsets screen = EdgeInsets.symmetric(horizontal: 16, vertical: 16);
+  static const EdgeInsets screen = EdgeInsets.symmetric(
+    horizontal: 16,
+    vertical: 16,
+  );
   static const EdgeInsets card = EdgeInsets.all(12);
   static const EdgeInsets section = EdgeInsets.fromLTRB(16, 0, 16, 24);
 }
@@ -54,25 +57,25 @@ class AppRadius {
 class AppPalette {
   const AppPalette._();
 
-  static const Color background = Color(0xFFFAFAFA);
+  static const Color background = Color(0xFFFFFFFF);
   static const Color surface = Color(0xFFFFFFFF);
-  static const Color surfaceMuted = Color(0xFFF5F0EB);
-  static const Color textPrimary = Color(0xFF1A1A2E);
-  static const Color textSecondary = Color(0xFF6B5B4F);
-  static const Color textHint = Color(0xFF9D8D7A);
-  static const Color divider = Color(0xFFE8E0D8);
-  static const Color border = Color(0xFFE8E0D8);
-  static const Color skeleton = Color(0xFFF0EBE5);
-  static const Color skeletonHighlight = Color(0xFFFAF7F3);
+  static const Color surfaceMuted = Color(0xFFF7F7F7);
+  static const Color textPrimary = Color(0xFF171717);
+  static const Color textSecondary = Color(0xFF666666);
+  static const Color textHint = Color(0xFF888888);
+  static const Color divider = Color(0xFFE8E8E8);
+  static const Color border = Color(0xFFE5E5E5);
+  static const Color skeleton = Color(0xFFF0F0F0);
+  static const Color skeletonHighlight = Color(0xFFFAFAFA);
   static const Color success = Color(0xFF2D7D46);
   static const Color warning = Color(0xFFB8860B);
   static const Color error = Color(0xFFC0392B);
   static const Color info = Color(0xFF1E5F74);
-  static const Color overlay = Color(0xCC1A1A2E);
+  static const Color overlay = Color(0xCC171717);
   static const Color gold = Color(0xFFC5A05E);
   static const Color goldLight = Color(0xFFE8DCC8);
   static const Color goldDark = Color(0xFF8B6914);
-  static const Color onGold = Color(0xFF1A1A2E);
+  static const Color onGold = Color(0xFF171717);
 }
 
 class AppShadows {
@@ -93,8 +96,12 @@ class AppShadows {
   ];
 
   static List<BoxShadow> primary(Color color) => [
-        BoxShadow(color: color.withValues(alpha: 0.28), blurRadius: 16, offset: const Offset(0, 6)),
-      ];
+    BoxShadow(
+      color: color.withValues(alpha: 0.28),
+      blurRadius: 16,
+      offset: const Offset(0, 6),
+    ),
+  ];
 }
 
 class AppTypography {

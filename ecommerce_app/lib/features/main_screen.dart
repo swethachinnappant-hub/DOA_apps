@@ -72,7 +72,11 @@ class _MainScreenState extends State<MainScreen> {
             Expanded(
               child: Text(
                 config.name,
-                style: AppTypography.title,
+                style: AppTypography.title.copyWith(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 1,
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
