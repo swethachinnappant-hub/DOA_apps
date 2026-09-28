@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../../../core/business_config.dart';
 import '../../config/providers/business_config_provider.dart';
 import '../providers/auth_provider.dart';
 import 'package:common_widgets/common_widgets.dart';
@@ -17,6 +20,7 @@ class _SplashScreenState extends State<SplashScreen>
   late AnimationController _controller;
   late Animation<double> _fadeIn;
   late Animation<double> _scaleUp;
+  Timer? _navigationTimer;
 
   @override
   void initState() {
@@ -35,7 +39,7 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
     _controller.forward();
-    Future.delayed(const Duration(milliseconds: 1600), _navigate);
+    _navigationTimer = Timer(const Duration(milliseconds: 1600), _navigate);
   }
 
   /// Lands returning users in their workspace and new users at sign in.
@@ -55,6 +59,7 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   void dispose() {
+    _navigationTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -63,73 +68,175 @@ class _SplashScreenState extends State<SplashScreen>
   Widget build(BuildContext context) {
     final config = context.watch<BusinessConfigProvider>().config;
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SizedBox.expand(
-        child: AnimatedBuilder(
-          animation: _controller,
-          builder: (context, child) => Opacity(
-            opacity: _fadeIn.value,
-            child: Transform.scale(
-              scale: _scaleUp.value,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(22),
-                    decoration: BoxDecoration(
-                      color: AppPalette.surface,
-                      border: Border.all(color: AppPalette.border),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      config.icon,
-                      size: Responsive.fontSize(
-                        context,
-                        mobile: 56,
-                        tablet: 68,
-                      ),
-                      color: AppPalette.goldDark,
-                    ),
-                  ),
-                  SizedBox(height: Responsive.spacing(context, mobile: 22)),
-                  Text(
-                    config.name.toUpperCase(),
-                    style: AppTypography.title.copyWith(
-                      fontSize: Responsive.fontSize(
-                        context,
-                        mobile: 18,
-                        tablet: 21,
-                      ),
-                      letterSpacing: 2.2,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  SizedBox(height: Responsive.spacing(context, mobile: 8)),
-                  Text(
-                    config.tagline,
-                    textAlign: TextAlign.center,
-                    style: AppTypography.caption.copyWith(
-                      color: AppPalette.textSecondary,
-                      letterSpacing: 0.2,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  SizedBox(height: Responsive.spacing(context, mobile: 30)),
-                  SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 1.5,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        config.primaryColor,
-                      ),
+      backgroundColor: AppPalette.textPrimary,
+      body: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) => Opacity(
+          opacity: _fadeIn.value,
+          child: Transform.scale(
+            scale: _scaleUp.value,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                if (config.type == BusinessType.jewellery)
+                  const ProductImageTile(
+                    url: 'assets/demo_jewellery/bridal_set.png',
+                    fit: BoxFit.cover,
+                    placeholderIcon: Icons.diamond_outlined,
+                    placeholderColor: Color(0xFF211D17),
+                    placeholderAccent: Color(0xFFD8C39A),
+                  )
+                else
+                  ColoredBox(color: config.primaryColor),
+                const DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color(0x55000000),
+                        Color(0x22000000),
+                        Color(0xE6000000),
+                      ],
+                      stops: [0, .42, 1],
                     ),
                   ),
-                ],
-              ),
+                ),
+                SafeArea(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final wide = constraints.maxWidth > 700;
+                      final compactHeight = constraints.maxHeight < 500;
+                      final horizontal = wide ? 72.0 : 28.0;
+                      return Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          horizontal,
+                          28,
+                          horizontal,
+                          38,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 13,
+                                vertical: 9,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: .36),
+                                borderRadius: AppRadius.allPill,
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: .3),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    config.icon,
+                                    size: 17,
+                                    color: const Color(0xFFE4D6B7),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    config.name.toUpperCase(),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 1.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Spacer(),
+                            ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 620),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'FINE JEWELLERY  ·  THOUGHTFULLY CHOSEN',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: AppTypography.overline.copyWith(
+                                      color: const Color(0xFFE4D6B7),
+                                      letterSpacing: 2,
+                                    ),
+                                  ),
+                                  SizedBox(height: compactHeight ? 7 : 12),
+                                  Text(
+                                    'Made to be\ntreasured.',
+                                    style: AppTypography.display.copyWith(
+                                      color: Colors.white,
+                                      fontSize: compactHeight
+                                          ? 34
+                                          : wide
+                                          ? 56
+                                          : 42,
+                                      height: 1.02,
+                                      letterSpacing: -1.4,
+                                    ),
+                                  ),
+                                  SizedBox(height: compactHeight ? 7 : 12),
+                                  Text(
+                                    config.tagline,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: AppTypography.body.copyWith(
+                                      color: Colors.white.withValues(alpha: .8),
+                                    ),
+                                  ),
+                                  SizedBox(height: compactHeight ? 12 : 25),
+                                  Row(
+                                    children: [
+                                      Container(
+                                        width: 34,
+                                        height: 1,
+                                        color: const Color(0xFFD8C39A),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 1.5,
+                                          valueColor:
+                                              const AlwaysStoppedAnimation<
+                                                Color
+                                              >(Color(0xFFD8C39A)),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Text(
+                                          'PREPARING YOUR EXPERIENCE',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: AppTypography.overline
+                                              .copyWith(
+                                                color: Colors.white.withValues(
+                                                  alpha: .7,
+                                                ),
+                                                fontSize: 9,
+                                                letterSpacing: 1.3,
+                                              ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
         ),

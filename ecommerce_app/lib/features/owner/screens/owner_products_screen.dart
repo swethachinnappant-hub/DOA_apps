@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:common_widgets/common_widgets.dart';
 
 import '../../../core/product.dart';
+import '../../../core/pricing.dart';
 import '../../../core/store/commerce_store.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../config/providers/business_config_provider.dart';
@@ -126,7 +127,13 @@ class _ProductRow extends StatelessWidget {
                         Row(
                           children: [
                             Text(
-                              '₹${product.price}',
+                              Pricing.money(
+                                product.price,
+                                currencySymbol: context
+                                    .read<BusinessConfigProvider>()
+                                    .config
+                                    .currencySymbol,
+                              ),
                               style: const TextStyle(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 14,

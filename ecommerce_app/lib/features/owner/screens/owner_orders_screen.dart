@@ -5,8 +5,10 @@ import 'package:provider/provider.dart';
 import 'package:common_widgets/common_widgets.dart';
 
 import '../../../core/models/order.dart';
+import '../../../core/pricing.dart';
 import '../../../core/store/commerce_store.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../config/providers/business_config_provider.dart';
 import '../../orders/widgets/order_status_chip.dart';
 
 /// The seller's order queue.
@@ -86,6 +88,10 @@ class _OrderList extends StatelessWidget {
     if (orders.isEmpty) return empty;
 
     final store = context.watch<CommerceStore>();
+    final currency = context
+        .watch<BusinessConfigProvider>()
+        .config
+        .currencySymbol;
     final padding = Responsive.padding(context);
 
     return ListView.separated(
@@ -95,17 +101,22 @@ class _OrderList extends StatelessWidget {
           SizedBox(height: Responsive.spacing(context, mobile: 12)),
       itemBuilder: (context, index) {
         final order = orders[index];
-        return _OrderCard(order: order, store: store);
+        return _OrderCard(order: order, store: store, currency: currency);
       },
     );
   }
 }
 
 class _OrderCard extends StatelessWidget {
-  const _OrderCard({required this.order, required this.store});
+  const _OrderCard({
+    required this.order,
+    required this.store,
+    required this.currency,
+  });
 
   final Order order;
   final CommerceStore store;
+  final String currency;
 
   @override
   Widget build(BuildContext context) {
@@ -132,7 +143,9 @@ class _OrderCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                          fontWeight: FontWeight.w700, fontSize: 14),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
                   OrderStatusChip(status: order.status),
@@ -152,9 +165,11 @@ class _OrderCard extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    '₹${order.subtotal}',
+                    Pricing.money(order.subtotal, currencySymbol: currency),
                     style: const TextStyle(
-                        fontWeight: FontWeight.w700, fontSize: 13.5),
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13.5,
+                    ),
                   ),
                 ],
               ),
@@ -188,8 +203,7 @@ class _OrderCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 10),
                     OutlinedButton(
-                      onPressed: () =>
-                          context.go('/owner/orders/${order.id}'),
+                      onPressed: () => context.go('/owner/orders/${order.id}'),
                       child: const Text('Details'),
                     ),
                   ],
@@ -217,15 +231,16 @@ class _EmptyQueue extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              completed ? Icons.task_alt_outlined : Icons.pending_actions_outlined,
+              completed
+                  ? Icons.task_alt_outlined
+                  : Icons.pending_actions_outlined,
               size: 54,
               color: Colors.grey[400],
             ),
             const SizedBox(height: 16),
             Text(
               completed ? 'Nothing finished yet' : 'All caught up',
-              style:
-                  const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
@@ -233,10 +248,13 @@ class _EmptyQueue extends StatelessWidget {
               completed
                   ? 'Orders you have fulfilled end up here.'
                   : 'New orders land here the second a customer checks out. '
-                      'You will get a notification too.',
+                        'You will get a notification too.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                  fontSize: 13, height: 1.5, color: Colors.grey[600]),
+                fontSize: 13,
+                height: 1.5,
+                color: Colors.grey[600],
+              ),
             ),
           ],
         ),

@@ -5,7 +5,9 @@ import 'package:provider/provider.dart';
 import 'package:common_widgets/common_widgets.dart';
 
 import '../../../core/models/order.dart';
+import '../../../core/pricing.dart';
 import '../../../core/store/commerce_store.dart';
+import '../../config/providers/business_config_provider.dart';
 import '../../orders/widgets/order_status_chip.dart';
 
 /// One order from the seller's side: what was bought, who for, and the one
@@ -18,6 +20,10 @@ class OwnerOrderDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final store = context.watch<CommerceStore>();
+    final currency = context
+        .watch<BusinessConfigProvider>()
+        .config
+        .currencySymbol;
     final order = store.orderById(orderId);
 
     if (order == null) {
@@ -98,6 +104,7 @@ class OwnerOrderDetailScreen extends StatelessWidget {
                   _ItemRow(
                     item: order.items[i],
                     last: i == order.items.length - 1,
+                    currency: currency,
                   ),
               ],
             ),
@@ -107,15 +114,30 @@ class OwnerOrderDetailScreen extends StatelessWidget {
             title: 'Payment summary',
             child: Column(
               children: [
-                _MoneyRow(label: 'Item total', value: '₹${order.subtotal}'),
-                _MoneyRow(label: 'GST (18%)', value: '₹${order.tax}'),
+                _MoneyRow(
+                  label: 'Item total',
+                  value: Pricing.money(
+                    order.subtotal,
+                    currencySymbol: currency,
+                  ),
+                ),
+                _MoneyRow(
+                  label: 'GST (18%)',
+                  value: Pricing.money(order.tax, currencySymbol: currency),
+                ),
                 _MoneyRow(
                   label: 'Delivery',
-                  value: order.shipping == 0 ? 'Free' : '₹${order.shipping}',
+                  value: order.shipping == 0
+                      ? 'Free'
+                      : Pricing.money(order.shipping, currencySymbol: currency),
                   last: true,
                 ),
                 const Divider(height: 20),
-                _MoneyRow(label: 'Total', value: '₹${order.total}', bold: true),
+                _MoneyRow(
+                  label: 'Total',
+                  value: Pricing.money(order.total, currencySymbol: currency),
+                  bold: true,
+                ),
               ],
             ),
           ),
@@ -430,10 +452,15 @@ class _InfoRow extends StatelessWidget {
 }
 
 class _ItemRow extends StatelessWidget {
-  const _ItemRow({required this.item, required this.last});
+  const _ItemRow({
+    required this.item,
+    required this.last,
+    required this.currency,
+  });
 
   final OrderItem item;
   final bool last;
+  final String currency;
 
   @override
   Widget build(BuildContext context) {
@@ -496,7 +523,7 @@ class _ItemRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '₹${item.lineTotal}',
+                Pricing.money(item.lineTotal, currencySymbol: currency),
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,

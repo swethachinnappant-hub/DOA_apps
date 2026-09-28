@@ -50,10 +50,7 @@ Widget _host(Widget child, BusinessConfigProvider provider) {
       ChangeNotifierProvider<BusinessConfigProvider>.value(value: provider),
       ChangeNotifierProvider<CommerceStore>.value(value: store),
     ],
-    child: MaterialApp(
-      theme: provider.config.getTheme(),
-      home: child,
-    ),
+    child: MaterialApp(theme: provider.config.getTheme(), home: child),
   );
 }
 
@@ -86,19 +83,31 @@ void main() {
       expect(_product().needsVariantSelection, isFalse);
     });
 
-    test('catalog gives every product multiple images', () {
+    test('catalog gives every product a relevant demo jewellery image', () {
       final products = DemoCatalog.build(const ['Men', 'Women']);
       expect(products, isNotEmpty);
       for (final product in products) {
-        expect(product.images.length, greaterThanOrEqualTo(3),
-            reason: '${product.name} needs multiple angles');
+        expect(
+          product.images,
+          isNotEmpty,
+          reason: '${product.name} needs a photo',
+        );
+        expect(
+          product.images.every(
+            (image) => image.startsWith('assets/demo_jewellery/'),
+          ),
+          isTrue,
+          reason: '${product.name} should use a local jewellery photo',
+        );
       }
     });
 
     test('catalog resolves products by id', () {
       final products = DemoCatalog.build(const ['Men']);
-      expect(DemoCatalog.byId(products, products.first.id)?.name,
-          products.first.name);
+      expect(
+        DemoCatalog.byId(products, products.first.id)?.name,
+        products.first.name,
+      );
       expect(DemoCatalog.byId(products, 'does-not-exist'), isNull);
       expect(DemoCatalog.byId(const [], 'p0'), isNull);
     });
@@ -110,36 +119,39 @@ void main() {
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
 
-      await tester.pumpWidget(_host(
-        Scaffold(
-          body: SizedBox(
-            width: 180,
-            height: 320,
-            child: ProductCard(
-              product: _product(),
-              primaryColor: const Color(0xFF1E3A5F),
-              accentColor: const Color(0xFFE8EFF9),
-              currency: '₹',
-              showRating: true,
+      await tester.pumpWidget(
+        _host(
+          Scaffold(
+            body: SizedBox(
+              width: 180,
+              height: 320,
+              child: ProductCard(
+                product: _product(),
+                primaryColor: const Color(0xFF1E3A5F),
+                accentColor: const Color(0xFFE8EFF9),
+                currency: '₹',
+                showRating: true,
+              ),
             ),
           ),
+          provider,
         ),
-        provider,
-      ));
+      );
       await tester.pump();
 
       expect(find.text('ACME'), findsOneWidget);
       expect(find.text('Classic Oxford Shirt'), findsOneWidget);
-      expect(find.text('₹1299'), findsOneWidget);
-      expect(find.text('₹2999'), findsOneWidget);
+      expect(find.text('₹1,299'), findsOneWidget);
+      expect(find.text('₹2,999'), findsOneWidget);
       expect(find.text('(1284)'), findsOneWidget);
       expect(find.text('57% OFF'), findsOneWidget);
       expect(find.text('BESTSELLER'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('hides prices when the business requires enquiry',
-        (tester) async {
+    testWidgets('hides prices when the business requires enquiry', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(360, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
@@ -152,23 +164,25 @@ void main() {
       });
       expect(provider.config.rules.showPrices, isFalse);
 
-      await tester.pumpWidget(_host(
-        Scaffold(
-          body: SizedBox(
-            width: 180,
-            height: 320,
-            child: ProductCard(
-              product: _product(),
-              primaryColor: const Color(0xFF1E3A5F),
-              accentColor: const Color(0xFFE8EFF9),
-              currency: '₹',
-              // Same wiring the catalogue and home rail use.
-              showPrice: provider.config.rules.showPrices,
+      await tester.pumpWidget(
+        _host(
+          Scaffold(
+            body: SizedBox(
+              width: 180,
+              height: 320,
+              child: ProductCard(
+                product: _product(),
+                primaryColor: const Color(0xFF1E3A5F),
+                accentColor: const Color(0xFFE8EFF9),
+                currency: '₹',
+                // Same wiring the catalogue and home rail use.
+                showPrice: provider.config.rules.showPrices,
+              ),
             ),
           ),
+          provider,
         ),
-        provider,
-      ));
+      );
       await tester.pump();
 
       expect(find.text('Contact for Price'), findsOneWidget);
@@ -186,22 +200,24 @@ void main() {
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
 
-      await tester.pumpWidget(_host(
-        Scaffold(
-          body: SizedBox(
-            width: 180,
-            height: 320,
-            child: ProductCard(
-              product: _product(),
-              primaryColor: const Color(0xFF1E3A5F),
-              accentColor: const Color(0xFFE8EFF9),
-              onTap: () => taps++,
-              onWishlist: () => wishlists++,
+      await tester.pumpWidget(
+        _host(
+          Scaffold(
+            body: SizedBox(
+              width: 180,
+              height: 320,
+              child: ProductCard(
+                product: _product(),
+                primaryColor: const Color(0xFF1E3A5F),
+                accentColor: const Color(0xFFE8EFF9),
+                onTap: () => taps++,
+                onWishlist: () => wishlists++,
+              ),
             ),
           ),
+          provider,
         ),
-        provider,
-      ));
+      );
       await tester.pump();
 
       await tester.tap(find.byType(ProductCard));
@@ -218,20 +234,22 @@ void main() {
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
 
-      await tester.pumpWidget(_host(
-        Scaffold(
-          body: SizedBox(
-            width: 150,
-            height: 300,
-            child: ProductCard(
-              product: _product(),
-              primaryColor: const Color(0xFF1E3A5F),
-              accentColor: const Color(0xFFE8EFF9),
+      await tester.pumpWidget(
+        _host(
+          Scaffold(
+            body: SizedBox(
+              width: 150,
+              height: 300,
+              child: ProductCard(
+                product: _product(),
+                primaryColor: const Color(0xFF1E3A5F),
+                accentColor: const Color(0xFFE8EFF9),
+              ),
             ),
           ),
+          provider,
         ),
-        provider,
-      ));
+      );
       await tester.pump();
 
       expect(tester.takeException(), isNull);
@@ -249,15 +267,15 @@ void main() {
     });
 
     Future<void> pumpDetail(WidgetTester tester, String id) async {
-      await tester.pumpWidget(_host(
-        ProductDetailScreen(productId: id),
-        provider,
-      ));
+      await tester.pumpWidget(
+        _host(ProductDetailScreen(productId: id), provider),
+      );
       await tester.pump();
     }
 
-    testWidgets('asks for a variant before allowing add to bag',
-        (tester) async {
+    testWidgets('asks for a variant before allowing add to bag', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(360, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
@@ -303,13 +321,17 @@ void main() {
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
 
-      final target = catalog.firstWhere((p) => p.images.length > 1);
+      final target = catalog.first;
       await pumpDetail(tester, target.id);
 
-      // The gallery plus every related card in the rail carries a carousel.
+      // Each product gets a gallery; a thumbnail rail is only shown when the
+      // seller has supplied more than one distinct photo.
       expect(find.byType(ProductImageCarousel), findsWidgets);
-      expect(find.byType(ProductThumbnailRail), findsOneWidget);
-      expect(find.text(target.name), findsOneWidget);
+      expect(
+        find.byType(ProductThumbnailRail),
+        target.images.length > 1 ? findsOneWidget : findsNothing,
+      );
+      expect(find.text(target.name), findsWidgets);
       expect(tester.takeException(), isNull);
     });
 

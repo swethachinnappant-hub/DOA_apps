@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:common_widgets/common_widgets.dart';
 
 import '../../../core/models/order.dart';
+import '../../../core/pricing.dart';
 import '../../../core/store/commerce_store.dart';
 import '../../config/providers/business_config_provider.dart';
 import '../widgets/order_status_chip.dart';
@@ -74,6 +75,7 @@ class OrderDetailScreen extends StatelessWidget {
                   _ItemRow(
                     item: order.items[i],
                     showPrice: rules.showPrices,
+                    currency: config.currencySymbol,
                     accent: config.accentColor,
                     brand: config.primaryColor,
                     last: i == order.items.length - 1,
@@ -106,26 +108,40 @@ class OrderDetailScreen extends StatelessWidget {
                 _money(
                   context,
                   'Item total',
-                  '₹${order.subtotal}',
+                  Pricing.money(
+                    order.subtotal,
+                    currencySymbol: config.currencySymbol,
+                  ),
                   showPrice: rules.showPrices,
                 ),
                 _money(
                   context,
                   'GST (18%)',
-                  '₹${order.tax}',
+                  Pricing.money(
+                    order.tax,
+                    currencySymbol: config.currencySymbol,
+                  ),
                   showPrice: rules.showPrices,
                 ),
                 _money(
                   context,
                   'Delivery',
-                  order.shipping == 0 ? 'Free' : '₹${order.shipping}',
+                  order.shipping == 0
+                      ? 'Free'
+                      : Pricing.money(
+                          order.shipping,
+                          currencySymbol: config.currencySymbol,
+                        ),
                   showPrice: rules.showPrices,
                 ),
                 const Divider(height: 20),
                 _money(
                   context,
                   'Total',
-                  '₹${order.total}',
+                  Pricing.money(
+                    order.total,
+                    currencySymbol: config.currencySymbol,
+                  ),
                   showPrice: rules.showPrices,
                   bold: true,
                 ),
@@ -459,6 +475,7 @@ class _ItemRow extends StatelessWidget {
   const _ItemRow({
     required this.item,
     required this.showPrice,
+    required this.currency,
     required this.accent,
     required this.brand,
     required this.last,
@@ -466,6 +483,7 @@ class _ItemRow extends StatelessWidget {
 
   final OrderItem item;
   final bool showPrice;
+  final String currency;
   final Color accent;
   final Color brand;
   final bool last;
@@ -534,7 +552,9 @@ class _ItemRow extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Text(
-            showPrice ? '₹${item.lineTotal}' : 'Contact',
+            showPrice
+                ? Pricing.money(item.lineTotal, currencySymbol: currency)
+                : 'Contact',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,

@@ -49,8 +49,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     final ctaLabel = shadeMissing
         ? 'Select Shade'
         : sizeMissing
-            ? 'Select Size'
-            : 'Add to Bag';
+        ? 'Select Size'
+        : 'Add to Bag';
 
     return Scaffold(
       appBar: AppBar(
@@ -111,9 +111,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            buyNow ? 'Checkout ready' : 'Added to bag',
-          ),
+          content: Text(buyNow ? 'Checkout ready' : 'Added to bag'),
           duration: const Duration(milliseconds: 1400),
         ),
       );
@@ -164,15 +162,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           onPressed: () {
             final message = controller.text.trim();
             if (message.isEmpty) return;
-            store.pushNotification(AppNotification(
-              id: 'ntf-enq-${DateTime.now().microsecondsSinceEpoch}',
-              type: NotificationType.enquiry,
-              title: 'Enquiry: ${product.name}',
-              body: message,
-              audienceId: product.ownerId,
-              route: '/owner/products/${product.id}',
-              createdAt: DateTime.now(),
-            ));
+            store.pushNotification(
+              AppNotification(
+                id: 'ntf-enq-${DateTime.now().microsecondsSinceEpoch}',
+                type: NotificationType.enquiry,
+                title: 'Enquiry: ${product.name}',
+                body: message,
+                audienceId: product.ownerId,
+                route: '/owner/products/${product.id}',
+                createdAt: DateTime.now(),
+              ),
+            );
             Navigator.of(context, rootNavigator: true).maybePop();
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -221,7 +221,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         case 'Type':
           return product.category;
         case 'MRP':
-          return '${config.currencySymbol}${product.mrp}';
+          return Pricing.money(
+            product.mrp,
+            currencySymbol: config.currencySymbol,
+          );
         case 'Pattern':
         case 'Style':
           return product.badges.isEmpty ? null : product.badges.first;
@@ -254,8 +257,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.search_off_rounded,
-                  size: 44, color: AppPalette.textHint),
+              const Icon(
+                Icons.search_off_rounded,
+                size: 44,
+                color: AppPalette.textHint,
+              ),
               const SizedBox(height: AppSpacing.md),
               Text('Product unavailable', style: AppTypography.subtitle),
               const SizedBox(height: AppSpacing.xs),
@@ -277,8 +283,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
-  Widget _gallery(BuildContext context, BusinessConfig config, Product product,
-      {double? height}) {
+  Widget _gallery(
+    BuildContext context,
+    BusinessConfig config,
+    Product product, {
+    double? height,
+  }) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -293,6 +303,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             placeholderAccent: config.primaryColor,
             autoSlide: true,
             showDots: product.hasMultipleImages,
+            showCounter: product.hasMultipleImages,
             // Keep the thumbnail rail in sync when the shopper swipes
             // directly on the main gallery.
             onPageChanged: (i) => setState(() => _activeImage = i),
@@ -321,7 +332,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Widget _mobileLayout(
-      BuildContext context, BusinessConfig config, Product product) {
+    BuildContext context,
+    BusinessConfig config,
+    Product product,
+  ) {
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -335,7 +349,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Widget _wideLayout(
-      BuildContext context, BusinessConfig config, Product product) {
+    BuildContext context,
+    BusinessConfig config,
+    Product product,
+  ) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -375,7 +392,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   Widget _info(BuildContext context, BusinessConfig config, Product product) {
     final rules = config.rules;
-    final money = config.currencySymbol;
 
     return Padding(
       padding: Responsive.padding(context),
@@ -419,14 +435,20 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               runSpacing: AppSpacing.xs,
               children: [
                 Text(
-                  '$money${product.price}',
+                  Pricing.money(
+                    product.price,
+                    currencySymbol: config.currencySymbol,
+                  ),
                   style: AppTypography.display.copyWith(fontSize: 26),
                 ),
                 if (product.hasDiscount) ...[
                   Padding(
                     padding: const EdgeInsets.only(bottom: 3),
                     child: Text(
-                      '$money${product.mrp}',
+                      Pricing.money(
+                        product.mrp,
+                        currencySymbol: config.currencySymbol,
+                      ),
                       style: AppTypography.priceStrike.copyWith(fontSize: 13),
                     ),
                   ),
@@ -434,7 +456,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     padding: const EdgeInsets.only(bottom: 3),
                     child: ProductBadge(
                       label: '${product.discountPercent}% off',
-                      background: AppPalette.success,
+                      background: AppPalette.goldLight,
+                      foreground: AppPalette.textPrimary,
                     ),
                   ),
                 ],
@@ -443,9 +466,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           else
             Text(
               'Contact for Price',
-              style: AppTypography.title.copyWith(
-                color: config.primaryColor,
-              ),
+              style: AppTypography.title.copyWith(color: config.primaryColor),
             ),
           const SizedBox(height: AppSpacing.sm),
           // Tamannaah's product code + ship status line.
@@ -462,8 +483,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               ),
               ProductBadge(
                 label: _shipStatus(product),
-                background:
-                    product.inStock ? AppPalette.success : AppPalette.error,
+                background: product.inStock
+                    ? AppPalette.success
+                    : AppPalette.error,
               ),
             ],
           ),
@@ -485,12 +507,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               spacing: AppSpacing.sm,
               runSpacing: AppSpacing.sm,
               children: product.shades
-                  .map((s) => _ShadeSwatch(
-                        shade: s,
-                        selected: _selectedShade == s.name,
-                        onTap: () =>
-                            setState(() => _selectedShade = s.name),
-                      ))
+                  .map(
+                    (s) => _ShadeSwatch(
+                      shade: s,
+                      selected: _selectedShade == s.name,
+                      onTap: () => setState(() => _selectedShade = s.name),
+                    ),
+                  )
                   .toList(),
             ),
           ],
@@ -502,12 +525,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               spacing: AppSpacing.sm,
               runSpacing: AppSpacing.sm,
               children: product.sizes
-                  .map((s) => _SizeChip(
-                        label: s.name,
-                        selected: _selectedSize == s.name,
-                        onTap: () =>
-                            setState(() => _selectedSize = s.name),
-                      ))
+                  .map(
+                    (s) => _SizeChip(
+                      label: s.name,
+                      selected: _selectedSize == s.name,
+                      onTap: () => setState(() => _selectedSize = s.name),
+                    ),
+                  )
                   .toList(),
             ),
           ],
@@ -521,14 +545,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.notifications_active_outlined,
-                      size: 18, color: AppPalette.error),
+                  const Icon(
+                    Icons.notifications_active_outlined,
+                    size: 18,
+                    color: AppPalette.error,
+                  ),
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(
                       'Out of stock. Notify me when available',
-                      style: AppTypography.caption
-                          .copyWith(color: AppPalette.error),
+                      style: AppTypography.caption.copyWith(
+                        color: AppPalette.error,
+                      ),
                     ),
                   ),
                 ],
@@ -586,8 +614,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           children: [
                             Padding(
                               padding: const EdgeInsets.only(top: 5, right: 6),
-                              child: Icon(Icons.check,
-                                  size: 13, color: config.primaryColor),
+                              child: Icon(
+                                Icons.check,
+                                size: 13,
+                                color: config.primaryColor,
+                              ),
                             ),
                             Expanded(
                               child: Text(h, style: AppTypography.bodyMuted),
@@ -635,11 +666,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               padding: const EdgeInsets.only(top: AppSpacing.lg),
               child: Row(
                 children: [
-                  const Icon(Icons.lock_outline,
-                      size: 15, color: AppPalette.textHint),
+                  const Icon(
+                    Icons.lock_outline,
+                    size: 15,
+                    color: AppPalette.textHint,
+                  ),
                   const SizedBox(width: AppSpacing.xs),
-                  Text('Download protected',
-                      style: AppTypography.caption),
+                  Text('Download protected', style: AppTypography.caption),
                 ],
               ),
             ),
@@ -658,7 +691,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   /// The Delivery accordion: timing, the shipping threshold the checkout
   /// actually charges, GST and the real minimum order quantity.
   Widget _deliveryDetails(
-      BusinessConfig config, BusinessRules rules, Product product) {
+    BusinessConfig config,
+    BusinessRules rules,
+    Product product,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -672,7 +708,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         _factRow(
           icon: Icons.local_mall_outlined,
           text:
-              'Free shipping on orders of ${config.currencySymbol}${Pricing.freeShippingThreshold} or more, otherwise ${config.currencySymbol}${Pricing.standardShipping}',
+              'Free shipping on orders of ${Pricing.money(Pricing.freeShippingThreshold, currencySymbol: config.currencySymbol)} or more, otherwise ${Pricing.money(Pricing.standardShipping, currencySymbol: config.currencySymbol)}',
           color: config.primaryColor,
         ),
         const SizedBox(height: AppSpacing.sm),
@@ -693,8 +729,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
-  Widget _factRow(
-      {required IconData icon, required String text, required Color color}) {
+  Widget _factRow({
+    required IconData icon,
+    required String text,
+    required Color color,
+  }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -723,12 +762,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           onTap: () => context.go('/app'),
           child: Text('Home', style: AppTypography.caption),
         ),
-        Text('/', style: AppTypography.caption.copyWith(
-            color: AppPalette.textHint)),
+        Text(
+          '/',
+          style: AppTypography.caption.copyWith(color: AppPalette.textHint),
+        ),
         InkWell(
-          onTap: () => context.push(catalogueLocation(
-            category: product.category,
-          )),
+          onTap: () =>
+              context.push(catalogueLocation(category: product.category)),
           child: Text(
             product.category,
             style: AppTypography.caption.copyWith(
@@ -807,8 +847,7 @@ class _SectionAccordionState extends State<_SectionAccordion> {
             child: Row(
               children: [
                 Expanded(
-                  child:
-                      Text(widget.title, style: AppTypography.sectionTitle),
+                  child: Text(widget.title, style: AppTypography.sectionTitle),
                 ),
                 Icon(
                   _open ? Icons.remove : Icons.add,

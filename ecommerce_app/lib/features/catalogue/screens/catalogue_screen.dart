@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:common_widgets/common_widgets.dart';
 import '../../config/providers/business_config_provider.dart';
 import '../../../core/business_config.dart';
+import '../../../core/pricing.dart';
 import '../../../core/product.dart';
 import '../../../core/store/commerce_store.dart';
 import '../../../widgets/product_card.dart';
@@ -15,11 +16,16 @@ class CatalogueScreen extends StatefulWidget {
   final int? priceMin;
   final int? priceMax;
 
+  /// Exit action used when the catalogue is embedded in the customer tab shell.
+  /// Standalone catalogue routes continue to use normal route back navigation.
+  final VoidCallback? onExit;
+
   const CatalogueScreen({
     super.key,
     this.initialCategory,
     this.priceMin,
     this.priceMax,
+    this.onExit,
   });
 
   @override
@@ -30,7 +36,9 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
   late String _selectedCategory;
   late int? _priceMin;
   late int? _priceMax;
-  String _sortBy = 'Newest';
+  bool _inStockOnly = false;
+  String? _selectedPurity;
+  String _sortBy = 'Recommended';
   bool _isGrid = true;
 
   @override
@@ -46,94 +54,185 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
   String get _priceBandLabel {
     final symbol = context.read<BusinessConfigProvider>().config.currencySymbol;
     if (_priceMin != null && _priceMax != null) {
-      return '$symbol$_priceMin – $symbol$_priceMax';
+      return '${Pricing.money(_priceMin!, currencySymbol: symbol)} – ${Pricing.money(_priceMax!, currencySymbol: symbol)}';
     }
-    if (_priceMax != null) return 'Under $symbol$_priceMax';
-    return '$symbol$_priceMin & above';
+    if (_priceMax != null) {
+      return 'Under ${Pricing.money(_priceMax!, currencySymbol: symbol)}';
+    }
+    return '${Pricing.money(_priceMin!, currencySymbol: symbol)} & above';
   }
 
-  Future<void> _showPriceFilters(BusinessConfig config) async {
-    final minController = TextEditingController(
-      text: _priceMin?.toString() ?? '',
-    );
-    final maxController = TextEditingController(
-      text: _priceMax?.toString() ?? '',
-    );
+  Future<void> _showCollectionOptions(
+    BusinessConfig config,
+    List<Product> products, {
+    bool openSort = false,
+  }) async {
+    var minText = _priceMin?.toString() ?? '';
+    var maxText = _priceMax?.toString() ?? '';
     String? error;
+    var onlyAvailable = _inStockOnly;
+    var selectedPurity = _selectedPurity;
+    var selectedSort = _sortBy;
+    const sortOptions = [
+      'Recommended',
+      'Newest',
+      'Price: Low to High',
+      'Price: High to Low',
+      'Top Rated',
+    ];
+    final purityOptions =
+        products
+            .expand(
+              (product) => product.specs.entries
+                  .where((entry) => entry.key.toLowerCase().contains('purity'))
+                  .map((entry) => entry.value.trim()),
+            )
+            .where((purity) => purity.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
 
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
-      ),
-      builder: (sheetContext) => StatefulBuilder(
-        builder: (sheetContext, setSheetState) {
-          final keyboardInset = MediaQuery.viewInsetsOf(sheetContext).bottom;
-          return SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(20, 18, 20, 18 + keyboardInset),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Filter pieces',
-                        style: AppTypography.headline,
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: 'Close filters',
-                      onPressed: () => Navigator.pop(sheetContext),
-                      icon: const Icon(Icons.close),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                Text('Price range', style: AppTypography.subtitle),
-                const SizedBox(height: AppSpacing.md),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: minController,
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          labelText: 'Minimum price',
-                          prefixText: '${config.currencySymbol} ',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: TextField(
-                        controller: maxController,
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          labelText: 'Maximum price',
-                          prefixText: '${config.currencySymbol} ',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                if (error != null) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    error!,
-                    style: AppTypography.caption.copyWith(
-                      color: AppPalette.error,
+    final filterPanel = DefaultTabController(
+      length: 2,
+      initialIndex: openSort ? 1 : 0,
+      child: StatefulBuilder(
+        builder: (panelContext, setPanelState) => Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 12, 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Refine collection',
+                      style: AppTypography.headline,
                     ),
                   ),
+                  IconButton(
+                    tooltip: 'Close filters and sort',
+                    onPressed: () => Navigator.pop(panelContext),
+                    icon: const Icon(Icons.close),
+                  ),
                 ],
-                const SizedBox(height: AppSpacing.xl),
-                Row(
+              ),
+            ),
+            const TabBar(
+              tabs: [
+                Tab(icon: Icon(Icons.tune_rounded), text: 'Filter'),
+                Tab(icon: Icon(Icons.swap_vert_rounded), text: 'Sort by'),
+              ],
+            ),
+            Expanded(
+              child: TabBarView(
+                children: [
+                  SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Availability', style: AppTypography.subtitle),
+                        CheckboxListTile(
+                          contentPadding: EdgeInsets.zero,
+                          controlAffinity: ListTileControlAffinity.leading,
+                          value: onlyAvailable,
+                          onChanged: (value) => setPanelState(
+                            () => onlyAvailable = value ?? false,
+                          ),
+                          title: const Text('Available now'),
+                          subtitle: const Text('Ready to order'),
+                        ),
+                        if (purityOptions.isNotEmpty) ...[
+                          const SizedBox(height: AppSpacing.md),
+                          Text('Gold purity', style: AppTypography.subtitle),
+                          const SizedBox(height: AppSpacing.sm),
+                          Wrap(
+                            spacing: AppSpacing.sm,
+                            runSpacing: AppSpacing.sm,
+                            children: [
+                              for (final purity in purityOptions)
+                                ChoiceChip(
+                                  label: Text(purity),
+                                  selected: selectedPurity == purity,
+                                  onSelected: (selected) => setPanelState(
+                                    () => selectedPurity = selected
+                                        ? purity
+                                        : null,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
+                        const SizedBox(height: AppSpacing.lg),
+                        Text('Price range', style: AppTypography.subtitle),
+                        const SizedBox(height: AppSpacing.md),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextFormField(
+                                initialValue: minText,
+                                keyboardType: TextInputType.number,
+                                onChanged: (value) => minText = value,
+                                decoration: InputDecoration(
+                                  labelText: 'Minimum',
+                                  prefixText: '${config.currencySymbol} ',
+                                  border: const OutlineInputBorder(),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: AppSpacing.md),
+                            Expanded(
+                              child: TextFormField(
+                                initialValue: maxText,
+                                keyboardType: TextInputType.number,
+                                onChanged: (value) => maxText = value,
+                                decoration: InputDecoration(
+                                  labelText: 'Maximum',
+                                  prefixText: '${config.currencySymbol} ',
+                                  border: const OutlineInputBorder(),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (error != null) ...[
+                          const SizedBox(height: AppSpacing.sm),
+                          Text(
+                            error!,
+                            style: AppTypography.caption.copyWith(
+                              color: AppPalette.error,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  ListView(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    children: [
+                      for (final option in sortOptions)
+                        ListTile(
+                          title: Text(option, style: AppTypography.body),
+                          leading: Icon(
+                            selectedSort == option
+                                ? Icons.radio_button_checked
+                                : Icons.radio_button_off,
+                            color: selectedSort == option
+                                ? AppPalette.textPrimary
+                                : AppPalette.textHint,
+                          ),
+                          onTap: () =>
+                              setPanelState(() => selectedSort = option),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                child: Row(
                   children: [
                     Expanded(
                       child: OutlinedButton(
@@ -141,10 +240,13 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
                           setState(() {
                             _priceMin = null;
                             _priceMax = null;
+                            _inStockOnly = false;
+                            _selectedPurity = null;
+                            _selectedCategory = 'All';
                           });
-                          Navigator.pop(sheetContext);
+                          Navigator.pop(panelContext);
                         },
-                        child: const Text('Clear price'),
+                        child: const Text('Clear filters'),
                       ),
                     ),
                     const SizedBox(width: AppSpacing.md),
@@ -155,10 +257,10 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
                           foregroundColor: config.onPrimaryColor,
                         ),
                         onPressed: () {
-                          final min = int.tryParse(minController.text.trim());
-                          final max = int.tryParse(maxController.text.trim());
+                          final min = int.tryParse(minText.trim());
+                          final max = int.tryParse(maxText.trim());
                           if (min != null && max != null && min > max) {
-                            setSheetState(
+                            setPanelState(
                               () => error =
                                   'Minimum price must be below maximum price',
                             );
@@ -167,23 +269,69 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
                           setState(() {
                             _priceMin = min;
                             _priceMax = max;
+                            _inStockOnly = onlyAvailable;
+                            _selectedPurity = selectedPurity;
+                            _sortBy = selectedSort;
                           });
-                          Navigator.pop(sheetContext);
+                          Navigator.pop(panelContext);
                         },
                         child: const Text('Show pieces'),
                       ),
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
-          );
-        },
+          ],
+        ),
       ),
     );
 
-    minController.dispose();
-    maxController.dispose();
+    if (Responsive.shouldShowSideNav(context)) {
+      await showGeneralDialog<void>(
+        context: context,
+        barrierDismissible: true,
+        barrierLabel: 'Close filter and sort panel',
+        barrierColor: Colors.black54,
+        pageBuilder: (dialogContext, _, _) => SafeArea(
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: Material(
+              color: AppPalette.surface,
+              elevation: 16,
+              borderRadius: const BorderRadius.horizontal(
+                left: Radius.circular(20),
+              ),
+              child: SizedBox(
+                width: 420,
+                height: double.infinity,
+                child: filterPanel,
+              ),
+            ),
+          ),
+        ),
+        transitionBuilder: (context, animation, secondaryAnimation, child) =>
+            SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(1, 0),
+                end: Offset.zero,
+              ).animate(animation),
+              child: child,
+            ),
+      );
+    } else {
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        backgroundColor: AppPalette.surface,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (_) =>
+            FractionallySizedBox(heightFactor: 0.88, child: filterPanel),
+      );
+    }
   }
 
   @override
@@ -205,219 +353,344 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
               .toList()
         : visible;
     final sorted = _sort(inBand);
+    final available = _inStockOnly
+        ? sorted.where((product) => product.isAvailable).toList()
+        : sorted;
+    final purityFiltered = _selectedPurity == null
+        ? available
+        : available
+              .where(
+                (product) => product.specs.entries.any(
+                  (entry) =>
+                      entry.key.toLowerCase().contains('purity') &&
+                      entry.value.trim() == _selectedPurity,
+                ),
+              )
+              .toList();
+    final activeFilterCount =
+        (_selectedCategory == 'All' ? 0 : 1) +
+        (_hasPriceBand ? 1 : 0) +
+        (_inStockOnly ? 1 : 0) +
+        (_selectedPurity == null ? 0 : 1);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          config.type == BusinessType.jewellery ? 'Jewellery' : 'Catalogue',
-          style: AppTypography.title.copyWith(letterSpacing: 0.2),
-        ),
-        actions: [
-          IconButton(
-            tooltip: _isGrid ? 'List view' : 'Grid view',
-            icon: Icon(_isGrid ? Icons.view_list_outlined : Icons.grid_view),
-            onPressed: () => setState(() => _isGrid = !_isGrid),
-          ),
-          const SizedBox(width: AppSpacing.xs),
-        ],
-      ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: AppSpacing.lg),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: AppSearchField(hint: config.searchHint),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          SizedBox(
-            height: 38,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              itemCount: allCategories.length,
-              separatorBuilder: (_, _) =>
-                  const SizedBox(width: AppSpacing.chipGap),
-              itemBuilder: (context, index) {
-                final cat = allCategories[index];
-                final selected = cat == _selectedCategory;
-                return GestureDetector(
-                  onTap: () => setState(() => _selectedCategory = cat),
-                  child: AnimatedContainer(
-                    duration: AppDurations.fast,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.lg,
-                      vertical: AppSpacing.sm,
-                    ),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: selected
-                          ? config.primaryColor
-                          : AppPalette.surface,
-                      borderRadius: AppRadius.allPill,
-                      border: Border.all(
-                        color: selected
-                            ? config.primaryColor
-                            : AppPalette.border,
-                      ),
-                    ),
-                    child: Text(
-                      cat,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.label.copyWith(
-                        color: selected
-                            ? config.onPrimaryColor
-                            : AppPalette.textSecondary,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          if (_hasPriceBand)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.screenH,
-                AppSpacing.sm,
-                AppSpacing.screenH,
-                0,
+      appBar: widget.onExit != null
+          ? null
+          : AppBar(
+              title: Text(
+                config.type == BusinessType.jewellery
+                    ? 'Jewellery'
+                    : 'Catalogue',
+                style: AppTypography.title.copyWith(letterSpacing: 0.2),
               ),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: InkWell(
-                  onTap: _clearPriceBand,
-                  borderRadius: AppRadius.allPill,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.md,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: config.accentColor,
-                      borderRadius: AppRadius.allPill,
-                    ),
+              actions: [
+                IconButton(
+                  tooltip: _isGrid ? 'List view' : 'Grid view',
+                  icon: Icon(
+                    _isGrid ? Icons.view_list_outlined : Icons.grid_view,
+                  ),
+                  onPressed: () => setState(() => _isGrid = !_isGrid),
+                ),
+                const SizedBox(width: AppSpacing.xs),
+              ],
+            ),
+      body: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (widget.onExit != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 10, 16, 0),
                     child: Row(
-                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Flexible(
+                        IconButton(
+                          tooltip: 'Back to home',
+                          onPressed: widget.onExit,
+                          icon: const Icon(Icons.arrow_back),
+                        ),
+                        const SizedBox(width: AppSpacing.xs),
+                        Expanded(
                           child: Text(
-                            _priceBandLabel,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTypography.label.copyWith(
-                              color: config.primaryColor,
+                            config.type == BusinessType.jewellery
+                                ? 'Jewellery'
+                                : 'Catalogue',
+                            style: AppTypography.title.copyWith(
+                              letterSpacing: 0.2,
                             ),
                           ),
                         ),
-                        const SizedBox(width: AppSpacing.xs),
-                        Icon(Icons.close, size: 15, color: config.primaryColor),
+                        IconButton(
+                          tooltip: _isGrid ? 'List view' : 'Grid view',
+                          icon: Icon(
+                            _isGrid
+                                ? Icons.view_list_outlined
+                                : Icons.grid_view,
+                          ),
+                          onPressed: () => setState(() => _isGrid = !_isGrid),
+                        ),
                       ],
                     ),
                   ),
+                const SizedBox(height: AppSpacing.lg),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: AppSearchField(hint: config.searchHint),
                 ),
-              ),
-            ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 18, 14, 12),
-            child: Row(
-              children: [
-                Text(
-                  '${sorted.length} PIECES',
-                  style: AppTypography.overline.copyWith(
-                    color: AppPalette.textSecondary,
-                    letterSpacing: 1.2,
+                const SizedBox(height: AppSpacing.lg),
+                SizedBox(
+                  height: 38,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    itemCount: allCategories.length,
+                    separatorBuilder: (_, _) =>
+                        const SizedBox(width: AppSpacing.chipGap),
+                    itemBuilder: (context, index) {
+                      final cat = allCategories[index];
+                      final selected = cat == _selectedCategory;
+                      return GestureDetector(
+                        onTap: () => setState(() => _selectedCategory = cat),
+                        child: AnimatedContainer(
+                          duration: AppDurations.fast,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.lg,
+                            vertical: AppSpacing.sm,
+                          ),
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: selected
+                                ? config.primaryColor
+                                : AppPalette.surface,
+                            borderRadius: AppRadius.allPill,
+                            border: Border.all(
+                              color: selected
+                                  ? config.primaryColor
+                                  : AppPalette.border,
+                            ),
+                          ),
+                          child: Text(
+                            cat,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTypography.label.copyWith(
+                              color: selected
+                                  ? config.onPrimaryColor
+                                  : AppPalette.textSecondary,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
-                const SizedBox(width: 12),
-                OutlinedButton.icon(
-                  onPressed: () => _showPriceFilters(config),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppPalette.textPrimary,
-                    side: const BorderSide(color: AppPalette.border),
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    visualDensity: VisualDensity.compact,
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(2)),
+                if (_hasPriceBand)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.screenH,
+                      AppSpacing.sm,
+                      AppSpacing.screenH,
+                      0,
+                    ),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: InkWell(
+                        onTap: _clearPriceBand,
+                        borderRadius: AppRadius.allPill,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.md,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: config.accentColor,
+                            borderRadius: AppRadius.allPill,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  _priceBandLabel,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTypography.label.copyWith(
+                                    color: config.primaryColor,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: AppSpacing.xs),
+                              Icon(
+                                Icons.close,
+                                size: 15,
+                                color: config.primaryColor,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                  icon: const Icon(Icons.tune, size: 16),
-                  label: Text(_hasPriceBand ? 'Filter 1' : 'Filter'),
-                ),
-                const Spacer(),
-                DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _sortBy,
-                    isDense: true,
-                    borderRadius: AppRadius.allMd,
-                    icon: const Icon(Icons.expand_more, size: 20),
-                    style: AppTypography.label,
-                    items:
-                        const ['Newest', 'Price: Low', 'Price: High', 'Rating']
-                            .map(
-                              (s) => DropdownMenuItem(
-                                value: s,
-                                child: Text(s, style: AppTypography.label),
+                if (_selectedPurity != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: InputChip(
+                        label: Text(_selectedPurity!),
+                        onDeleted: () => setState(() => _selectedPurity = null),
+                        deleteIconColor: AppPalette.textSecondary,
+                        backgroundColor: AppPalette.surfaceMuted,
+                        side: const BorderSide(color: AppPalette.border),
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: AppRadius.allSm,
+                        ),
+                      ),
+                    ),
+                  ),
+                if (_inStockOnly)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: InputChip(
+                        label: const Text('Available now'),
+                        onDeleted: () => setState(() => _inStockOnly = false),
+                        deleteIconColor: AppPalette.textSecondary,
+                        backgroundColor: AppPalette.surfaceMuted,
+                        side: const BorderSide(color: AppPalette.border),
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: AppRadius.allSm,
+                        ),
+                      ),
+                    ),
+                  ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            '${purityFiltered.length} ${purityFiltered.length == 1 ? 'PIECE' : 'PIECES'}',
+                            style: AppTypography.overline.copyWith(
+                              color: AppPalette.textSecondary,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                          const Spacer(),
+                          if (activeFilterCount > 0)
+                            TextButton(
+                              onPressed: () => setState(() {
+                                _selectedCategory = 'All';
+                                _priceMin = null;
+                                _priceMax = null;
+                                _inStockOnly = false;
+                                _selectedPurity = null;
+                              }),
+                              child: const Text('Clear all'),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _CollectionControl(
+                              icon: Icons.tune_rounded,
+                              label: activeFilterCount == 0
+                                  ? 'Filter'
+                                  : 'Filter ($activeFilterCount)',
+                              onTap: () =>
+                                  _showCollectionOptions(config, products),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _CollectionControl(
+                              icon: Icons.swap_vert_rounded,
+                              label: 'Sort by',
+                              onTap: () => _showCollectionOptions(
+                                config,
+                                products,
+                                openSort: true,
                               ),
-                            )
-                            .toList(),
-                    onChanged: (v) => setState(() => _sortBy = v ?? 'Newest'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
-          Expanded(
-            child: sorted.isEmpty
-                ? _EmptyState(
-                    onReset: () => setState(() {
-                      _selectedCategory = 'All';
-                      _priceMin = null;
-                      _priceMax = null;
-                    }),
-                  )
-                : _isGrid
-                ? GridView.builder(
-                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: Responsive.gridColumns(context),
-                      childAspectRatio: Responsive.cardAspectRatio(context),
-                      crossAxisSpacing: 18,
-                      mainAxisSpacing: 28,
-                    ),
-                    itemCount: sorted.length,
-                    itemBuilder: (context, index) => ProductCard(
-                      product: sorted[index],
-                      primaryColor: config.primaryColor,
-                      accentColor: config.accentColor,
-                      currency: config.currencySymbol,
-                      showRating: !config.rules.showPrices,
-                      showPrice: config.rules.showPrices,
-                      liked: store.isWishlisted(sorted[index].id),
-                      onWishlist: () => store.toggleWishlist(sorted[index].id),
-                      onTap: () => context.push('/product/${sorted[index].id}'),
-                    ),
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.screenH,
-                      AppSpacing.xs,
-                      AppSpacing.screenH,
-                      AppSpacing.screenV,
-                    ),
-                    itemCount: sorted.length,
-                    separatorBuilder: (_, _) =>
-                        const SizedBox(height: AppSpacing.listGap),
-                    itemBuilder: (context, index) => _ProductListTile(
-                      product: sorted[index],
-                      config: config,
-                      liked: store.isWishlisted(sorted[index].id),
-                      onWishlist: () => store.toggleWishlist(sorted[index].id),
-                      onTap: () => context.push('/product/${sorted[index].id}'),
-                    ),
+          if (purityFiltered.isEmpty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: _EmptyState(
+                onReset: () => setState(() {
+                  _selectedCategory = 'All';
+                  _priceMin = null;
+                  _priceMax = null;
+                  _inStockOnly = false;
+                  _selectedPurity = null;
+                }),
+              ),
+            )
+          else if (_isGrid)
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+              sliver: SliverGrid(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: Responsive.gridColumns(context),
+                  childAspectRatio: Responsive.cardAspectRatio(context),
+                  crossAxisSpacing: 18,
+                  mainAxisSpacing: 28,
+                ),
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) => ProductCard(
+                    product: purityFiltered[index],
+                    primaryColor: config.primaryColor,
+                    accentColor: config.accentColor,
+                    currency: config.currencySymbol,
+                    showRating: !config.rules.showPrices,
+                    showPrice: config.rules.showPrices,
+                    liked: store.isWishlisted(purityFiltered[index].id),
+                    onWishlist: () =>
+                        store.toggleWishlist(purityFiltered[index].id),
+                    onTap: () =>
+                        context.push('/product/${purityFiltered[index].id}'),
                   ),
-          ),
+                  childCount: purityFiltered.length,
+                ),
+              ),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.screenH,
+                AppSpacing.xs,
+                AppSpacing.screenH,
+                AppSpacing.screenV,
+              ),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  if (index.isOdd) {
+                    return const SizedBox(height: AppSpacing.listGap);
+                  }
+                  final product = purityFiltered[index ~/ 2];
+                  return _ProductListTile(
+                    product: product,
+                    config: config,
+                    liked: store.isWishlisted(product.id),
+                    onWishlist: () => store.toggleWishlist(product.id),
+                    onTap: () => context.push('/product/${product.id}'),
+                  );
+                }, childCount: purityFiltered.length * 2 - 1),
+              ),
+            ),
         ],
       ),
     );
@@ -432,15 +705,52 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
 
   List<Product> _sort(List<Product> items) {
     switch (_sortBy) {
-      case 'Price: Low':
+      case 'Newest':
+        return [...items]..sort((a, b) {
+          if (a.createdAt == null && b.createdAt == null) return 0;
+          if (a.createdAt == null) return 1;
+          if (b.createdAt == null) return -1;
+          return b.createdAt!.compareTo(a.createdAt!);
+        });
+      case 'Price: Low to High':
         return [...items]..sort((a, b) => a.price.compareTo(b.price));
-      case 'Price: High':
+      case 'Price: High to Low':
         return [...items]..sort((a, b) => b.price.compareTo(a.price));
-      case 'Rating':
+      case 'Top Rated':
         return [...items]..sort((a, b) => b.rating.compareTo(a.rating));
       default:
         return items;
     }
+  }
+}
+
+class _CollectionControl extends StatelessWidget {
+  const _CollectionControl({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, size: 17),
+      label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppPalette.textPrimary,
+        side: const BorderSide(color: AppPalette.border),
+        minimumSize: const Size.fromHeight(46),
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        shape: const RoundedRectangleBorder(borderRadius: AppRadius.allSm),
+        textStyle: AppTypography.label.copyWith(letterSpacing: 0),
+      ),
+    );
   }
 }
 
@@ -565,7 +875,10 @@ class _ProductListTile extends StatelessWidget {
                         Row(
                           children: [
                             Text(
-                              '${config.currencySymbol}${product.price}',
+                              Pricing.money(
+                                product.price,
+                                currencySymbol: config.currencySymbol,
+                              ),
                               style: AppTypography.price.copyWith(
                                 fontSize: 14.5,
                               ),
@@ -573,7 +886,10 @@ class _ProductListTile extends StatelessWidget {
                             if (product.hasDiscount) ...[
                               const SizedBox(width: 5),
                               Text(
-                                '${config.currencySymbol}${product.mrp}',
+                                Pricing.money(
+                                  product.mrp,
+                                  currencySymbol: config.currencySymbol,
+                                ),
                                 style: AppTypography.priceStrike.copyWith(
                                   fontSize: 11,
                                 ),
@@ -583,7 +899,7 @@ class _ProductListTile extends StatelessWidget {
                                 '${product.discountPercent}% off',
                                 style: AppTypography.caption.copyWith(
                                   fontSize: 11,
-                                  color: AppPalette.success,
+                                  color: AppPalette.goldDark,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),

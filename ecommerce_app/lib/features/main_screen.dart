@@ -175,7 +175,7 @@ class _MainScreenState extends State<MainScreen> {
       case 0:
         return const _HomeTab();
       case 1:
-        return const CatalogueScreen();
+        return CatalogueScreen(onExit: () => setState(() => _currentIndex = 0));
       case 2:
         return const WishlistScreen();
       case 3:
@@ -256,7 +256,12 @@ class _HomeTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final config = context.watch<BusinessConfigProvider>().config;
     final store = context.watch<CommerceStore>();
-    final featured = store.shopProducts.take(10).toList();
+    final featured = [...store.shopProducts]
+      ..sort((a, b) {
+        final rating = b.rating.compareTo(a.rating);
+        return rating != 0 ? rating : b.reviewCount.compareTo(a.reviewCount);
+      });
+    final curated = featured.take(10).toList();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
@@ -266,17 +271,32 @@ class _HomeTab extends StatelessWidget {
           const SizedBox(height: AppSpacing.md),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenH),
-            child: AppSearchField(hint: config.searchHint),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'THE JEWELLERY EDIT',
+                  style: AppTypography.overline.copyWith(
+                    color: AppPalette.textSecondary,
+                    letterSpacing: 1.8,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Pieces to treasure, every day.',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.display.copyWith(fontSize: 26),
+                ),
+                const SizedBox(height: 15),
+                AppSearchField(hint: config.searchHint),
+              ],
+            ),
           ),
           const SizedBox(height: AppSpacing.lg),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenH),
-            child: HeroCarousel(products: featured),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: AppSpacing.screenH),
-            child: TrustBar(),
+            child: HeroCarousel(products: curated),
           ),
           const SizedBox(height: AppSpacing.xxl),
 
@@ -320,7 +340,7 @@ class _HomeTab extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenH),
             child: SectionHeader(
-              title: 'Featured Products',
+              title: 'Featured products',
               padding: EdgeInsets.zero,
               trailing: TextButton(
                 onPressed: () => context.push(catalogueLocation()),
@@ -330,12 +350,12 @@ class _HomeTab extends StatelessWidget {
                     horizontal: AppSpacing.sm,
                   ),
                 ),
-                child: const Text('View All'),
+                child: const Text('Explore all'),
               ),
             ),
           ),
           const SizedBox(height: AppSpacing.md),
-          ProductRail(products: featured),
+          ProductRail(products: curated, autoSlideImages: true),
           const SizedBox(height: AppSpacing.xxl),
 
           const PriceBands(),

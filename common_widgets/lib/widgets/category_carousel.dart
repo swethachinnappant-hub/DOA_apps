@@ -6,7 +6,8 @@ import '../core/design_tokens.dart';
 const double _labelFontSize = 11;
 const double _labelLineHeight = 1.25;
 const int _labelMaxLines = 2;
-const double _labelBlockHeight = _labelMaxLines * _labelFontSize * _labelLineHeight;
+const double _labelBlockHeight =
+    _labelMaxLines * _labelFontSize * _labelLineHeight;
 
 class CategoryCarouselItem {
   final String label;
@@ -25,9 +26,9 @@ class CategoryCarouselItem {
     this.imageUrl,
     this.onTap,
   }) : assert(
-          emoji != null || icon != null || imageUrl != null,
-          'Provide emoji, icon or imageUrl',
-        );
+         emoji != null || icon != null || imageUrl != null,
+         'Provide emoji, icon or imageUrl',
+       );
 }
 
 class CategoryCarousel extends StatefulWidget {
@@ -126,8 +127,12 @@ class _CategoryCarouselState extends State<CategoryCarousel> {
       builder: (context, constraints) {
         final width = constraints.maxWidth;
         final usable = width - widget.padding.horizontal;
-        final resolved = widget.perPage ??
-            ((usable + widget.itemSpacing) / (widget.itemExtent + widget.itemSpacing)).floor().clamp(3, 5);
+        final resolved =
+            widget.perPage ??
+            ((usable + widget.itemSpacing) /
+                    (widget.itemExtent + widget.itemSpacing))
+                .floor()
+                .clamp(3, 5);
         final perPage = resolved < 1 ? 1 : resolved;
         _pageCount = (widget.items.length / perPage).ceil();
 
@@ -138,7 +143,8 @@ class _CategoryCarouselState extends State<CategoryCarousel> {
               height: widget.itemExtent + _labelBlockHeight + AppSpacing.sm,
               child: NotificationListener<ScrollNotification>(
                 onNotification: (notification) {
-                  if (notification is ScrollStartNotification && notification.dragDetails != null) {
+                  if (notification is ScrollStartNotification &&
+                      notification.dragDetails != null) {
                     _dragging = true;
                     _stopTimer();
                   } else if (notification is ScrollEndNotification) {
@@ -167,7 +173,9 @@ class _CategoryCarouselState extends State<CategoryCarousel> {
                               Expanded(
                                 child: Padding(
                                   padding: EdgeInsets.only(
-                                    right: i == perPage - 1 ? 0 : widget.itemSpacing,
+                                    right: i == perPage - 1
+                                        ? 0
+                                        : widget.itemSpacing,
                                   ),
                                   child: _CategoryCircle(
                                     item: slice[i],
@@ -189,7 +197,11 @@ class _CategoryCarouselState extends State<CategoryCarousel> {
             ),
             if (widget.showIndicator && _pageCount > 1) ...[
               const SizedBox(height: AppSpacing.xs),
-              _Indicator(count: _pageCount, active: _page, color: widget.primaryColor),
+              _Indicator(
+                count: _pageCount,
+                active: _page,
+                color: widget.primaryColor,
+              ),
             ],
           ],
         );
@@ -226,39 +238,37 @@ class _CategoryCircle extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: tint,
-              border: Border.all(color: primaryColor.withValues(alpha: 0.18), width: 1),
+              border: Border.all(
+                color: primaryColor.withValues(alpha: 0.18),
+                width: 1,
+              ),
             ),
             alignment: Alignment.center,
             child: item.imageUrl != null
                 ? ClipOval(
-                    child: Image.network(
-                      item.imageUrl!,
-                      width: diameter,
-                      height: diameter,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => Container(
-                        color: tint,
-                        alignment: Alignment.center,
-                        child: item.icon != null
-                            ? Icon(item.icon,
-                                size: diameter * 0.42, color: primaryColor)
-                            : Text(
-                                item.emoji ?? '',
-                                style:
-                                    TextStyle(fontSize: diameter * 0.40),
-                                textAlign: TextAlign.center,
-                              ),
-                      ),
-                    ),
+                    child: item.imageUrl!.startsWith('assets/')
+                        ? Image.asset(
+                            item.imageUrl!,
+                            width: diameter,
+                            height: diameter,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => _imageFallback(tint),
+                          )
+                        : Image.network(
+                            item.imageUrl!,
+                            width: diameter,
+                            height: diameter,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => _imageFallback(tint),
+                          ),
                   )
                 : item.icon != null
-                    ? Icon(item.icon,
-                        size: diameter * 0.42, color: primaryColor)
-                    : Text(
-                        item.emoji ?? '',
-                        style: TextStyle(fontSize: diameter * 0.40),
-                        textAlign: TextAlign.center,
-                      ),
+                ? Icon(item.icon, size: diameter * 0.42, color: primaryColor)
+                : Text(
+                    item.emoji ?? '',
+                    style: TextStyle(fontSize: diameter * 0.40),
+                    textAlign: TextAlign.center,
+                  ),
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
@@ -277,6 +287,18 @@ class _CategoryCircle extends StatelessWidget {
       ),
     );
   }
+
+  Widget _imageFallback(Color tint) => Container(
+    color: tint,
+    alignment: Alignment.center,
+    child: item.icon != null
+        ? Icon(item.icon, size: diameter * 0.42, color: primaryColor)
+        : Text(
+            item.emoji ?? '',
+            style: TextStyle(fontSize: diameter * 0.40),
+            textAlign: TextAlign.center,
+          ),
+  );
 }
 
 class _Indicator extends StatelessWidget {
@@ -284,7 +306,11 @@ class _Indicator extends StatelessWidget {
   final int active;
   final Color color;
 
-  const _Indicator({required this.count, required this.active, required this.color});
+  const _Indicator({
+    required this.count,
+    required this.active,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:common_widgets/common_widgets.dart';
 
 import '../../../core/models/cart.dart';
+import '../../../core/pricing.dart';
 import '../../../core/product.dart';
 import '../../../core/store/commerce_store.dart';
 import '../../config/providers/business_config_provider.dart';
@@ -65,6 +66,7 @@ class CartScreen extends StatelessWidget {
                         brandColor: config.primaryColor,
                         fallbackIcon: config.icon,
                         showPrice: rules.showPrices,
+                        currency: config.currencySymbol,
                         atLimit: atLimit,
                         onIncrement: atLimit
                             ? null
@@ -78,6 +80,7 @@ class CartScreen extends StatelessWidget {
                 _CartSummary(
                   subtotal: subtotal,
                   showPrice: rules.showPrices,
+                  currency: config.currencySymbol,
                   primary: config.primaryColor,
                   onCheckout: () => context.push('/checkout'),
                 ),
@@ -116,6 +119,7 @@ class _CartLine extends StatelessWidget {
     required this.brandColor,
     required this.fallbackIcon,
     required this.showPrice,
+    required this.currency,
     required this.atLimit,
     required this.onIncrement,
     required this.onDecrement,
@@ -128,6 +132,7 @@ class _CartLine extends StatelessWidget {
   final Color brandColor;
   final IconData fallbackIcon;
   final bool showPrice;
+  final String currency;
   final bool atLimit;
   final VoidCallback? onIncrement;
   final VoidCallback onDecrement;
@@ -189,7 +194,9 @@ class _CartLine extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      showPrice ? '₹$lineTotal' : 'Contact',
+                      showPrice
+                          ? Pricing.money(lineTotal, currencySymbol: currency)
+                          : 'Contact',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.right,
@@ -318,20 +325,22 @@ class _CartSummary extends StatelessWidget {
   const _CartSummary({
     required this.subtotal,
     required this.showPrice,
+    required this.currency,
     required this.primary,
     required this.onCheckout,
   });
 
   final int subtotal;
   final bool showPrice;
+  final String currency;
   final Color primary;
   final VoidCallback onCheckout;
 
   @override
   Widget build(BuildContext context) {
-    final tax = (subtotal * 0.18).round();
-    final shipping = subtotal >= 999 ? 0 : 79;
-    final total = subtotal + tax + shipping;
+    final tax = Pricing.tax(subtotal);
+    final shipping = Pricing.shipping(subtotal);
+    final total = Pricing.total(subtotal);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -350,21 +359,37 @@ class _CartSummary extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _row(context, 'Subtotal', showPrice ? '₹$subtotal' : 'Contact'),
+            _row(
+              context,
+              'Subtotal',
+              showPrice
+                  ? Pricing.money(subtotal, currencySymbol: currency)
+                  : 'Contact',
+            ),
             const SizedBox(height: 6),
-            _row(context, 'GST (18%)', showPrice ? '₹$tax' : 'Contact'),
+            _row(
+              context,
+              'GST (18%)',
+              showPrice
+                  ? Pricing.money(tax, currencySymbol: currency)
+                  : 'Contact',
+            ),
             const SizedBox(height: 6),
             _row(
               context,
               'Delivery',
-              !showPrice ? 'Contact' : (shipping == 0 ? 'Free' : '₹$shipping'),
+              !showPrice
+                  ? 'Contact'
+                  : (shipping == 0
+                        ? 'Free'
+                        : Pricing.money(shipping, currencySymbol: currency)),
             ),
             if (showPrice && shipping > 0) ...[
               const SizedBox(height: 4),
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Free delivery on orders above ₹999',
+                  'Free delivery on orders above ${Pricing.money(Pricing.freeShippingThreshold, currencySymbol: currency)}',
                   style: TextStyle(fontSize: 11.5, color: Colors.grey[500]),
                 ),
               ),
@@ -386,7 +411,9 @@ class _CartSummary extends StatelessWidget {
                 ),
                 Flexible(
                   child: Text(
-                    showPrice ? '₹$total' : 'Contact for Price',
+                    showPrice
+                        ? Pricing.money(total, currencySymbol: currency)
+                        : 'Contact for Price',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(

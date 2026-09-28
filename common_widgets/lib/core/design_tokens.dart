@@ -108,6 +108,7 @@ class AppTypography {
   const AppTypography._();
 
   static const TextStyle display = TextStyle(
+    fontFamily: 'serif',
     fontSize: 32,
     fontWeight: FontWeight.w300,
     letterSpacing: -1.0,
@@ -116,6 +117,7 @@ class AppTypography {
   );
 
   static const TextStyle headline = TextStyle(
+    fontFamily: 'serif',
     fontSize: 24,
     fontWeight: FontWeight.w400,
     letterSpacing: -0.5,

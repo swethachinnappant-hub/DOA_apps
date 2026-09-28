@@ -27,104 +27,6 @@ String catalogueLocation({String? category, int? min, int? max}) {
   return '/catalogue?$query';
 }
 
-/// The three promises the store can actually keep, quoted straight from
-/// [Pricing] so the copy can never drift from what checkout charges.
-class TrustBar extends StatelessWidget {
-  const TrustBar({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final config = context.watch<BusinessConfigProvider>().config;
-    final items = <({IconData icon, String label})>[
-      (
-        icon: Icons.local_shipping_outlined,
-        label:
-            'Free shipping over ${config.currencySymbol}${Pricing.freeShippingThreshold}',
-      ),
-      (
-        icon: Icons.receipt_long_outlined,
-        label: 'GST ${(Pricing.gstRate * 100).round()}% included at checkout',
-      ),
-      (icon: Icons.explore_outlined, label: 'Live order tracking'),
-    ];
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
-      decoration: BoxDecoration(
-        color: config.accentColor,
-        borderRadius: AppRadius.allMd,
-        border: Border.all(color: config.primaryColor.withValues(alpha: 0.16)),
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final wide = constraints.maxWidth >= 640;
-          if (wide) {
-            return Row(
-              children: [
-                for (var i = 0; i < items.length; i++) ...[
-                  if (i > 0)
-                    Container(
-                      width: 1,
-                      height: 28,
-                      color: config.primaryColor.withValues(alpha: 0.18),
-                    ),
-                  Expanded(
-                    child: _TrustItem(
-                      item: items[i],
-                      color: config.primaryColor,
-                    ),
-                  ),
-                ],
-              ],
-            );
-          }
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (final item in items) ...[
-                _TrustItem(item: item, color: config.primaryColor),
-                if (item != items.last) const SizedBox(height: AppSpacing.xs),
-              ],
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _TrustItem extends StatelessWidget {
-  final ({IconData icon, String label}) item;
-  final Color color;
-
-  const _TrustItem({required this.item, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(item.icon, size: 15, color: color),
-        const SizedBox(width: AppSpacing.sm),
-        Expanded(
-          child: Text(
-            item.label,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: AppTypography.caption.copyWith(
-              color: color,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 /// Swapping hero banners in the Kirtilals mould, built only from the store's
 /// own configuration and routed to screens that exist.
 class HeroCarousel extends StatefulWidget {
@@ -400,8 +302,13 @@ class _HeroSlide extends StatelessWidget {
 /// Horizontal product rail shared by the "Just In" and featured sections.
 class ProductRail extends StatelessWidget {
   final List<Product> products;
+  final bool autoSlideImages;
 
-  const ProductRail({super.key, required this.products});
+  const ProductRail({
+    super.key,
+    required this.products,
+    this.autoSlideImages = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -410,13 +317,17 @@ class ProductRail extends StatelessWidget {
     final config = context.watch<BusinessConfigProvider>().config;
     final store = context.watch<CommerceStore>();
     final width = Responsive.isDesktop(context)
-        ? 256.0
+        ? 272.0
         : Responsive.isTablet(context)
-        ? 216.0
-        : 176.0;
+        ? 232.0
+        : 202.0;
 
     return SizedBox(
-      height: Responsive.isDesktop(context) ? 432 : 344,
+      height: Responsive.isDesktop(context)
+          ? 468
+          : Responsive.isTablet(context)
+          ? 420
+          : 388,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -431,8 +342,9 @@ class ProductRail extends StatelessWidget {
               primaryColor: config.primaryColor,
               accentColor: config.accentColor,
               currency: config.currencySymbol,
-              showRating: !config.rules.showPrices,
+              showRating: true,
               showPrice: config.rules.showPrices,
+              autoSlideImages: autoSlideImages,
               liked: store.isWishlisted(product.id),
               onWishlist: () => store.toggleWishlist(product.id),
               onTap: () => context.push('/product/${product.id}'),
@@ -483,7 +395,7 @@ class NewArrivalsRail extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.md),
-        ProductRail(products: newest),
+        ProductRail(products: newest, autoSlideImages: true),
       ],
     );
   }
@@ -501,16 +413,6 @@ class PriceBands extends StatelessWidget {
     (min: 6000, max: null),
   ];
 
-  static String _group(int value) {
-    final digits = value.toString();
-    final buffer = StringBuffer();
-    for (var i = 0; i < digits.length; i++) {
-      if (i > 0 && (digits.length - i) % 3 == 0) buffer.write(',');
-      buffer.write(digits[i]);
-    }
-    return buffer.toString();
-  }
-
   @override
   Widget build(BuildContext context) {
     final config = context.watch<BusinessConfigProvider>().config;
@@ -518,10 +420,10 @@ class PriceBands extends StatelessWidget {
 
     final symbol = config.currencySymbol;
     final labels = [
-      'Under $symbol${_group(bands[0].max!)}',
-      '$symbol${_group(bands[1].min!)} – $symbol${_group(bands[1].max!)}',
-      '$symbol${_group(bands[2].min!)} – $symbol${_group(bands[2].max!)}',
-      '$symbol${_group(bands[3].min!)} & above',
+      'Under ${Pricing.money(bands[0].max!, currencySymbol: symbol)}',
+      '${Pricing.money(bands[1].min!, currencySymbol: symbol)} – ${Pricing.money(bands[1].max!, currencySymbol: symbol)}',
+      '${Pricing.money(bands[2].min!, currencySymbol: symbol)} – ${Pricing.money(bands[2].max!, currencySymbol: symbol)}',
+      '${Pricing.money(bands[3].min!, currencySymbol: symbol)} & above',
     ];
 
     return Column(
@@ -584,7 +486,7 @@ class PriceBands extends StatelessWidget {
   }
 }
 
-/// "Our Promise" grid: every card is backed by something the app does.
+/// Compact shopping assurances backed by real checkout and order behavior.
 class PromiseGrid extends StatelessWidget {
   const PromiseGrid({super.key});
 
@@ -596,100 +498,75 @@ class PromiseGrid extends StatelessWidget {
     final items = <({IconData icon, String title, String detail})>[
       (
         icon: Icons.local_shipping_outlined,
-        title: 'Free shipping',
+        title: 'Complimentary delivery',
         detail: 'On orders over $symbol${Pricing.freeShippingThreshold}',
       ),
       (
         icon: Icons.receipt_long_outlined,
-        title: 'GST included',
-        detail: '${(Pricing.gstRate * 100).round()}% factored into every total',
+        title: 'Clear checkout totals',
+        detail:
+            'GST ${(Pricing.gstRate * 100).round()}% is included in your total',
       ),
       (
         icon: Icons.explore_outlined,
-        title: 'Live tracking',
-        detail: 'Follow each status change under Orders',
+        title: 'Order updates',
+        detail: 'Follow your jewellery from order to delivery',
       ),
-      (
-        icon: Icons.lock_person_outlined,
-        title: 'Verified sign-in',
-        detail: 'OTP protected account on this device',
-      ),
-      (
-        icon: Icons.storefront_outlined,
-        title: 'Seller direct',
-        detail: 'Dispatched by the shop that listed it',
-      ),
-      config.rules.showPrices
-          ? (
-              icon: Icons.sell_outlined,
-              title: 'Transparent pricing',
-              detail: 'The tag price is the checkout price',
-            )
-          : (
-              icon: Icons.chat_outlined,
-              title: 'Enquiry pricing',
-              detail: 'Ask the shop for your trade rate',
-            ),
     ];
-
-    final crossAxis = Responsive.isDesktop(context) ? 3 : 2;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenH),
-          child: SectionHeader(title: 'Our Promise', padding: EdgeInsets.zero),
+          child: SectionHeader(
+            title: 'A thoughtful shopping experience',
+            padding: EdgeInsets.zero,
+          ),
         ),
         const SizedBox(height: AppSpacing.md),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenH),
-          child: GridView.count(
-            crossAxisCount: crossAxis,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: AppSpacing.md,
-            mainAxisSpacing: AppSpacing.md,
-            childAspectRatio: crossAxis == 3 ? 2.4 : 1.55,
-            children: [
-              for (final item in items)
-                AppCard(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(item.icon, size: 18, color: config.primaryColor),
-                          const SizedBox(width: AppSpacing.xs),
-                          Expanded(
-                            child: Text(
-                              item.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppTypography.label.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ],
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppPalette.surfaceMuted,
+              borderRadius: AppRadius.allMd,
+            ),
+            child: Column(
+              children: [
+                for (var index = 0; index < items.length; index++) ...[
+                  if (index > 0)
+                    const Divider(height: 1, indent: 58, endIndent: 16),
+                  ListTile(
+                    minVerticalPadding: 13,
+                    leading: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
                       ),
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        item.detail,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTypography.caption.copyWith(
-                          fontSize: 11,
-                          color: AppPalette.textSecondary,
-                        ),
+                      child: Icon(
+                        items[index].icon,
+                        size: 18,
+                        color: config.primaryColor,
                       ),
-                    ],
+                    ),
+                    title: Text(
+                      items[index].title,
+                      style: AppTypography.label.copyWith(
+                        fontSize: 12.5,
+                        letterSpacing: 0,
+                      ),
+                    ),
+                    subtitle: Text(
+                      items[index].detail,
+                      style: AppTypography.caption.copyWith(fontSize: 11.5),
+                    ),
                   ),
-                ),
-            ],
+                ],
+              ],
+            ),
           ),
         ),
       ],

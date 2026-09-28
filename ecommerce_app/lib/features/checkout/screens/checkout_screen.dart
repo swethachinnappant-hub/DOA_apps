@@ -26,14 +26,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   int _selectedAddress = 0;
 
   static const List<({String label, String value})> _addresses = [
-    (
-      label: 'Home',
-      value: '14 MG Road, Bengaluru, Karnataka 560001',
-    ),
-    (
-      label: 'Office',
-      value: 'Tower B, Tech Park, Hyderabad, Telangana 500081',
-    ),
+    (label: 'Home', value: '14 MG Road, Bengaluru, Karnataka 560001'),
+    (label: 'Office', value: 'Tower B, Tech Park, Hyderabad, Telangana 500081'),
   ];
 
   static const List<({String name, IconData icon, String note})> _payments = [
@@ -44,11 +38,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       note: 'Visa, Mastercard, RuPay',
     ),
     (name: 'Net Banking', icon: Icons.account_balance, note: 'All banks'),
-    (
-      name: 'Cash on Delivery',
-      icon: Icons.money,
-      note: 'Pay when it arrives',
-    ),
+    (name: 'Cash on Delivery', icon: Icons.money, note: 'Pay when it arrives'),
   ];
 
   @override
@@ -74,8 +64,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.shopping_bag_outlined,
-                    size: 58, color: Colors.grey[300]),
+                Icon(
+                  Icons.shopping_bag_outlined,
+                  size: 58,
+                  color: Colors.grey[300],
+                ),
                 const SizedBox(height: 16),
                 const Text('Nothing to check out'),
                 const SizedBox(height: 8),
@@ -142,19 +135,44 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       qty: line.quantity,
                       amount: line.lineTotal,
                       showPrice: showPrice,
+                      currency: config.currencySymbol,
                     ),
                   const Divider(height: 20),
-                  _row(context, 'Subtotal', '₹$subtotal', showPrice: showPrice),
-                  _row(context, 'GST (${(Pricing.gstRate * 100).round()}%)', '₹$tax', showPrice: showPrice),
+                  _row(
+                    context,
+                    'Subtotal',
+                    Pricing.money(
+                      subtotal,
+                      currencySymbol: config.currencySymbol,
+                    ),
+                    showPrice: showPrice,
+                  ),
+                  _row(
+                    context,
+                    'GST (${(Pricing.gstRate * 100).round()}%)',
+                    Pricing.money(tax, currencySymbol: config.currencySymbol),
+                    showPrice: showPrice,
+                  ),
                   _row(
                     context,
                     'Delivery',
-                    shipping == 0 ? 'Free' : '₹$shipping',
+                    shipping == 0
+                        ? 'Free'
+                        : Pricing.money(
+                            shipping,
+                            currencySymbol: config.currencySymbol,
+                          ),
                     showPrice: showPrice,
                   ),
                   const Divider(height: 20),
-                  _row(context, 'Total', '₹$total',
-                      showPrice: showPrice, bold: true, brand: config.primaryColor),
+                  _row(
+                    context,
+                    'Total',
+                    Pricing.money(total, currencySymbol: config.currencySymbol),
+                    showPrice: showPrice,
+                    bold: true,
+                    brand: config.primaryColor,
+                  ),
                 ],
               ),
             ),
@@ -183,7 +201,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             SizedBox(height: Responsive.spacing(context, mobile: 24)),
 
             AppButton(
-              text: showPrice ? 'Place order · ₹$total' : 'Place order',
+              text: showPrice
+                  ? 'Place order · ${Pricing.money(total, currencySymbol: config.currencySymbol)}'
+                  : 'Place order',
               isExpanded: true,
               onPressed: () => _placeOrder(
                 context,
@@ -409,12 +429,14 @@ class _LineSummary extends StatelessWidget {
     required this.qty,
     required this.amount,
     required this.showPrice,
+    required this.currency,
   });
 
   final String name;
   final int qty;
   final int amount;
   final bool showPrice;
+  final String currency;
 
   @override
   Widget build(BuildContext context) {
@@ -434,7 +456,9 @@ class _LineSummary extends StatelessWidget {
             ),
           ),
           Text(
-            showPrice ? '₹$amount' : 'Contact',
+            showPrice
+                ? Pricing.money(amount, currencySymbol: currency)
+                : 'Contact',
             style: TextStyle(
               fontSize: Responsive.fontSize(context, mobile: 13),
               fontWeight: FontWeight.w600,

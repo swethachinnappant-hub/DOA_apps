@@ -14,5 +14,26 @@ class Pricing {
   static int shipping(int subtotal) =>
       subtotal >= freeShippingThreshold ? 0 : standardShipping;
 
-  static int total(int subtotal) => subtotal + tax(subtotal) + shipping(subtotal);
+  static int total(int subtotal) =>
+      subtotal + tax(subtotal) + shipping(subtotal);
+
+  /// Formats whole-rupee prices consistently across catalogue, bag and orders.
+  /// Indian digit grouping keeps large jewellery prices easy to scan.
+  static String money(int amount, {String currencySymbol = '₹'}) {
+    final negative = amount < 0;
+    final digits = amount.abs().toString();
+    if (digits.length <= 3) {
+      return '${negative ? '-' : ''}$currencySymbol$digits';
+    }
+
+    final lastThree = digits.substring(digits.length - 3);
+    var prefix = digits.substring(0, digits.length - 3);
+    final groups = <String>[];
+    while (prefix.length > 2) {
+      groups.insert(0, prefix.substring(prefix.length - 2));
+      prefix = prefix.substring(0, prefix.length - 2);
+    }
+    groups.insert(0, prefix);
+    return '${negative ? '-' : ''}$currencySymbol${groups.join(',')},$lastThree';
+  }
 }

@@ -13,14 +13,23 @@ class Responsive {
     return DeviceType.desktop;
   }
 
-  static bool isMobile(BuildContext context) => getDeviceType(context) == DeviceType.mobile;
-  static bool isTablet(BuildContext context) => getDeviceType(context) == DeviceType.tablet;
-  static bool isDesktop(BuildContext context) => getDeviceType(context) == DeviceType.desktop;
+  static bool isMobile(BuildContext context) =>
+      getDeviceType(context) == DeviceType.mobile;
+  static bool isTablet(BuildContext context) =>
+      getDeviceType(context) == DeviceType.tablet;
+  static bool isDesktop(BuildContext context) =>
+      getDeviceType(context) == DeviceType.desktop;
 
   static double width(BuildContext context) => MediaQuery.sizeOf(context).width;
-  static double height(BuildContext context) => MediaQuery.sizeOf(context).height;
+  static double height(BuildContext context) =>
+      MediaQuery.sizeOf(context).height;
 
-  static double fontSize(BuildContext context, {required double mobile, double? tablet, double? desktop}) {
+  static double fontSize(
+    BuildContext context, {
+    required double mobile,
+    double? tablet,
+    double? desktop,
+  }) {
     final type = getDeviceType(context);
     switch (type) {
       case DeviceType.desktop:
@@ -32,7 +41,12 @@ class Responsive {
     }
   }
 
-  static double spacing(BuildContext context, {required double mobile, double? tablet, double? desktop}) {
+  static double spacing(
+    BuildContext context, {
+    required double mobile,
+    double? tablet,
+    double? desktop,
+  }) {
     final type = getDeviceType(context);
     switch (type) {
       case DeviceType.desktop:
@@ -68,28 +82,64 @@ class Responsive {
     }
   }
 
-  static double iconSize(BuildContext context, {double mobile = 20, double? tablet, double? desktop}) {
+  static double iconSize(
+    BuildContext context, {
+    double mobile = 20,
+    double? tablet,
+    double? desktop,
+  }) {
     return fontSize(context, mobile: mobile, tablet: tablet, desktop: desktop);
   }
 
-  static EdgeInsets padding(BuildContext context, {double mobile = 16, double? tablet, double? desktop}) {
-    final value = spacing(context, mobile: mobile, tablet: tablet, desktop: desktop);
+  static EdgeInsets padding(
+    BuildContext context, {
+    double mobile = 16,
+    double? tablet,
+    double? desktop,
+  }) {
+    final value = spacing(
+      context,
+      mobile: mobile,
+      tablet: tablet,
+      desktop: desktop,
+    );
     return EdgeInsets.all(value);
   }
 
-  static EdgeInsets horizontalPadding(BuildContext context, {double mobile = 16, double? tablet, double? desktop}) {
-    final value = spacing(context, mobile: mobile, tablet: tablet, desktop: desktop);
+  static EdgeInsets horizontalPadding(
+    BuildContext context, {
+    double mobile = 16,
+    double? tablet,
+    double? desktop,
+  }) {
+    final value = spacing(
+      context,
+      mobile: mobile,
+      tablet: tablet,
+      desktop: desktop,
+    );
     return EdgeInsets.symmetric(horizontal: value);
   }
 
-  static BorderRadius borderRadius(BuildContext context, {double mobile = 12, double? tablet, double? desktop}) {
-    final value = spacing(context, mobile: mobile, tablet: tablet, desktop: desktop);
+  static BorderRadius borderRadius(
+    BuildContext context, {
+    double mobile = 12,
+    double? tablet,
+    double? desktop,
+  }) {
+    final value = spacing(
+      context,
+      mobile: mobile,
+      tablet: tablet,
+      desktop: desktop,
+    );
     return BorderRadius.circular(value);
   }
 
   static int crossAxisCount(BuildContext context) => gridColumns(context);
 
-  static double childAspectRatio(BuildContext context) => cardAspectRatio(context);
+  static double childAspectRatio(BuildContext context) =>
+      cardAspectRatio(context);
 
   static bool shouldShowSideNav(BuildContext context) => !isMobile(context);
 
@@ -99,13 +149,19 @@ class Responsive {
       case DeviceType.desktop:
         return 260;
       case DeviceType.tablet:
-        return 72;
+        // The seller workspace uses a labeled menu rather than an icon rail.
+        return 232;
       case DeviceType.mobile:
         return 0;
     }
   }
 
-  static double maxValue(BuildContext context, {double mobile = 400, double? tablet, double? desktop}) {
+  static double maxValue(
+    BuildContext context, {
+    double mobile = 400,
+    double? tablet,
+    double? desktop,
+  }) {
     return spacing(context, mobile: mobile, tablet: tablet, desktop: desktop);
   }
 }

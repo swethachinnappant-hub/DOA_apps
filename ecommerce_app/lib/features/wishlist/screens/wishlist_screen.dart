@@ -6,6 +6,7 @@ import 'package:common_widgets/common_widgets.dart';
 
 import '../../../core/business_config.dart';
 import '../../../core/product.dart';
+import '../../../core/pricing.dart';
 import '../../../core/store/commerce_store.dart';
 import '../../config/providers/business_config_provider.dart';
 
@@ -147,7 +148,10 @@ class WishlistScreen extends StatelessWidget {
             children: [
               showPrice
                   ? Text(
-                      '${config.currencySymbol}${product.price}',
+                      Pricing.money(
+                        product.price,
+                        currencySymbol: config.currencySymbol,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(

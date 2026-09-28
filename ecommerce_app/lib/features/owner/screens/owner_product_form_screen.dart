@@ -297,7 +297,7 @@ class _OwnerProductFormScreenState extends State<OwnerProductFormScreen> {
                         child: AppTextField(
                           controller: _price,
                           label: 'Selling price',
-                          prefixText: '₹ ',
+                          prefixText: '${config.currencySymbol} ',
                           keyboardType: TextInputType.number,
                           inputFormatters: [
                             FilteringTextInputFormatter.digitsOnly,
@@ -315,7 +315,7 @@ class _OwnerProductFormScreenState extends State<OwnerProductFormScreen> {
                         child: AppTextField(
                           controller: _mrp,
                           label: 'MRP (optional)',
-                          prefixText: '₹ ',
+                          prefixText: '${config.currencySymbol} ',
                           keyboardType: TextInputType.number,
                           inputFormatters: [
                             FilteringTextInputFormatter.digitsOnly,

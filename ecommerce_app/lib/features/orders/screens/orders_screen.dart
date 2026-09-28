@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:common_widgets/common_widgets.dart';
 
 import '../../../core/models/order.dart';
+import '../../../core/pricing.dart';
 import '../../../core/store/commerce_store.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../config/providers/business_config_provider.dart';
@@ -24,7 +25,9 @@ class OrdersScreen extends StatelessWidget {
     final user = context.watch<AuthProvider>().user;
     final rules = config.rules;
 
-    final orders = user == null ? const <Order>[] : store.ordersForCustomer(user.id);
+    final orders = user == null
+        ? const <Order>[]
+        : store.ordersForCustomer(user.id);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Orders')),
@@ -41,6 +44,7 @@ class OrdersScreen extends StatelessWidget {
                   order: order,
                   brand: config.primaryColor,
                   showPrice: rules.showPrices,
+                  currency: config.currencySymbol,
                 );
               },
             ),
@@ -53,15 +57,18 @@ class _OrderCard extends StatelessWidget {
     required this.order,
     required this.brand,
     required this.showPrice,
+    required this.currency,
   });
 
   final Order order;
   final Color brand;
   final bool showPrice;
+  final String currency;
 
   @override
   Widget build(BuildContext context) {
-    final date = '${order.placedAt.day} ${_month(order.placedAt.month)} '
+    final date =
+        '${order.placedAt.day} ${_month(order.placedAt.month)} '
         '${order.placedAt.year}';
 
     return AppCard(
@@ -104,7 +111,9 @@ class _OrderCard extends StatelessWidget {
               ),
               Flexible(
                 child: Text(
-                  showPrice ? '₹${order.total}' : 'Contact for Price',
+                  showPrice
+                      ? Pricing.money(order.total, currencySymbol: currency)
+                      : 'Contact for Price',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -123,8 +132,18 @@ class _OrderCard extends StatelessWidget {
 
   static String _month(int month) {
     const names = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return names[month < 1 || month > 12 ? 0 : month - 1];
   }
@@ -143,7 +162,11 @@ class _EmptyOrders extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.receipt_long_outlined, size: 60, color: Colors.grey[300]),
+            Icon(
+              Icons.receipt_long_outlined,
+              size: 60,
+              color: Colors.grey[300],
+            ),
             const SizedBox(height: 16),
             Text(
               'No orders yet',
@@ -157,7 +180,11 @@ class _EmptyOrders extends StatelessWidget {
             Text(
               'When you place an order it appears here with live status updates.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: Colors.grey[500], height: 1.5),
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey[500],
+                height: 1.5,
+              ),
             ),
             const SizedBox(height: 20),
             AppButton(

@@ -141,6 +141,7 @@ class ProductImageCarousel extends StatefulWidget {
   final bool autoSlide;
   final Duration interval;
   final bool showDots;
+  final bool showCounter;
   final BoxFit fit;
   final BorderRadius borderRadius;
   final VoidCallback? onImageTap;
@@ -158,6 +159,7 @@ class ProductImageCarousel extends StatefulWidget {
     this.autoSlide = true,
     this.interval = AppDurations.carousel,
     this.showDots = true,
+    this.showCounter = false,
     this.fit = BoxFit.cover,
     this.borderRadius = BorderRadius.zero,
     this.onImageTap,
@@ -304,6 +306,31 @@ class ProductImageCarouselState extends State<ProductImageCarousel> {
               bottom: AppSpacing.sm,
               child: Center(
                 child: CarouselDots(count: _count, activeIndex: _index),
+              ),
+            ),
+          if (widget.showCounter && _isMulti)
+            Positioned(
+              right: AppSpacing.sm,
+              bottom: AppSpacing.sm,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: .52),
+                  borderRadius: AppRadius.allPill,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                    vertical: AppSpacing.xs,
+                  ),
+                  child: Text(
+                    '${_index + 1} / $_count',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
               ),
             ),
         ],

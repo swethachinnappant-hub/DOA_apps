@@ -60,58 +60,68 @@ GoRouter buildAppRouter({required AuthProvider auth}) {
       GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
-          path: '/register', builder: (context, state) => const RegisterScreen()),
+        path: '/register',
+        builder: (context, state) => const RegisterScreen(),
+      ),
       GoRoute(
-          path: '/config',
-          builder: (context, state) => const BusinessConfigScreen()),
+        path: '/config',
+        builder: (context, state) => const BusinessConfigScreen(),
+      ),
       GoRoute(
-          path: '/business-rules',
-          builder: (context, state) => const BusinessRulesScreen()),
+        path: '/business-rules',
+        builder: (context, state) => const BusinessRulesScreen(),
+      ),
 
       // ----------------------------------------------------- seller console
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
             OwnerShell(shell: navigationShell),
         branches: [
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/owner',
-              builder: (context, state) => const OwnerDashboardScreen(),
-            ),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/owner/products',
-              builder: (context, state) => const OwnerProductsScreen(),
-              routes: [
-                GoRoute(
-                  path: 'new',
-                  builder: (context, state) =>
-                      const OwnerProductFormScreen(productId: null),
-                ),
-                GoRoute(
-                  path: ':id/edit',
-                  builder: (context, state) => OwnerProductFormScreen(
-                    productId: state.pathParameters['id'],
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/owner',
+                builder: (context, state) => const OwnerDashboardScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/owner/products',
+                builder: (context, state) => const OwnerProductsScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'new',
+                    builder: (context, state) =>
+                        const OwnerProductFormScreen(productId: null),
                   ),
-                ),
-              ],
-            ),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/owner/orders',
-              builder: (context, state) => const OwnerOrdersScreen(),
-              routes: [
-                GoRoute(
-                  path: ':id',
-                  builder: (context, state) => OwnerOrderDetailScreen(
-                    orderId: state.pathParameters['id'] ?? '',
+                  GoRoute(
+                    path: ':id/edit',
+                    builder: (context, state) => OwnerProductFormScreen(
+                      productId: state.pathParameters['id'],
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ]),
+                ],
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/owner/orders',
+                builder: (context, state) => const OwnerOrdersScreen(),
+                routes: [
+                  GoRoute(
+                    path: ':id',
+                    builder: (context, state) => OwnerOrderDetailScreen(
+                      orderId: state.pathParameters['id'] ?? '',
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ],
       ),
 
@@ -130,30 +140,35 @@ GoRouter buildAppRouter({required AuthProvider auth}) {
       ),
       GoRoute(
         path: '/product/:id',
-        builder: (context, state) => ProductDetailScreen(
-          productId: state.pathParameters['id'] ?? 'p0',
-        ),
+        builder: (context, state) =>
+            ProductDetailScreen(productId: state.pathParameters['id'] ?? 'p0'),
       ),
       GoRoute(
-          path: '/wishlist',
-          builder: (context, state) => const WishlistScreen()),
+        path: '/wishlist',
+        builder: (context, state) => const WishlistScreen(),
+      ),
       GoRoute(path: '/cart', builder: (context, state) => const CartScreen()),
       GoRoute(
-          path: '/checkout',
-          builder: (context, state) => const CheckoutScreen()),
+        path: '/checkout',
+        builder: (context, state) => const CheckoutScreen(),
+      ),
       GoRoute(
-          path: '/orders', builder: (context, state) => const OrdersScreen()),
+        path: '/orders',
+        builder: (context, state) => const OrdersScreen(),
+      ),
       GoRoute(
         path: '/order/:id',
         builder: (context, state) =>
             OrderDetailScreen(orderId: state.pathParameters['id'] ?? ''),
       ),
       GoRoute(
-          path: '/profile',
-          builder: (context, state) => const ProfileScreen()),
+        path: '/profile',
+        builder: (context, state) => const ProfileScreen(showAppBar: true),
+      ),
       GoRoute(
-          path: '/notifications',
-          builder: (context, state) => const NotificationsScreen()),
+        path: '/notifications',
+        builder: (context, state) => const NotificationsScreen(),
+      ),
     ],
   );
 }

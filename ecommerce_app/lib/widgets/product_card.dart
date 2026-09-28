@@ -2,8 +2,9 @@ import 'package:common_widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
 
 import '../core/product.dart';
+import '../core/pricing.dart';
 
-/// Compact "N out of 5" trust signal, styled the way Amazon and Myntra show it.
+/// A restrained rating mark that suits a jewellery product tile.
 class RatingChip extends StatelessWidget {
   final double rating;
   final int reviewCount;
@@ -22,19 +23,31 @@ class RatingChip extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           decoration: BoxDecoration(
-            color: AppPalette.success,
-            borderRadius: AppRadius.allXs,
+            color: AppPalette.surfaceMuted,
+            border: Border.all(color: AppPalette.border),
+            borderRadius: AppRadius.allSm,
           ),
-          child: Text(
-            rating.toStringAsFixed(1),
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              height: 1.3,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.star_rounded,
+                size: 12,
+                color: AppPalette.goldDark,
+              ),
+              const SizedBox(width: 2),
+              Text(
+                rating.toStringAsFixed(1),
+                style: const TextStyle(
+                  color: AppPalette.textPrimary,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  height: 1.3,
+                ),
+              ),
+            ],
           ),
         ),
         if (!compact && reviewCount > 0) ...[
@@ -123,8 +136,7 @@ class WishlistButton extends StatelessWidget {
   }
 }
 
-/// Myntra / Ajio style grid card: dominant auto-rotating image, then brand,
-/// name, price with strike-through MRP, discount and rating.
+/// Jewellery tile with a clear product photograph, restrained details and price.
 class ProductCard extends StatefulWidget {
   final Product product;
   final VoidCallback? onTap;
@@ -148,6 +160,10 @@ class ProductCard extends StatefulWidget {
   /// Price" prompt instead of any figures.
   final bool showPrice;
 
+  /// Starts the product photo carousel after its normal interval. Used on the
+  /// Home rails so shoppers can preview the available product views in place.
+  final bool autoSlideImages;
+
   const ProductCard({
     super.key,
     required this.product,
@@ -160,6 +176,7 @@ class ProductCard extends StatefulWidget {
     this.showRating = true,
     this.showDelivery = false,
     this.showPrice = true,
+    this.autoSlideImages = false,
   });
 
   @override
@@ -177,79 +194,91 @@ class _ProductCardState extends State<ProductCard> {
 
     return Material(
       color: AppPalette.surface,
-      borderRadius: BorderRadius.zero,
+      borderRadius: AppRadius.allLg,
       child: InkWell(
         onTap: widget.onTap,
-        borderRadius: BorderRadius.zero,
+        borderRadius: AppRadius.allLg,
         child: Ink(
-          decoration: BoxDecoration(borderRadius: BorderRadius.zero),
+          decoration: BoxDecoration(
+            color: AppPalette.surface,
+            borderRadius: AppRadius.allLg,
+            border: Border.all(color: AppPalette.border),
+            boxShadow: AppShadows.subtle,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    ProductImageCarousel(
-                      key: _carouselKey,
-                      images: p.images,
-                      placeholderIcon: p.icon,
-                      placeholderColor: widget.accentColor,
-                      placeholderAccent: widget.primaryColor,
-                      autoSlide: true,
-                      showDots: p.hasMultipleImages,
-                      borderRadius: BorderRadius.zero,
-                    ),
-                    if (p.badges.isNotEmpty)
-                      Positioned(
-                        left: AppSpacing.xs,
-                        top: AppSpacing.xs,
-                        child: ProductBadge(
-                          label: p.badges.first,
-                          background: widget.primaryColor,
-                          foreground: Colors.white,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(7, 7, 7, 0),
+                  child: ClipRRect(
+                    borderRadius: AppRadius.allMd,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        ProductImageCarousel(
+                          key: _carouselKey,
+                          images: p.images,
+                          placeholderIcon: p.icon,
+                          placeholderColor: widget.accentColor,
+                          placeholderAccent: widget.primaryColor,
+                          autoSlide: widget.autoSlideImages,
+                          showDots: p.hasMultipleImages,
+                          showCounter: widget.autoSlideImages,
+                          borderRadius: AppRadius.allMd,
                         ),
-                      ),
-                    if (p.hasDiscount && widget.showPrice)
-                      Positioned(
-                        left: AppSpacing.xs,
-                        bottom: AppSpacing.xs,
-                        child: ProductBadge(
-                          label: '${p.discountPercent}% off',
-                          background: Colors.white,
-                          foreground: widget.primaryColor,
-                        ),
-                      ),
-                    Positioned(
-                      right: AppSpacing.xs,
-                      top: AppSpacing.xs,
-                      child: WishlistButton(
-                        liked: liked,
-                        onTap: () {
-                          if (widget.liked == null) {
-                            setState(() => _liked = !_liked);
-                          }
-                          widget.onWishlist?.call();
-                        },
-                      ),
-                    ),
-                    if (!p.inStock)
-                      Positioned.fill(
-                        child: ColoredBox(
-                          color: Colors.white.withValues(alpha: 0.72),
-                          child: const Center(
+                        if (p.badges.isNotEmpty)
+                          Positioned(
+                            left: AppSpacing.sm,
+                            top: AppSpacing.sm,
                             child: ProductBadge(
-                              label: 'Out of stock',
-                              background: AppPalette.textPrimary,
+                              label: p.badges.first,
+                              background: Colors.white.withValues(alpha: .94),
+                              foreground: AppPalette.textPrimary,
                             ),
                           ),
+                        if (p.hasDiscount && widget.showPrice)
+                          Positioned(
+                            left: AppSpacing.sm,
+                            bottom: AppSpacing.sm,
+                            child: ProductBadge(
+                              label: '${p.discountPercent}% off',
+                              background: widget.primaryColor,
+                              foreground: Colors.white,
+                            ),
+                          ),
+                        Positioned(
+                          right: AppSpacing.sm,
+                          top: AppSpacing.sm,
+                          child: WishlistButton(
+                            liked: liked,
+                            onTap: () {
+                              if (widget.liked == null) {
+                                setState(() => _liked = !_liked);
+                              }
+                              widget.onWishlist?.call();
+                            },
+                          ),
                         ),
-                      ),
-                  ],
+                        if (!p.inStock)
+                          Positioned.fill(
+                            child: ColoredBox(
+                              color: Colors.white.withValues(alpha: 0.72),
+                              child: const Center(
+                                child: ProductBadge(
+                                  label: 'Out of stock',
+                                  background: AppPalette.textPrimary,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(2, 12, 2, 8),
+                padding: const EdgeInsets.fromLTRB(8, 10, 8, 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
@@ -261,7 +290,7 @@ class _ProductCardState extends State<ProductCard> {
                       style: AppTypography.overline.copyWith(
                         fontSize: 9.5,
                         letterSpacing: 0.7,
-                        color: AppPalette.textHint,
+                        color: AppPalette.goldDark,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -269,8 +298,8 @@ class _ProductCardState extends State<ProductCard> {
                       p.name,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: AppTypography.caption.copyWith(
-                        fontSize: 12.5,
+                      style: AppTypography.subtitle.copyWith(
+                        fontSize: 13.5,
                         fontWeight: FontWeight.w500,
                         color: AppPalette.textPrimary,
                         height: 1.3,
@@ -282,20 +311,28 @@ class _ProductCardState extends State<ProductCard> {
                         children: [
                           Flexible(
                             child: Text(
-                              '${widget.currency}${p.price}',
+                              Pricing.money(
+                                p.price,
+                                currencySymbol: widget.currency,
+                              ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: AppTypography.price.copyWith(
-                                fontSize: 14.5,
-                              ),
+                              style: AppTypography.price.copyWith(fontSize: 16),
                             ),
                           ),
                           if (p.hasDiscount) ...[
                             const SizedBox(width: 5),
-                            Text(
-                              '${widget.currency}${p.mrp}',
-                              style: AppTypography.priceStrike.copyWith(
-                                fontSize: 11,
+                            Flexible(
+                              child: Text(
+                                Pricing.money(
+                                  p.mrp,
+                                  currencySymbol: widget.currency,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTypography.priceStrike.copyWith(
+                                  fontSize: 11,
+                                ),
                               ),
                             ),
                           ],
