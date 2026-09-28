@@ -59,12 +59,12 @@ class DemoCatalog {
     ],
   ];
 
-  static const String _ring = 'assets/demo_jewellery/gold_ring.png';
-  static const String _earrings = 'assets/demo_jewellery/gold_earrings.png';
-  static const String _bangles = 'assets/demo_jewellery/gold_bangles.png';
-  static const String _pendant = 'assets/demo_jewellery/gold_pendant.png';
-  static const String _necklace = 'assets/demo_jewellery/bridal_necklace.png';
-  static const String _bridalSet = 'assets/demo_jewellery/bridal_set.png';
+  static const String _ring = 'assets/demo_jewellery/gold_ring.jpg';
+  static const String _earrings = 'assets/demo_jewellery/gold_earrings.jpg';
+  static const String _bangles = 'assets/demo_jewellery/gold_bangles.jpg';
+  static const String _pendant = 'assets/demo_jewellery/gold_pendant.jpg';
+  static const String _necklace = 'assets/demo_jewellery/bridal_necklace.jpg';
+  static const String _bridalSet = 'assets/demo_jewellery/bridal_set.jpg';
 
   /// Demo pieces include the full product image plus two close-up detail
   /// views, so every seeded listing can demonstrate a real multi-image flow.

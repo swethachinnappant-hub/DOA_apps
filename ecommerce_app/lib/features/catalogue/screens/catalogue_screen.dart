@@ -657,6 +657,7 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
                     currency: config.currencySymbol,
                     showRating: !config.rules.showPrices,
                     showPrice: config.rules.showPrices,
+                    autoSlideImages: true,
                     liked: store.isWishlisted(purityFiltered[index].id),
                     onWishlist: () =>
                         store.toggleWishlist(purityFiltered[index].id),

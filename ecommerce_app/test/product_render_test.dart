@@ -271,9 +271,13 @@ void main() {
       );
       await tester.pump();
 
+      await tester.tapAt(tester.getCenter(find.byType(ProductImageCarousel)));
+      await tester.pump();
+      expect(taps, 1, reason: 'Tapping a product photo opens product details');
+
       await tester.tap(find.text('Classic Oxford Shirt'));
       await tester.pump();
-      expect(taps, 1);
+      expect(taps, 2);
 
       await tester.tap(find.byType(WishlistButton));
       await tester.pump();

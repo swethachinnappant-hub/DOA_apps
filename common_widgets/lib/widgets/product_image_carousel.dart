@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 import '../core/design_tokens.dart';
 
@@ -146,6 +147,7 @@ class ProductImageCarousel extends StatefulWidget {
   final BoxFit fit;
   final BorderRadius borderRadius;
   final VoidCallback? onImageTap;
+  final VoidCallback? onZoomRequested;
 
   /// Reports the visible image, so an external thumbnail rail can follow a
   /// direct swipe.
@@ -164,6 +166,7 @@ class ProductImageCarousel extends StatefulWidget {
     this.fit = BoxFit.contain,
     this.borderRadius = BorderRadius.zero,
     this.onImageTap,
+    this.onZoomRequested,
     this.onPageChanged,
   });
 
@@ -223,6 +226,12 @@ class ProductImageCarouselState extends State<ProductImageCarousel> {
     // A tick that lands mid-transition would restart the animation before it
     // can commit, leaving the carousel stuck on the same image.
     if (_controller.position.isScrollingNotifier.value) return;
+    if (!_isMostlyVisible()) {
+      // Start a fresh dwell period after an off-screen interval so a gallery
+      // never advances immediately as a shopper scrolls it into view.
+      _start();
+      return;
+    }
 
     final next = _index + 1;
     if (next >= _count) {
@@ -233,6 +242,29 @@ class ProductImageCarouselState extends State<ProductImageCarousel> {
         curve: Curves.easeInOutCubic,
       );
     }
+  }
+
+  bool _isMostlyVisible() {
+    final object = context.findRenderObject();
+    if (object is! RenderBox || !object.hasSize) return false;
+    var visible = object.localToGlobal(Offset.zero) & object.size;
+    visible = visible.intersect(Offset.zero & MediaQuery.sizeOf(context));
+    if (visible.isEmpty) return false;
+    context.visitAncestorElements((element) {
+      final ancestor = element.findRenderObject();
+      if (ancestor is RenderAbstractViewport &&
+          ancestor is RenderBox &&
+          (ancestor as RenderBox).hasSize) {
+        final viewport = ancestor as RenderBox;
+        visible = visible.intersect(
+          viewport.localToGlobal(Offset.zero) & viewport.size,
+        );
+      }
+      return !visible.isEmpty;
+    });
+    return !visible.isEmpty &&
+        visible.width * visible.height >=
+            object.size.width * object.size.height * .5;
   }
 
   /// Jumps to a specific image, e.g. from a thumbnail rail.
@@ -334,6 +366,25 @@ class ProductImageCarouselState extends State<ProductImageCarousel> {
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
                     ),
+                  ),
+                ),
+              ),
+            ),
+          if (widget.onZoomRequested != null)
+            Positioned(
+              top: AppSpacing.sm,
+              right: AppSpacing.sm,
+              child: Material(
+                color: Colors.white.withValues(alpha: .94),
+                shape: const CircleBorder(),
+                child: IconButton(
+                  onPressed: widget.onZoomRequested,
+                  tooltip: 'Zoom product image',
+                  icon: const Icon(Icons.zoom_in, size: 20),
+                  visualDensity: VisualDensity.compact,
+                  constraints: const BoxConstraints.tightFor(
+                    width: 38,
+                    height: 38,
                   ),
                 ),
               ),

@@ -24,4 +24,21 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/demo_jewellery/
+    - assets/demo_jewellery/bridal_necklace.jpg
+    - assets/demo_jewellery/bridal_necklace_detail_motif.jpg
+    - assets/demo_jewellery/bridal_necklace_detail_pendant.jpg
+    - assets/demo_jewellery/bridal_set.jpg
+    - assets/demo_jewellery/bridal_set_detail_earrings.jpg
+    - assets/demo_jewellery/bridal_set_detail_necklace.jpg
+    - assets/demo_jewellery/gold_bangles.jpg
+    - assets/demo_jewellery/gold_bangles_detail_left.jpg
+    - assets/demo_jewellery/gold_bangles_detail_right.jpg
+    - assets/demo_jewellery/gold_earrings.jpg
+    - assets/demo_jewellery/gold_earrings_detail_left.jpg
+    - assets/demo_jewellery/gold_earrings_detail_right.jpg
+    - assets/demo_jewellery/gold_pendant.jpg
+    - assets/demo_jewellery/gold_pendant_chain_detail.jpg
+    - assets/demo_jewellery/gold_pendant_detail.jpg
+    - assets/demo_jewellery/gold_ring.jpg
+    - assets/demo_jewellery/gold_ring_detail_band.jpg
+    - assets/demo_jewellery/gold_ring_detail_stone.jpg

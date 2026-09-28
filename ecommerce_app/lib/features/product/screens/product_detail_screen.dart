@@ -307,7 +307,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             // Keep the thumbnail rail in sync when the shopper swipes
             // directly on the main gallery.
             onPageChanged: (i) => setState(() => _activeImage = i),
-            onImageTap: () => showImageViewer(
+            onZoomRequested: () => showImageViewer(
               context,
               url: product.images.isEmpty ? '' : product.images[_activeImage],
               placeholderIcon: product.icon,

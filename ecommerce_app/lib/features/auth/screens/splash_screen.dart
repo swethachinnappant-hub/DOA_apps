@@ -80,7 +80,7 @@ class _SplashScreenState extends State<SplashScreen>
               children: [
                 if (config.type == BusinessType.jewellery)
                   const ProductImageTile(
-                    url: 'assets/demo_jewellery/bridal_set.png',
+                    url: 'assets/demo_jewellery/bridal_set.jpg',
                     fit: BoxFit.cover,
                     placeholderIcon: Icons.diamond_outlined,
                     placeholderColor: Color(0xFF211D17),

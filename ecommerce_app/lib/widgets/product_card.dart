@@ -176,7 +176,7 @@ class ProductCard extends StatefulWidget {
     this.showRating = true,
     this.showDelivery = false,
     this.showPrice = true,
-    this.autoSlideImages = true,
+    this.autoSlideImages = false,
   });
 
   @override
@@ -237,9 +237,6 @@ class _ProductCardState extends State<ProductCard> {
                           showDots: p.hasMultipleImages,
                           showCounter: p.hasMultipleImages,
                           borderRadius: AppRadius.allMd,
-                          onImageTap: p.images.isEmpty
-                              ? null
-                              : _zoomCurrentImage,
                         ),
                         if (p.badges.isNotEmpty)
                           Positioned(

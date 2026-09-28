@@ -138,7 +138,7 @@ class _LoginScreenState extends State<LoginScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsets.only(top: 14, bottom: 22),
+          padding: const EdgeInsets.only(top: 8, bottom: 14),
           child: Row(
             children: [
               Container(
@@ -186,7 +186,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
         Container(
-          height: Responsive.isTablet(context) ? 190 : 172,
+          height: Responsive.isTablet(context) ? 218 : 202,
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: const Color(0xFFF1E9DC),
@@ -195,9 +195,9 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Row(
             children: [
               Expanded(
-                flex: 7,
+                flex: 5,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 16, 4, 16),
+                  padding: const EdgeInsets.fromLTRB(14, 14, 2, 14),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -217,7 +217,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: AppTypography.display.copyWith(
-                          fontSize: 23,
+                          fontSize: 20,
                           height: 1.06,
                           color: const Color(0xFF342B20),
                         ),
@@ -226,7 +226,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ),
-              Expanded(flex: 5, child: _JewelleryGallery(config: config)),
+              Expanded(flex: 7, child: _JewelleryGallery(config: config)),
             ],
           ),
         ),
@@ -455,11 +455,11 @@ class _JewelleryGallery extends StatefulWidget {
 
 class _JewelleryGalleryState extends State<_JewelleryGallery> {
   static const _images = [
-    'assets/demo_jewellery/bridal_set.png',
-    'assets/demo_jewellery/bridal_necklace.png',
-    'assets/demo_jewellery/gold_earrings.png',
-    'assets/demo_jewellery/gold_bangles.png',
-    'assets/demo_jewellery/gold_pendant.png',
+    'assets/demo_jewellery/bridal_set.jpg',
+    'assets/demo_jewellery/bridal_necklace.jpg',
+    'assets/demo_jewellery/gold_earrings.jpg',
+    'assets/demo_jewellery/gold_bangles.jpg',
+    'assets/demo_jewellery/gold_pendant.jpg',
   ];
 
   final _controller = PageController();
