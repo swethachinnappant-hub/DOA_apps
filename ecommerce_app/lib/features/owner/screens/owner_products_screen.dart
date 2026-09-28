@@ -281,7 +281,7 @@ class _Thumb extends StatelessWidget {
               )
             : ProductImageTile(
                 url: url!,
-                fit: BoxFit.cover,
+                fit: BoxFit.contain,
                 placeholderIcon: Icons.broken_image_outlined,
               ),
       ),

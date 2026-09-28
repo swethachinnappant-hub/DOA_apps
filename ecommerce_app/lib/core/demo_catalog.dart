@@ -66,6 +66,55 @@ class DemoCatalog {
   static const String _necklace = 'assets/demo_jewellery/bridal_necklace.png';
   static const String _bridalSet = 'assets/demo_jewellery/bridal_set.png';
 
+  /// Demo pieces include the full product image plus two close-up detail
+  /// views, so every seeded listing can demonstrate a real multi-image flow.
+  static List<String> imagesForCategory(String category) {
+    final value = category.toLowerCase();
+    if (value.contains('bridal')) {
+      return const [
+        _bridalSet,
+        'assets/demo_jewellery/bridal_set_detail_necklace.jpg',
+        'assets/demo_jewellery/bridal_set_detail_earrings.jpg',
+      ];
+    }
+    if (value.contains('ring')) {
+      return const [
+        _ring,
+        'assets/demo_jewellery/gold_ring_detail_stone.jpg',
+        'assets/demo_jewellery/gold_ring_detail_band.jpg',
+      ];
+    }
+    if (value.contains('earring')) {
+      return const [
+        _earrings,
+        'assets/demo_jewellery/gold_earrings_detail_left.jpg',
+        'assets/demo_jewellery/gold_earrings_detail_right.jpg',
+      ];
+    }
+    if (value.contains('bangle') || value.contains('bracelet')) {
+      return const [
+        _bangles,
+        'assets/demo_jewellery/gold_bangles_detail_left.jpg',
+        'assets/demo_jewellery/gold_bangles_detail_right.jpg',
+      ];
+    }
+    if (value.contains('pendant') ||
+        value.contains('chain') ||
+        value.contains('children') ||
+        value.contains('men')) {
+      return const [
+        _pendant,
+        'assets/demo_jewellery/gold_pendant_detail.jpg',
+        'assets/demo_jewellery/gold_pendant_chain_detail.jpg',
+      ];
+    }
+    return const [
+      _necklace,
+      'assets/demo_jewellery/bridal_necklace_detail_pendant.jpg',
+      'assets/demo_jewellery/bridal_necklace_detail_motif.jpg',
+    ];
+  }
+
   /// Uses a photo that matches the item's jewellery category.
   static String imageForCategory(String category) {
     final value = category.toLowerCase();
@@ -118,7 +167,7 @@ class DemoCatalog {
         mrp: mrp,
         rating: 3.6 + ((i * 7) % 14) / 10,
         reviewCount: 24 + (i * 137) % 4200,
-        images: [imageForCategory(category)],
+        images: imagesForCategory(category),
         icon: icon,
         sizes: _sizeSets[i % _sizeSets.length],
         shades: shades,

@@ -465,12 +465,18 @@ class _JewelleryGalleryState extends State<_JewelleryGallery> {
   final _controller = PageController();
   Timer? _timer;
   int _page = 0;
+  bool _dragging = false;
 
   @override
   void initState() {
     super.initState();
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 4), (_) {
-      if (!_controller.hasClients) return;
+      if (!_controller.hasClients || _dragging) return;
       final next = (_page + 1) % _images.length;
       _controller.animateToPage(
         next,
@@ -496,17 +502,30 @@ class _JewelleryGalleryState extends State<_JewelleryGallery> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            PageView.builder(
-              controller: _controller,
-              itemCount: _images.length,
-              onPageChanged: (page) => setState(() => _page = page),
-              itemBuilder: (context, index) => Image.asset(
-                _images[index],
-                fit: BoxFit.contain,
-                errorBuilder: (_, _, _) => Icon(
-                  Icons.diamond_outlined,
-                  color: widget.config.primaryColor,
-                  size: 42,
+            NotificationListener<ScrollNotification>(
+              onNotification: (notification) {
+                if (notification is ScrollStartNotification &&
+                    notification.dragDetails != null) {
+                  _dragging = true;
+                  _timer?.cancel();
+                } else if (notification is ScrollEndNotification && _dragging) {
+                  _dragging = false;
+                  _startTimer();
+                }
+                return false;
+              },
+              child: PageView.builder(
+                controller: _controller,
+                itemCount: _images.length,
+                onPageChanged: (page) => setState(() => _page = page),
+                itemBuilder: (context, index) => Image.asset(
+                  _images[index],
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, _, _) => Icon(
+                    Icons.diamond_outlined,
+                    color: widget.config.primaryColor,
+                    size: 42,
+                  ),
                 ),
               ),
             ),

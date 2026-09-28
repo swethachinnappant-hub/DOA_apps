@@ -307,7 +307,7 @@ class ProductRail extends StatelessWidget {
   const ProductRail({
     super.key,
     required this.products,
-    this.autoSlideImages = false,
+    this.autoSlideImages = true,
   });
 
   @override

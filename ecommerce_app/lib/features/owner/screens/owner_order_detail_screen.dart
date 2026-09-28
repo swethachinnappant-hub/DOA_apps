@@ -487,7 +487,7 @@ class _ItemRow extends StatelessWidget {
                     )
                   : ProductImageTile(
                       url: item.images.first,
-                      fit: BoxFit.cover,
+                      fit: BoxFit.contain,
                       placeholderIcon: Icons.broken_image_outlined,
                     ),
             ),

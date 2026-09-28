@@ -829,6 +829,7 @@ class _ProductListTile extends StatelessWidget {
                     placeholderColor: config.accentColor,
                     placeholderAccent: config.primaryColor,
                     showDots: false,
+                    showCounter: product.hasMultipleImages,
                     borderRadius: AppRadius.allSm,
                   ),
                 ),

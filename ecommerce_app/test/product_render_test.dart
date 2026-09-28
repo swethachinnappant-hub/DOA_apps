@@ -6,6 +6,7 @@ import 'package:ecommerce_app/features/config/providers/business_config_provider
 import 'package:ecommerce_app/features/product/screens/product_detail_screen.dart';
 import 'package:ecommerce_app/widgets/product_card.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -83,24 +84,36 @@ void main() {
       expect(_product().needsVariantSelection, isFalse);
     });
 
-    test('catalog gives every product a relevant demo jewellery image', () {
-      final products = DemoCatalog.build(const ['Men', 'Women']);
-      expect(products, isNotEmpty);
-      for (final product in products) {
-        expect(
-          product.images,
-          isNotEmpty,
-          reason: '${product.name} needs a photo',
-        );
-        expect(
-          product.images.every(
-            (image) => image.startsWith('assets/demo_jewellery/'),
-          ),
-          isTrue,
-          reason: '${product.name} should use a local jewellery photo',
-        );
-      }
-    });
+    test(
+      'catalog gives every product bundled jewellery cover and details',
+      () async {
+        final products = DemoCatalog.build(const ['Men', 'Women']);
+        expect(products, isNotEmpty);
+        for (final product in products) {
+          expect(
+            product.images,
+            isNotEmpty,
+            reason: '${product.name} needs a photo',
+          );
+          expect(
+            product.images.every(
+              (image) => image.startsWith('assets/demo_jewellery/'),
+            ),
+            isTrue,
+            reason: '${product.name} should use a local jewellery photo',
+          );
+          expect(
+            product.images,
+            hasLength(3),
+            reason: '${product.name} should include the cover and detail views',
+          );
+        }
+        for (final asset
+            in products.expand((product) => product.images).toSet()) {
+          await rootBundle.load(asset);
+        }
+      },
+    );
 
     test('catalog resolves products by id', () {
       final products = DemoCatalog.build(const ['Men']);
@@ -114,6 +127,44 @@ void main() {
   });
 
   group('ProductCard', () {
+    testWidgets('product photo carousel advances and exposes image zoom', (
+      tester,
+    ) async {
+      final product = DemoCatalog.build(const ['gold rings']).first;
+      var zoomOpened = false;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 220,
+              height: 260,
+              child: ProductImageCarousel(
+                images: product.images,
+                autoSlide: true,
+                showCounter: true,
+                onImageTap: () => zoomOpened = true,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final carousel = tester.state<ProductImageCarouselState>(
+        find.byType(ProductImageCarousel),
+      );
+      expect(find.text('1 / 3'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(carousel.currentIndex, 1);
+      expect(find.text('2 / 3'), findsOneWidget);
+
+      await tester.tapAt(const Offset(110, 100));
+      await tester.pump();
+      expect(zoomOpened, isTrue);
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+
     testWidgets('shows brand, price, MRP and discount', (tester) async {
       tester.view.physicalSize = const Size(360, 800);
       tester.view.devicePixelRatio = 1.0;
@@ -220,7 +271,7 @@ void main() {
       );
       await tester.pump();
 
-      await tester.tap(find.byType(ProductCard));
+      await tester.tap(find.text('Classic Oxford Shirt'));
       await tester.pump();
       expect(taps, 1);
 

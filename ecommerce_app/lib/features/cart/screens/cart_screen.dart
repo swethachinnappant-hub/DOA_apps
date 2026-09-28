@@ -166,7 +166,7 @@ class _CartLine extends StatelessWidget {
                     )
                   : ProductImageTile(
                       url: images.first,
-                      fit: BoxFit.cover,
+                      fit: BoxFit.contain,
                       placeholderIcon: fallbackIcon,
                       placeholderColor: accent,
                       placeholderAccent: brandColor,

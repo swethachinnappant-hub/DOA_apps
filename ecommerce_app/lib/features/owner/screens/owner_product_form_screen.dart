@@ -114,7 +114,18 @@ class _OwnerProductFormScreenState extends State<OwnerProductFormScreen> {
   }
 
   Future<void> _addSampleImage() async {
-    setState(() => _images.add(DemoCatalog.imageForCategory(_category ?? '')));
+    final sampleViews = DemoCatalog.imagesForCategory(_category ?? '');
+    final nextView = sampleViews.firstWhere(
+      (image) => !_images.contains(image),
+      orElse: () => '',
+    );
+    if (nextView.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('All sample views are already added.')),
+      );
+      return;
+    }
+    setState(() => _images.add(nextView));
   }
 
   void _removeImage(int index) {
@@ -606,7 +617,7 @@ class _ImageTile extends StatelessWidget {
             height: 132,
             child: ProductImageTile(
               url: url,
-              fit: BoxFit.cover,
+              fit: BoxFit.contain,
               placeholderIcon: Icons.broken_image_outlined,
             ),
           ),

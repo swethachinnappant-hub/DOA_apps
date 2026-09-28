@@ -176,7 +176,7 @@ class ProductCard extends StatefulWidget {
     this.showRating = true,
     this.showDelivery = false,
     this.showPrice = true,
-    this.autoSlideImages = false,
+    this.autoSlideImages = true,
   });
 
   @override
@@ -186,6 +186,17 @@ class ProductCard extends StatefulWidget {
 class _ProductCardState extends State<ProductCard> {
   final _carouselKey = GlobalKey<ProductImageCarouselState>();
   bool _liked = false;
+
+  void _zoomCurrentImage() {
+    final images = widget.product.images;
+    if (images.isEmpty) return;
+    final index = _carouselKey.currentState?.currentIndex ?? 0;
+    showImageViewer(
+      context,
+      url: images[index.clamp(0, images.length - 1).toInt()],
+      placeholderIcon: widget.product.icon,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -224,8 +235,11 @@ class _ProductCardState extends State<ProductCard> {
                           placeholderAccent: widget.primaryColor,
                           autoSlide: widget.autoSlideImages,
                           showDots: p.hasMultipleImages,
-                          showCounter: widget.autoSlideImages,
+                          showCounter: p.hasMultipleImages,
                           borderRadius: AppRadius.allMd,
+                          onImageTap: p.images.isEmpty
+                              ? null
+                              : _zoomCurrentImage,
                         ),
                         if (p.badges.isNotEmpty)
                           Positioned(
@@ -260,6 +274,30 @@ class _ProductCardState extends State<ProductCard> {
                             },
                           ),
                         ),
+                        if (p.images.isNotEmpty)
+                          Positioned(
+                            right: AppSpacing.sm,
+                            top: 42,
+                            child: Tooltip(
+                              message: 'Zoom product image',
+                              child: Material(
+                                color: Colors.white.withValues(alpha: .94),
+                                shape: const CircleBorder(),
+                                child: InkWell(
+                                  onTap: _zoomCurrentImage,
+                                  customBorder: const CircleBorder(),
+                                  child: const Padding(
+                                    padding: EdgeInsets.all(6),
+                                    child: Icon(
+                                      Icons.zoom_in,
+                                      size: 16,
+                                      color: AppPalette.textPrimary,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
                         if (!p.inStock)
                           Positioned.fill(
                             child: ColoredBox(

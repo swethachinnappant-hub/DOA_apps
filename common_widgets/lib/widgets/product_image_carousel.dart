@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../core/design_tokens.dart';
@@ -65,7 +66,7 @@ class ProductImageTile extends StatelessWidget {
     this.placeholderIcon = Icons.image_outlined,
     this.placeholderColor = AppPalette.surfaceMuted,
     this.placeholderAccent = AppPalette.textHint,
-    this.fit = BoxFit.cover,
+    this.fit = BoxFit.contain,
   });
 
   @override
@@ -293,9 +294,12 @@ class ProductImageCarouselState extends State<ProductImageCarousel> {
                   fit: widget.fit,
                 );
                 if (widget.onImageTap == null) return image;
-                return GestureDetector(
-                  onTap: () => widget.onImageTap!(),
-                  child: image,
+                return MouseRegion(
+                  cursor: SystemMouseCursors.zoomIn,
+                  child: GestureDetector(
+                    onTap: () => widget.onImageTap!(),
+                    child: image,
+                  ),
                 );
               },
             ),
@@ -427,7 +431,7 @@ void showImageViewer(
   );
 }
 
-class _ImageViewer extends StatelessWidget {
+class _ImageViewer extends StatefulWidget {
   final String url;
   final IconData placeholderIcon;
   final Color placeholderAccent;
@@ -439,22 +443,116 @@ class _ImageViewer extends StatelessWidget {
   });
 
   @override
+  State<_ImageViewer> createState() => _ImageViewerState();
+}
+
+class _ImageViewerState extends State<_ImageViewer> {
+  final _transformationController = TransformationController();
+  Offset _lastDoubleTap = Offset.zero;
+
+  @override
+  void dispose() {
+    _transformationController.dispose();
+    super.dispose();
+  }
+
+  void _toggleZoom() {
+    final currentScale = _transformationController.value.getMaxScaleOnAxis();
+    if (currentScale > 1.05) {
+      _transformationController.value = Matrix4.identity();
+      return;
+    }
+
+    const scale = 2.4;
+    _transformationController.value = Matrix4.identity()
+      ..translate(
+        _lastDoubleTap.dx * (1 - scale),
+        _lastDoubleTap.dy * (1 - scale),
+      )
+      ..scale(scale);
+  }
+
+  void _zoomFromWheel(PointerSignalEvent event, Offset localPosition) {
+    if (event is! PointerScrollEvent) return;
+    final currentScale = _transformationController.value.getMaxScaleOnAxis();
+    final nextScale = (currentScale * (event.scrollDelta.dy < 0 ? 1.18 : 0.85))
+        .clamp(1.0, 4.0);
+    if (nextScale == currentScale) return;
+    _transformationController.value = Matrix4.identity()
+      ..translate(
+        localPosition.dx * (1 - nextScale),
+        localPosition.dy * (1 - nextScale),
+      )
+      ..scale(nextScale);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final isDesktop =
+        Theme.of(context).platform == TargetPlatform.windows ||
+        Theme.of(context).platform == TargetPlatform.macOS ||
+        Theme.of(context).platform == TargetPlatform.linux;
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
           Positioned.fill(
-            child: InteractiveViewer(
-              minScale: 1,
-              maxScale: 4,
-              child: Center(
-                child: ProductImageTile(
-                  url: url,
-                  placeholderIcon: placeholderIcon,
-                  placeholderColor: const Color(0xFF1F2937),
-                  placeholderAccent: Colors.white70,
-                  fit: BoxFit.contain,
+            child: LayoutBuilder(
+              builder: (context, constraints) => GestureDetector(
+                onDoubleTapDown: (details) =>
+                    _lastDoubleTap = details.localPosition,
+                onDoubleTap: _toggleZoom,
+                child: Listener(
+                  onPointerSignal: (event) {
+                    final renderObject = context.findRenderObject();
+                    final localPosition =
+                        event is PointerScrollEvent && renderObject is RenderBox
+                        ? renderObject.globalToLocal(event.position)
+                        : Offset(
+                            constraints.maxWidth / 2,
+                            constraints.maxHeight / 2,
+                          );
+                    _zoomFromWheel(event, localPosition);
+                  },
+                  child: InteractiveViewer(
+                    transformationController: _transformationController,
+                    minScale: 1,
+                    maxScale: 4,
+                    child: Center(
+                      child: ProductImageTile(
+                        url: widget.url,
+                        placeholderIcon: widget.placeholderIcon,
+                        placeholderColor: const Color(0xFF1F2937),
+                        placeholderAccent: Colors.white70,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: MediaQuery.of(context).padding.bottom + AppSpacing.lg,
+            left: AppSpacing.md,
+            right: AppSpacing.md,
+            child: Center(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: .55),
+                  borderRadius: AppRadius.allPill,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.sm,
+                  ),
+                  child: Text(
+                    isDesktop
+                        ? 'Double-click or scroll to zoom'
+                        : 'Double-tap or pinch to zoom',
+                    style: const TextStyle(color: Colors.white, fontSize: 12),
+                  ),
                 ),
               ),
             ),

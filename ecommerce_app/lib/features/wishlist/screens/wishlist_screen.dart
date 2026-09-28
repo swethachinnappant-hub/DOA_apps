@@ -106,7 +106,7 @@ class WishlistScreen extends StatelessWidget {
                     )
                   : ProductImageTile(
                       url: product.images.first,
-                      fit: BoxFit.cover,
+                      fit: BoxFit.contain,
                       placeholderIcon: config.icon,
                       placeholderColor: accent,
                       placeholderAccent: primary,
