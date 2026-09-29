@@ -132,6 +132,7 @@ class AppSearchField extends StatelessWidget {
   final String? hint;
   final TextEditingController? controller;
   final ValueChanged<String>? onChanged;
+  final ValueChanged<String>? onSubmitted;
   final VoidCallback? onFilterPressed;
   final Widget? trailing;
 
@@ -140,6 +141,7 @@ class AppSearchField extends StatelessWidget {
     this.hint,
     this.controller,
     this.onChanged,
+    this.onSubmitted,
     this.onFilterPressed,
     this.trailing,
   });
@@ -153,6 +155,7 @@ class AppSearchField extends StatelessWidget {
             hint: hint ?? 'Search...',
             controller: controller,
             onChanged: onChanged,
+            onFieldSubmitted: onSubmitted,
             prefixIcon: Icon(
               Icons.search,
               size: 20,

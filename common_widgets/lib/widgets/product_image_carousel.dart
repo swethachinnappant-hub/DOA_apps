@@ -578,6 +578,7 @@ class _ImageViewerState extends State<_ImageViewer> {
   final Map<int, TransformationController> _transformations = {};
   Offset _lastDoubleTap = Offset.zero;
   late int _index = widget.initialIndex;
+  bool _isZoomed = false;
 
   TransformationController _transformationFor(int index) =>
       _transformations.putIfAbsent(index, TransformationController.new);
@@ -599,6 +600,7 @@ class _ImageViewerState extends State<_ImageViewer> {
     final currentScale = transformationController.value.getMaxScaleOnAxis();
     if (currentScale > 1.05) {
       transformationController.value = Matrix4.identity();
+      setState(() => _isZoomed = false);
       return;
     }
 
@@ -609,6 +611,7 @@ class _ImageViewerState extends State<_ImageViewer> {
         _lastDoubleTap.dy * (1 - scale),
       )
       ..scale(scale);
+    setState(() => _isZoomed = true);
   }
 
   void _zoomFromWheel(PointerSignalEvent event, Offset localPosition) {
@@ -624,6 +627,7 @@ class _ImageViewerState extends State<_ImageViewer> {
         localPosition.dy * (1 - nextScale),
       )
       ..scale(nextScale);
+    setState(() => _isZoomed = nextScale > 1.02);
   }
 
   void _goTo(int index) {
@@ -658,10 +662,18 @@ class _ImageViewerState extends State<_ImageViewer> {
                 },
                 child: PageView.builder(
                   controller: _pageController,
+                  // Keep horizontal image paging from winning the gesture
+                  // arena while the current image is enlarged.
+                  physics: _isZoomed
+                      ? const NeverScrollableScrollPhysics()
+                      : const PageScrollPhysics(),
                   itemCount: widget.images.length,
                   onPageChanged: (index) {
                     _transformationFor(index).value = Matrix4.identity();
-                    setState(() => _index = index);
+                    setState(() {
+                      _index = index;
+                      _isZoomed = false;
+                    });
                   },
                   itemBuilder: (context, index) => GestureDetector(
                     onDoubleTapDown: (details) =>
@@ -671,6 +683,15 @@ class _ImageViewerState extends State<_ImageViewer> {
                       transformationController: _transformationFor(index),
                       minScale: 1,
                       maxScale: 4,
+                      onInteractionUpdate: (details) {
+                        final zoomed = _transformationFor(index)
+                                .value
+                                .getMaxScaleOnAxis() >
+                            1.02;
+                        if (zoomed != _isZoomed) {
+                          setState(() => _isZoomed = zoomed);
+                        }
+                      },
                       panEnabled: true,
                       scaleEnabled: true,
                       child: ProductImageTile(

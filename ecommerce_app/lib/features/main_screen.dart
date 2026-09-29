@@ -289,7 +289,15 @@ class _HomeTab extends StatelessWidget {
                   style: AppTypography.display.copyWith(fontSize: 26),
                 ),
                 const SizedBox(height: 15),
-                AppSearchField(hint: config.searchHint),
+                AppSearchField(
+                  hint: config.searchHint,
+                  onSubmitted: (value) {
+                    final search = value.trim();
+                    if (search.isNotEmpty) {
+                      context.push('/catalogue?search=${Uri.encodeQueryComponent(search)}');
+                    }
+                  },
+                ),
               ],
             ),
           ),

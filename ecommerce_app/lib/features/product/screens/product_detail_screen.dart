@@ -28,8 +28,6 @@ class ProductDetailScreen extends StatefulWidget {
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   final _carouselKey = GlobalKey<ProductImageCarouselState>();
-  String? _selectedSize;
-  String? _selectedShade;
   int _activeImage = 0;
 
   @override
@@ -41,16 +39,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     if (product == null) return _notFound(context, config);
 
     final liked = store.isWishlisted(product.id);
-
-    // Keep the CTA honest: name whatever is still missing, and only offer
-    // "Add to Bag" once every required variant has been chosen.
-    final sizeMissing = product.sizes.isNotEmpty && _selectedSize == null;
-    final shadeMissing = product.shades.isNotEmpty && _selectedShade == null;
-    final ctaLabel = shadeMissing
-        ? 'Select Shade'
-        : sizeMissing
-        ? 'Select Size'
-        : 'Add to Bag';
 
     return Scaffold(
       appBar: AppBar(
@@ -69,7 +57,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       bottomNavigationBar: _BuyBar(
         primaryColor: config.primaryColor,
         onPrimaryColor: config.onPrimaryColor,
-        ctaLabel: ctaLabel,
         enabled: product.inStock,
         // Enquiries are a real seller channel, so only listings that belong
         // to an account on this device get the button.
@@ -94,8 +81,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
     final added = store.addToCart(
       product,
-      selectedSize: _selectedSize,
-      selectedShade: _selectedShade,
     );
 
     if (added <= 0) {
@@ -505,45 +490,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               style: AppTypography.body.copyWith(fontSize: 14),
             ),
           ],
-          if (product.shades.isNotEmpty) ...[
-            const SizedBox(height: AppSpacing.lg),
-            _SectionLabel(
-              'Shades',
-              trailing: _selectedShade ?? 'Select a shade',
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Wrap(
-              spacing: AppSpacing.sm,
-              runSpacing: AppSpacing.sm,
-              children: product.shades
-                  .map(
-                    (s) => _ShadeSwatch(
-                      shade: s,
-                      selected: _selectedShade == s.name,
-                      onTap: () => setState(() => _selectedShade = s.name),
-                    ),
-                  )
-                  .toList(),
-            ),
-          ],
-          if (product.sizes.isNotEmpty) ...[
-            const SizedBox(height: AppSpacing.lg),
-            _SectionLabel('Size', trailing: _selectedSize ?? 'Select a size'),
-            const SizedBox(height: AppSpacing.sm),
-            Wrap(
-              spacing: AppSpacing.sm,
-              runSpacing: AppSpacing.sm,
-              children: product.sizes
-                  .map(
-                    (s) => _SizeChip(
-                      label: s.name,
-                      selected: _selectedSize == s.name,
-                      onTap: () => setState(() => _selectedSize = s.name),
-                    ),
-                  )
-                  .toList(),
-            ),
-          ],
           if (!product.inStock)
             Container(
               margin: const EdgeInsets.only(top: AppSpacing.lg),
@@ -880,7 +826,6 @@ class _SectionAccordionState extends State<_SectionAccordion> {
 class _BuyBar extends StatelessWidget {
   final Color primaryColor;
   final Color onPrimaryColor;
-  final String ctaLabel;
   final bool enabled;
   final VoidCallback? onEnquire;
   final VoidCallback onAddToBag;
@@ -889,7 +834,6 @@ class _BuyBar extends StatelessWidget {
   const _BuyBar({
     required this.primaryColor,
     required this.onPrimaryColor,
-    required this.ctaLabel,
     required this.enabled,
     this.onEnquire,
     required this.onAddToBag,
@@ -925,7 +869,7 @@ class _BuyBar extends StatelessWidget {
                 children: [
                   Expanded(
                     child: AppButton(
-                      text: ctaLabel,
+                      text: 'Add to Cart',
                       type: AppButtonType.outlined,
                       onPressed: enabled ? onAddToBag : null,
                     ),

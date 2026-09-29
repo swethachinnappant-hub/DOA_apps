@@ -133,6 +133,7 @@ GoRouter buildAppRouter({required AuthProvider auth}) {
           final query = state.uri.queryParameters;
           return CatalogueScreen(
             initialCategory: query['category'],
+            initialQuery: query['search'],
             priceMin: int.tryParse(query['min'] ?? ''),
             priceMax: int.tryParse(query['max'] ?? ''),
           );

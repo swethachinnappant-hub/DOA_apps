@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:common_widgets/common_widgets.dart';
@@ -16,15 +15,6 @@ class ProductDetailScreen extends StatefulWidget {
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   bool _liked = false;
 
-  Future<void> _shareProduct(String storeName) async {
-    await Clipboard.setData(ClipboardData(text: 'Jewellery from $storeName'));
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Store details copied to clipboard')),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final config = context.watch<BusinessConfigProvider>().config;
@@ -40,12 +30,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             icon: Icon(_liked ? Icons.favorite : Icons.favorite_border),
             onPressed: () => setState(() => _liked = !_liked),
           ),
-          if (rules.allowShare)
-            IconButton(
-              tooltip: 'Copy store details',
-              icon: const Icon(Icons.share_outlined),
-              onPressed: () => _shareProduct(config.name),
-            ),
         ],
       ),
       bottomNavigationBar: Container(

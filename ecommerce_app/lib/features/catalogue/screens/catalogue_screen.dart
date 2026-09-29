@@ -15,6 +15,7 @@ class CatalogueScreen extends StatefulWidget {
   final String? initialCategory;
   final int? priceMin;
   final int? priceMax;
+  final String? initialQuery;
 
   /// Exit action used when the catalogue is embedded in the customer tab shell.
   /// Standalone catalogue routes continue to use normal route back navigation.
@@ -25,6 +26,7 @@ class CatalogueScreen extends StatefulWidget {
     this.initialCategory,
     this.priceMin,
     this.priceMax,
+    this.initialQuery,
     this.onExit,
   });
 
@@ -40,6 +42,8 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
   String? _selectedPurity;
   String _sortBy = 'Recommended';
   bool _isGrid = true;
+  String _query = '';
+  late final TextEditingController _searchController;
 
   @override
   void initState() {
@@ -47,6 +51,14 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
     _selectedCategory = widget.initialCategory ?? 'All';
     _priceMin = widget.priceMin;
     _priceMax = widget.priceMax;
+    _query = widget.initialQuery ?? '';
+    _searchController = TextEditingController(text: _query);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   bool get _hasPriceBand => _priceMin != null || _priceMax != null;
@@ -340,9 +352,16 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
     final store = context.watch<CommerceStore>();
     final allCategories = ['All', ...config.categories];
     final products = store.shopProducts;
-    final visible = _selectedCategory == 'All'
+    final matchingQuery = _query.trim().toLowerCase();
+    final queryFiltered = matchingQuery.isEmpty
         ? products
-        : products.where((p) => p.category == _selectedCategory).toList();
+        : products.where((p) => <String>[
+            p.name, p.brand, p.sku, p.category, p.description,
+            ...p.specs.values,
+          ].any((value) => value.toLowerCase().contains(matchingQuery))).toList();
+    final visible = _selectedCategory == 'All'
+        ? queryFiltered
+        : queryFiltered.where((p) => p.category == _selectedCategory).toList();
     final inBand = _hasPriceBand
         ? visible
               .where(
@@ -436,7 +455,11 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
                 const SizedBox(height: AppSpacing.lg),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: AppSearchField(hint: config.searchHint),
+                  child: AppSearchField(
+                    hint: config.searchHint,
+                    controller: _searchController,
+                    onChanged: (value) => setState(() => _query = value),
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 SizedBox(
