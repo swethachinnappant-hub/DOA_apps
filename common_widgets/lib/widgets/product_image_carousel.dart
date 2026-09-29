@@ -346,6 +346,32 @@ class ProductImageCarouselState extends State<ProductImageCarousel> {
               },
             ),
           ),
+          if (_isMulti && _index > 0)
+            Positioned(
+              left: AppSpacing.sm,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: _GalleryArrow(
+                  icon: Icons.chevron_left,
+                  tooltip: 'Previous product image',
+                  onPressed: () => goTo(_index - 1),
+                ),
+              ),
+            ),
+          if (_isMulti && _index < _count - 1)
+            Positioned(
+              right: AppSpacing.sm,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: _GalleryArrow(
+                  icon: Icons.chevron_right,
+                  tooltip: 'Next product image',
+                  onPressed: () => goTo(_index + 1),
+                ),
+              ),
+            ),
           if (widget.showDots && _isMulti)
             Positioned(
               left: 0,
@@ -406,6 +432,32 @@ class ProductImageCarouselState extends State<ProductImageCarousel> {
       ),
     );
   }
+}
+
+class _GalleryArrow extends StatelessWidget {
+  const _GalleryArrow({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: Colors.white.withValues(alpha: .94),
+    shape: const CircleBorder(),
+    elevation: 2,
+    child: IconButton(
+      onPressed: onPressed,
+      tooltip: tooltip,
+      icon: Icon(icon, size: 27),
+      constraints: const BoxConstraints.tightFor(width: 42, height: 42),
+      padding: EdgeInsets.zero,
+    ),
+  );
 }
 
 /// Vertical thumbnail rail for a product detail page. Tapping a thumbnail
@@ -563,6 +615,15 @@ class _ImageViewerState extends State<_ImageViewer> {
       ..scale(nextScale);
   }
 
+  void _goTo(int index) {
+    if (index < 0 || index >= widget.images.length) return;
+    _pageController.animateToPage(
+      index,
+      duration: AppDurations.normal,
+      curve: Curves.easeOut,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDesktop =
@@ -615,6 +676,32 @@ class _ImageViewerState extends State<_ImageViewer> {
               ),
             ),
           ),
+          if (_index > 0)
+            Positioned(
+              left: AppSpacing.md,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: _GalleryArrow(
+                  icon: Icons.chevron_left,
+                  tooltip: 'Previous product image',
+                  onPressed: () => _goTo(_index - 1),
+                ),
+              ),
+            ),
+          if (_index < widget.images.length - 1)
+            Positioned(
+              right: AppSpacing.md,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: _GalleryArrow(
+                  icon: Icons.chevron_right,
+                  tooltip: 'Next product image',
+                  onPressed: () => _goTo(_index + 1),
+                ),
+              ),
+            ),
           Positioned(
             bottom: MediaQuery.of(context).padding.bottom + AppSpacing.lg,
             left: AppSpacing.md,
