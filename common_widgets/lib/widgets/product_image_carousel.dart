@@ -297,6 +297,7 @@ class ProductImageCarouselState extends State<ProductImageCarousel> {
       );
     }
 
+    final showNavigationArrows = MediaQuery.sizeOf(context).width >= 600;
     return ClipRRect(
       borderRadius: widget.borderRadius,
       child: Stack(
@@ -346,7 +347,7 @@ class ProductImageCarouselState extends State<ProductImageCarousel> {
               },
             ),
           ),
-          if (_isMulti && _index > 0)
+          if (showNavigationArrows && _isMulti && _index > 0)
             Positioned(
               left: AppSpacing.sm,
               top: 0,
@@ -359,7 +360,7 @@ class ProductImageCarouselState extends State<ProductImageCarousel> {
                 ),
               ),
             ),
-          if (_isMulti && _index < _count - 1)
+          if (showNavigationArrows && _isMulti && _index < _count - 1)
             Positioned(
               right: AppSpacing.sm,
               top: 0,
@@ -574,26 +575,35 @@ class _ImageViewerState extends State<_ImageViewer> {
   late final PageController _pageController = PageController(
     initialPage: widget.initialIndex,
   );
-  final _transformationController = TransformationController();
+  final Map<int, TransformationController> _transformations = {};
   Offset _lastDoubleTap = Offset.zero;
   late int _index = widget.initialIndex;
 
+  TransformationController _transformationFor(int index) =>
+      _transformations.putIfAbsent(index, TransformationController.new);
+
+  TransformationController get _activeTransformation =>
+      _transformationFor(_index);
+
   @override
   void dispose() {
-    _transformationController.dispose();
+    for (final controller in _transformations.values) {
+      controller.dispose();
+    }
     _pageController.dispose();
     super.dispose();
   }
 
   void _toggleZoom() {
-    final currentScale = _transformationController.value.getMaxScaleOnAxis();
+    final transformationController = _activeTransformation;
+    final currentScale = transformationController.value.getMaxScaleOnAxis();
     if (currentScale > 1.05) {
-      _transformationController.value = Matrix4.identity();
+      transformationController.value = Matrix4.identity();
       return;
     }
 
     const scale = 2.4;
-    _transformationController.value = Matrix4.identity()
+    transformationController.value = Matrix4.identity()
       ..translate(
         _lastDoubleTap.dx * (1 - scale),
         _lastDoubleTap.dy * (1 - scale),
@@ -603,11 +613,12 @@ class _ImageViewerState extends State<_ImageViewer> {
 
   void _zoomFromWheel(PointerSignalEvent event, Offset localPosition) {
     if (event is! PointerScrollEvent) return;
-    final currentScale = _transformationController.value.getMaxScaleOnAxis();
+    final transformationController = _activeTransformation;
+    final currentScale = transformationController.value.getMaxScaleOnAxis();
     final nextScale = (currentScale * (event.scrollDelta.dy < 0 ? 1.18 : 0.85))
         .clamp(1.0, 4.0);
     if (nextScale == currentScale) return;
-    _transformationController.value = Matrix4.identity()
+    transformationController.value = Matrix4.identity()
       ..translate(
         localPosition.dx * (1 - nextScale),
         localPosition.dy * (1 - nextScale),
@@ -626,43 +637,42 @@ class _ImageViewerState extends State<_ImageViewer> {
 
   @override
   Widget build(BuildContext context) {
-    final isDesktop =
-        Theme.of(context).platform == TargetPlatform.windows ||
-        Theme.of(context).platform == TargetPlatform.macOS ||
-        Theme.of(context).platform == TargetPlatform.linux;
+    final isDesktop = MediaQuery.sizeOf(context).width >= 600;
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
           Positioned.fill(
             child: LayoutBuilder(
-              builder: (context, constraints) => GestureDetector(
-                onDoubleTapDown: (details) =>
-                    _lastDoubleTap = details.localPosition,
-                onDoubleTap: _toggleZoom,
-                child: Listener(
-                  onPointerSignal: (event) {
-                    final renderObject = context.findRenderObject();
-                    final localPosition =
-                        event is PointerScrollEvent && renderObject is RenderBox
-                        ? renderObject.globalToLocal(event.position)
-                        : Offset(
-                            constraints.maxWidth / 2,
-                            constraints.maxHeight / 2,
-                          );
-                    _zoomFromWheel(event, localPosition);
+              builder: (context, constraints) => Listener(
+                onPointerSignal: (event) {
+                  final renderObject = context.findRenderObject();
+                  final localPosition =
+                      event is PointerScrollEvent && renderObject is RenderBox
+                      ? renderObject.globalToLocal(event.position)
+                      : Offset(
+                          constraints.maxWidth / 2,
+                          constraints.maxHeight / 2,
+                        );
+                  _zoomFromWheel(event, localPosition);
+                },
+                child: PageView.builder(
+                  controller: _pageController,
+                  itemCount: widget.images.length,
+                  onPageChanged: (index) {
+                    _transformationFor(index).value = Matrix4.identity();
+                    setState(() => _index = index);
                   },
-                  child: PageView.builder(
-                    controller: _pageController,
-                    itemCount: widget.images.length,
-                    onPageChanged: (index) {
-                      _transformationController.value = Matrix4.identity();
-                      setState(() => _index = index);
-                    },
-                    itemBuilder: (context, index) => InteractiveViewer(
-                      transformationController: _transformationController,
+                  itemBuilder: (context, index) => GestureDetector(
+                    onDoubleTapDown: (details) =>
+                        _lastDoubleTap = details.localPosition,
+                    onDoubleTap: _toggleZoom,
+                    child: InteractiveViewer(
+                      transformationController: _transformationFor(index),
                       minScale: 1,
                       maxScale: 4,
+                      panEnabled: true,
+                      scaleEnabled: true,
                       child: ProductImageTile(
                         url: widget.images[index],
                         placeholderIcon: widget.placeholderIcon,
@@ -676,7 +686,7 @@ class _ImageViewerState extends State<_ImageViewer> {
               ),
             ),
           ),
-          if (_index > 0)
+          if (isDesktop && _index > 0)
             Positioned(
               left: AppSpacing.md,
               top: 0,
@@ -689,7 +699,7 @@ class _ImageViewerState extends State<_ImageViewer> {
                 ),
               ),
             ),
-          if (_index < widget.images.length - 1)
+          if (isDesktop && _index < widget.images.length - 1)
             Positioned(
               right: AppSpacing.md,
               top: 0,
