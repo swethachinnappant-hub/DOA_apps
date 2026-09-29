@@ -194,6 +194,8 @@ class _ProductCardState extends State<ProductCard> {
     showImageViewer(
       context,
       url: images[index.clamp(0, images.length - 1).toInt()],
+      images: images,
+      initialIndex: index.clamp(0, images.length - 1).toInt(),
       placeholderIcon: widget.product.icon,
     );
   }

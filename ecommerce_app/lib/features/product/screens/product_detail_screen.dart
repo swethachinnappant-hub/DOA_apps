@@ -304,12 +304,21 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             autoSlide: true,
             showDots: product.hasMultipleImages,
             showCounter: product.hasMultipleImages,
+            onImageTap: () => showImageViewer(
+              context,
+              url: product.images.isEmpty ? '' : product.images[_activeImage],
+              images: product.images,
+              initialIndex: _activeImage,
+              placeholderIcon: product.icon,
+            ),
             // Keep the thumbnail rail in sync when the shopper swipes
             // directly on the main gallery.
             onPageChanged: (i) => setState(() => _activeImage = i),
             onZoomRequested: () => showImageViewer(
               context,
               url: product.images.isEmpty ? '' : product.images[_activeImage],
+              images: product.images,
+              initialIndex: _activeImage,
               placeholderIcon: product.icon,
             ),
           ),

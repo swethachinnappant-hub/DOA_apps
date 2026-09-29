@@ -567,79 +567,102 @@ class _BrandPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
-      color: const Color(0xFFF3EBDD),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(44, 36, 44, 42),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE7D9C2),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0xFFD1BC98)),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final galleryHeight = (constraints.maxHeight * .42)
+            .clamp(220.0, 360.0)
+            .toDouble();
+        return ColoredBox(
+          color: const Color(0xFFF3EBDD),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(44, 36, 44, 42),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: (constraints.maxHeight - 78)
+                    .clamp(0.0, double.infinity)
+                    .toDouble(),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE7D9C2),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: const Color(0xFFD1BC98)),
+                        ),
+                        child: Icon(config.icon, color: AppPalette.goldDark),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          config.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.title.copyWith(
+                            fontSize: 20,
+                            color: const Color(0xFF30291F),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  child: Icon(config.icon, color: AppPalette.goldDark),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    config.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTypography.title.copyWith(
-                      fontSize: 20,
+                  const SizedBox(height: 10),
+                  const Text(
+                    'FINE GOLD  ·  DIAMONDS  ·  SILVER',
+                    style: TextStyle(
+                      color: Color(0xFF887657),
+                      fontSize: 9,
+                      letterSpacing: 1.3,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 510),
+                      child: SizedBox(
+                        height: galleryHeight,
+                        width: double.infinity,
+                        child: _JewelleryGallery(config: config),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Find the piece\nthat feels like you.',
+                    style: AppTypography.display.copyWith(
+                      fontSize: 37,
+                      height: 1.08,
                       color: const Color(0xFF30291F),
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              'FINE GOLD  ·  DIAMONDS  ·  SILVER',
-              style: TextStyle(
-                color: Color(0xFF887657),
-                fontSize: 9,
-                letterSpacing: 1.3,
+                  const SizedBox(height: 9),
+                  Text(
+                    config.tagline,
+                    style: AppTypography.body.copyWith(
+                      fontSize: 14,
+                      color: const Color(0xFF71685B),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Explore thoughtfully selected designs, crafted for everyday moments and celebrations. Browse the collection and find a piece that feels distinctly yours.',
+                    style: AppTypography.body.copyWith(
+                      fontSize: 13,
+                      height: 1.5,
+                      color: const Color(0xFF71685B),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 510),
-                  child: _JewelleryGallery(config: config),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Find the piece\nthat feels like you.',
-              style: AppTypography.display.copyWith(
-                fontSize: 37,
-                height: 1.08,
-                color: const Color(0xFF30291F),
-              ),
-            ),
-            const SizedBox(height: 9),
-            Text(
-              config.tagline,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: AppTypography.body.copyWith(
-                fontSize: 14,
-                color: const Color(0xFF71685B),
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

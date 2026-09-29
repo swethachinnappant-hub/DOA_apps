@@ -179,6 +179,7 @@ class ProductImageCarouselState extends State<ProductImageCarousel> {
   Timer? _timer;
   int _index = 0;
   bool _dragging = false;
+  bool _userInteracted = false;
 
   int get _count => widget.images.length;
   bool get _isMulti => _count > 1;
@@ -211,7 +212,7 @@ class ProductImageCarouselState extends State<ProductImageCarousel> {
 
   void _start() {
     _stop();
-    if (widget.autoSlide && _isMulti) {
+    if (widget.autoSlide && _isMulti && !_userInteracted) {
       _timer = Timer.periodic(widget.interval, (_) => _advance());
     }
   }
@@ -219,6 +220,11 @@ class ProductImageCarouselState extends State<ProductImageCarousel> {
   void _stop() {
     _timer?.cancel();
     _timer = null;
+  }
+
+  void _pauseForInteraction() {
+    _userInteracted = true;
+    _stop();
   }
 
   void _advance() {
@@ -270,6 +276,7 @@ class ProductImageCarouselState extends State<ProductImageCarousel> {
   /// Jumps to a specific image, e.g. from a thumbnail rail.
   void goTo(int index) {
     if (index < 0 || index >= _count) return;
+    _pauseForInteraction();
     _controller.animateToPage(
       index,
       duration: AppDurations.normal,
@@ -302,10 +309,10 @@ class ProductImageCarouselState extends State<ProductImageCarousel> {
                   notification.dragDetails != null) {
                 // Pause auto-advance while the shopper is browsing manually.
                 _dragging = true;
-                _stop();
+                _pauseForInteraction();
               } else if (notification is ScrollEndNotification) {
                 if (_dragging) _dragging = false;
-                _start();
+                if (!_userInteracted) _start();
               }
               return false;
             },
@@ -329,7 +336,10 @@ class ProductImageCarouselState extends State<ProductImageCarousel> {
                 return MouseRegion(
                   cursor: SystemMouseCursors.zoomIn,
                   child: GestureDetector(
-                    onTap: () => widget.onImageTap!(),
+                    onTap: () {
+                      _pauseForInteraction();
+                      widget.onImageTap!();
+                    },
                     child: image,
                   ),
                 );
@@ -378,7 +388,10 @@ class ProductImageCarouselState extends State<ProductImageCarousel> {
                 color: Colors.white.withValues(alpha: .94),
                 shape: const CircleBorder(),
                 child: IconButton(
-                  onPressed: widget.onZoomRequested,
+                  onPressed: () {
+                    _pauseForInteraction();
+                    widget.onZoomRequested!();
+                  },
                   tooltip: 'Zoom product image',
                   icon: const Icon(Icons.zoom_in, size: 20),
                   visualDensity: VisualDensity.compact,
@@ -463,6 +476,8 @@ class ProductThumbnailRail extends StatelessWidget {
 void showImageViewer(
   BuildContext context, {
   required String url,
+  List<String>? images,
+  int initialIndex = 0,
   IconData placeholderIcon = Icons.image_outlined,
   Color placeholderAccent = AppPalette.textHint,
 }) {
@@ -474,6 +489,8 @@ void showImageViewer(
         opacity: animation,
         child: _ImageViewer(
           url: url,
+          images: images?.isNotEmpty == true ? images! : [url],
+          initialIndex: initialIndex,
           placeholderIcon: placeholderIcon,
           placeholderAccent: placeholderAccent,
         ),
@@ -484,11 +501,15 @@ void showImageViewer(
 
 class _ImageViewer extends StatefulWidget {
   final String url;
+  final List<String> images;
+  final int initialIndex;
   final IconData placeholderIcon;
   final Color placeholderAccent;
 
   const _ImageViewer({
     required this.url,
+    required this.images,
+    required this.initialIndex,
     required this.placeholderIcon,
     required this.placeholderAccent,
   });
@@ -498,12 +519,17 @@ class _ImageViewer extends StatefulWidget {
 }
 
 class _ImageViewerState extends State<_ImageViewer> {
+  late final PageController _pageController = PageController(
+    initialPage: widget.initialIndex,
+  );
   final _transformationController = TransformationController();
   Offset _lastDoubleTap = Offset.zero;
+  late int _index = widget.initialIndex;
 
   @override
   void dispose() {
     _transformationController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
@@ -565,13 +591,19 @@ class _ImageViewerState extends State<_ImageViewer> {
                           );
                     _zoomFromWheel(event, localPosition);
                   },
-                  child: InteractiveViewer(
-                    transformationController: _transformationController,
-                    minScale: 1,
-                    maxScale: 4,
-                    child: Center(
+                  child: PageView.builder(
+                    controller: _pageController,
+                    itemCount: widget.images.length,
+                    onPageChanged: (index) {
+                      _transformationController.value = Matrix4.identity();
+                      setState(() => _index = index);
+                    },
+                    itemBuilder: (context, index) => InteractiveViewer(
+                      transformationController: _transformationController,
+                      minScale: 1,
+                      maxScale: 4,
                       child: ProductImageTile(
-                        url: widget.url,
+                        url: widget.images[index],
                         placeholderIcon: widget.placeholderIcon,
                         placeholderColor: const Color(0xFF1F2937),
                         placeholderAccent: Colors.white70,
@@ -608,6 +640,27 @@ class _ImageViewerState extends State<_ImageViewer> {
               ),
             ),
           ),
+          if (widget.images.length > 1)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + AppSpacing.sm,
+              left: AppSpacing.md,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: .55),
+                  borderRadius: AppRadius.allPill,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 7,
+                  ),
+                  child: Text(
+                    '${_index + 1} / ${widget.images.length}',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+              ),
+            ),
           Positioned(
             top: MediaQuery.of(context).padding.top + AppSpacing.sm,
             right: AppSpacing.md,
