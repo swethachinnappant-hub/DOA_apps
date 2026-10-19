@@ -1,3 +1,4 @@
+import 'package:common_widgets/common_widgets.dart';
 import 'package:ecommerce_app/core/demo_catalog.dart';
 import 'package:ecommerce_app/core/store/commerce_store.dart';
 import 'package:ecommerce_app/features/config/providers/business_config_provider.dart';
@@ -107,6 +108,36 @@ void main() {
 
     expect(store.isWishlisted(product.id), isTrue);
     expect(find.byIcon(Icons.favorite), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('move to cart lifts the piece into the bag', (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final saved = store.shopProducts.first;
+    store.toggleWishlist(saved.id);
+
+    await tester.pumpWidget(host(const WishlistScreen()));
+    await tester.pump();
+
+    expect(find.text('My Wishlist (1)'), findsOneWidget);
+    expect(find.widgetWithText(AppButton, 'Move to cart'), findsOneWidget);
+    expect(store.cartCount, 0);
+
+    await tester.tap(find.widgetWithText(AppButton, 'Move to cart'));
+    await tester.pump();
+
+    expect(store.cartCount, 1);
+    expect(store.isWishlisted(saved.id), isFalse);
+    expect(find.text('No items in wishlist'), findsOneWidget);
+    expect(find.text('Moved to cart'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    // Drain the snackbar timer so the test does not end with it pending.
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pump(const Duration(milliseconds: 400));
     expect(tester.takeException(), isNull);
   });
 }

@@ -606,11 +606,13 @@ class _ImageViewerState extends State<_ImageViewer> {
 
     const scale = 2.4;
     transformationController.value = Matrix4.identity()
-      ..translate(
+      ..translateByDouble(
         _lastDoubleTap.dx * (1 - scale),
         _lastDoubleTap.dy * (1 - scale),
+        0.0,
+        1.0,
       )
-      ..scale(scale);
+      ..scaleByDouble(scale, scale, scale, 1.0);
     setState(() => _isZoomed = true);
   }
 
@@ -622,11 +624,13 @@ class _ImageViewerState extends State<_ImageViewer> {
         .clamp(1.0, 4.0);
     if (nextScale == currentScale) return;
     transformationController.value = Matrix4.identity()
-      ..translate(
+      ..translateByDouble(
         localPosition.dx * (1 - nextScale),
         localPosition.dy * (1 - nextScale),
+        0.0,
+        1.0,
       )
-      ..scale(nextScale);
+      ..scaleByDouble(nextScale, nextScale, nextScale, 1.0);
     setState(() => _isZoomed = nextScale > 1.02);
   }
 

@@ -136,6 +136,14 @@ class AppSearchField extends StatelessWidget {
   final VoidCallback? onFilterPressed;
   final Widget? trailing;
 
+  /// Visual (image) search affordance. Tapping shows a placeholder notice
+  /// until a real detector is wired in.
+  final VoidCallback? onCameraPressed;
+
+  /// Voice search affordance. Tapping shows a placeholder notice until
+  /// speech-to-text is wired in.
+  final VoidCallback? onVoicePressed;
+
   const AppSearchField({
     super.key,
     this.hint,
@@ -144,10 +152,19 @@ class AppSearchField extends StatelessWidget {
     this.onSubmitted,
     this.onFilterPressed,
     this.trailing,
+    this.onCameraPressed,
+    this.onVoicePressed,
   });
+
+  void _placeholder(BuildContext context, String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message), duration: const Duration(seconds: 2)));
+  }
 
   @override
   Widget build(BuildContext context) {
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
     return Row(
       children: [
         Expanded(
@@ -159,7 +176,26 @@ class AppSearchField extends StatelessWidget {
             prefixIcon: Icon(
               Icons.search,
               size: 20,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              color: muted,
+            ),
+            suffixIcon: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  onPressed: onCameraPressed ??
+                      () => _placeholder(context, 'Image search is coming soon.'),
+                  tooltip: 'Search by image',
+                  constraints: const BoxConstraints.tightFor(width: 40, height: 40),
+                  icon: Icon(Icons.camera_alt_outlined, size: 20, color: muted),
+                ),
+                IconButton(
+                  onPressed: onVoicePressed ??
+                      () => _placeholder(context, 'Voice search is coming soon.'),
+                  tooltip: 'Voice search',
+                  constraints: const BoxConstraints.tightFor(width: 40, height: 40),
+                  icon: Icon(Icons.mic_none, size: 20, color: muted),
+                ),
+              ],
             ),
           ),
         ),

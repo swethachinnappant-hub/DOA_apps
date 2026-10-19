@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -14,7 +15,8 @@ import '../../orders/widgets/order_status_chip.dart';
 /// The seller's order queue.
 ///
 /// Every row carries the next status button, because "confirm it and move on"
-/// is the single most repeated action a seller performs.
+/// is the single most repeated action a seller performs. SPEC-18 adds a
+/// search filter across both tabs and a CSV export of the filtered set.
 class OwnerOrdersScreen extends StatefulWidget {
   const OwnerOrdersScreen({super.key});
 
@@ -25,6 +27,7 @@ class OwnerOrdersScreen extends StatefulWidget {
 class _OwnerOrdersScreenState extends State<OwnerOrdersScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tabs;
+  String _query = '';
 
   @override
   void initState() {
@@ -38,13 +41,23 @@ class _OwnerOrdersScreenState extends State<OwnerOrdersScreen>
     super.dispose();
   }
 
+  List<Order> _filter(List<Order> orders) {
+    final query = _query.trim().toLowerCase();
+    if (query.isEmpty) return orders;
+    return orders
+        .where((order) =>
+            order.id.toLowerCase().contains(query) ||
+            order.customerName.toLowerCase().contains(query))
+        .toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
     final store = context.watch<CommerceStore>();
     if (user == null) return const SizedBox.shrink();
 
-    final all = store.ordersForOwner(user.id);
+    final all = _filter(store.ordersForOwner(user.id));
     final active = all.where((o) => o.status.isActive).toList();
     final closed = all.where((o) => o.status.isClosed).toList();
 
@@ -62,6 +75,29 @@ class _OwnerOrdersScreenState extends State<OwnerOrdersScreen>
               ],
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    decoration: const InputDecoration(
+                      isDense: true,
+                      prefixIcon: Icon(Icons.search, size: 18),
+                      hintText: 'Filter by order id or customer',
+                    ),
+                    onChanged: (value) => setState(() => _query = value),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                IconButton(
+                  tooltip: 'Export CSV',
+                  icon: const Icon(Icons.download_outlined),
+                  onPressed: all.isEmpty ? null : () => _exportCsv(all),
+                ),
+              ],
+            ),
+          ),
           Expanded(
             child: TabBarView(
               controller: _tabs,
@@ -74,6 +110,79 @@ class _OwnerOrdersScreenState extends State<OwnerOrdersScreen>
         ],
       ),
     );
+  }
+
+  String _buildCsv(List<Order> orders) {
+    final buffer = StringBuffer(
+      'Order ID,Customer,Placed at,Status,Items,Payment,Subtotal,'
+      'Discount,Coupon,Total\n',
+    );
+    for (final order in orders) {
+      final placed =
+          '${order.placedAt.toIso8601String().split('T').first} '
+          '${order.placedAt.hour.toString().padLeft(2, '0')}:'
+          '${order.placedAt.minute.toString().padLeft(2, '0')}';
+      buffer.writeln([
+        order.id,
+        _csvCell(order.customerName),
+        placed,
+        order.status.label,
+        order.itemCount,
+        _csvCell(order.paymentMethod),
+        order.subtotal,
+        order.couponDiscount,
+        order.couponCode ?? '',
+        order.total,
+      ].join(','));
+    }
+    return buffer.toString();
+  }
+
+  /// Quotes a cell when it contains a comma, quote or newline (RFC 4180).
+  static String _csvCell(String value) {
+    if (!value.contains(RegExp(r'[",\n]'))) return value;
+    return '"${value.replaceAll('"', '""')}"';
+  }
+
+  Future<void> _exportCsv(List<Order> orders) async {
+    final csv = _buildCsv(orders);
+    final copied = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Export CSV (${orders.length} order(s))'),
+        content: SizedBox(
+          width: 480,
+          height: 260,
+          child: SingleChildScrollView(
+            child: SelectableText(
+              csv,
+              style: const TextStyle(fontSize: 12),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Close'),
+          ),
+          FilledButton.icon(
+            icon: const Icon(Icons.copy_outlined, size: 18),
+            label: const Text('Copy CSV'),
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: csv));
+              if (dialogContext.mounted) {
+                Navigator.of(dialogContext).pop(true);
+              }
+            },
+          ),
+        ],
+      ),
+    );
+    if (copied == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('CSV copied to clipboard.')),
+      );
+    }
   }
 }
 

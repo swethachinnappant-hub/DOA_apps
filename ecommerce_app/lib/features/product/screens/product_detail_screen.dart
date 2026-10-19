@@ -1,5 +1,6 @@
 import 'package:common_widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -10,6 +11,7 @@ import '../../../core/product.dart';
 import '../../../core/store/commerce_store.dart';
 import '../../config/providers/business_config_provider.dart';
 import '../../home/home_sections.dart';
+import '../../mini_cart/mini_cart_drawer.dart';
 import '../../../widgets/product_card.dart';
 
 /// Product detail page in the Tamannaah mould: gallery with a thumbnail rail,
@@ -28,7 +30,84 @@ class ProductDetailScreen extends StatefulWidget {
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   final _carouselKey = GlobalKey<ProductImageCarouselState>();
+  String? _selectedSize;
+  String? _selectedShade;
+  int? _selectedKarat;
   int _activeImage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    final store = context.read<CommerceStore>();
+    store.recordView(widget.productId);
+    final product = store.productById(widget.productId);
+    final baseKarat = Pricing.karatOf(product?.specs['Gold Purity'] ?? '');
+    if (baseKarat != null) _selectedKarat = baseKarat;
+  }
+
+  int? _baseKarat(Product product) =>
+      Pricing.karatOf(product.specs['Gold Purity'] ?? '');
+
+  double _factor(Product product) => Pricing.variantFactor(
+    shade: _selectedShade,
+    baseKarat: _baseKarat(product),
+    purity: _selectedKarat,
+  );
+
+  int _priceOf(Product product) =>
+      Pricing.scaled(product.price, _factor(product));
+
+  int _mrpOf(Product product) => Pricing.scaled(product.mrp, _factor(product));
+
+  PriceBreakup _breakupOf(Product product) =>
+      Pricing.computeBreakup(_priceOf(product), specs: product.specs);
+
+  /// The CTA names whatever is still missing, and only offers "Add to Bag"
+  /// once every required variant has been chosen.
+  String _ctaLabel(Product product) {
+    if (product.shades.isNotEmpty && _selectedShade == null) {
+      return 'Select Shade';
+    }
+    if (product.sizes.isNotEmpty && _selectedSize == null) {
+      return 'Select Size';
+    }
+    return 'Add to Bag';
+  }
+
+  /// The listing's SKU with the chosen variant appended, so the code on the
+  /// page follows the metal and purity the shopper selects.
+  String _variantSku(Product product) {
+    final parts = <String>[product.sku];
+    if (_selectedShade != null) {
+      final initials = _selectedShade!
+          .split(RegExp(r'\s+'))
+          .map((word) => word.isEmpty ? '' : word[0].toUpperCase())
+          .join();
+      if (initials.isNotEmpty) parts.add(initials);
+    }
+    final base = _baseKarat(product);
+    if (_selectedKarat != null && base != null && _selectedKarat != base) {
+      parts.add('${_selectedKarat}K');
+    }
+    return parts.join('-');
+  }
+
+  /// Demo listings carry one photo set, so the selected metal tone cycles the
+  /// available angles: picking a different tone lands on a different lead
+  /// image the way a photographed variant would.
+  List<String> _galleryImages(Product product) {
+    final images = product.images;
+    if (images.length < 2) return images;
+    final offset = product.shades.indexWhere(
+      (shade) => shade.name == _selectedShade,
+    );
+    if (offset <= 0) return images;
+    final cut = offset % images.length;
+    return [...images.sublist(cut), ...images.sublist(0, cut)];
+  }
+
+  List<int> _purityOptions(int baseKarat) =>
+      (Pricing.purityKarats.toSet()..add(baseKarat)).toList()..sort();
 
   @override
   Widget build(BuildContext context) {
@@ -39,6 +118,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     if (product == null) return _notFound(context, config);
 
     final liked = store.isWishlisted(product.id);
+    final ctaLabel = _ctaLabel(product);
 
     return Scaffold(
       appBar: AppBar(
@@ -50,22 +130,30 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               liked ? Icons.favorite : Icons.favorite_border,
               color: liked ? AppPalette.error : null,
             ),
-            onPressed: () => store.toggleWishlist(product.id),
+            onPressed: () {
+              HapticFeedback.selectionClick();
+              store.toggleWishlist(product.id);
+            },
           ),
         ],
       ),
-      bottomNavigationBar: _BuyBar(
-        primaryColor: config.primaryColor,
-        onPrimaryColor: config.onPrimaryColor,
-        enabled: product.inStock,
-        // Enquiries are a real seller channel, so only listings that belong
-        // to an account on this device get the button.
-        onEnquire: product.ownerId.isEmpty
-            ? null
-            : () => _enquire(config, product),
-        onAddToBag: () => _add(context, buyNow: false),
-        onBuyNow: () => _add(context, buyNow: true),
-      ),
+      // The wireframe keeps the sticky bar on compact layouts and moves the
+      // CTAs into the right-hand column on desktop.
+      bottomNavigationBar: Responsive.isDesktop(context)
+          ? null
+          : _BuyBar(
+              primaryColor: config.primaryColor,
+              onPrimaryColor: config.onPrimaryColor,
+              ctaLabel: ctaLabel,
+              enabled: product.inStock,
+              // Enquiries are a real seller channel, so only listings that
+              // belong to an account on this device get the button.
+              onEnquire: product.ownerId.isEmpty
+                  ? null
+                  : () => _enquire(config, product),
+              onAddToBag: () => _add(context, buyNow: false),
+              onBuyNow: () => _add(context, buyNow: true),
+            ),
       body: Responsive.isDesktop(context)
           ? _wideLayout(context, config, product)
           : _mobileLayout(context, config, product),
@@ -79,8 +167,19 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     final product = store.productById(widget.productId);
     if (product == null) return;
 
+    if (product.shades.isNotEmpty && _selectedShade == null) {
+      _requireVariant(context, 'Select a shade');
+      return;
+    }
+    if (product.sizes.isNotEmpty && _selectedSize == null) {
+      _requireVariant(context, 'Select a size');
+      return;
+    }
+
     final added = store.addToCart(
       product,
+      selectedSize: _selectedSize,
+      selectedShade: _selectedShade,
     );
 
     if (added <= 0) {
@@ -92,15 +191,43 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       return;
     }
 
-    context.push(buyNow ? '/checkout' : '/cart');
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(buyNow ? 'Checkout ready' : 'Added to bag'),
-          duration: const Duration(milliseconds: 1400),
-        ),
-      );
+    HapticFeedback.lightImpact();
+
+    if (buyNow) {
+      context.push('/checkout');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Checkout ready'),
+            duration: Duration(milliseconds: 1400),
+          ),
+        );
+      }
+      return;
     }
+
+    if (Responsive.isMobile(context)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Added to bag'),
+            duration: Duration(milliseconds: 1400),
+          ),
+        );
+      }
+    } else {
+      showMiniCart(context);
+    }
+  }
+
+  /// Surfaces which variant is still missing when the CTA is tapped early.
+  void _requireVariant(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(milliseconds: 1600),
+      ),
+    );
   }
 
   /// Opens the enquiry sheet and, on send, drops a notification straight into
@@ -178,10 +305,22 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   /// carries. Labels nothing can be resolved for are dropped rather than
   /// filled with a placeholder, and if nothing resolves the section falls
   /// back to the facts every product has.
+  ///
+  /// The jewellery weight and purity rows are skipped: they are shown by the
+  /// dedicated Gold / Diamond / Price Breakup accordions further down.
   static List<(String, String)> _detailRows(
     BusinessConfig config,
     Product product,
   ) {
+    const dedicatedToOtherAccordions = {
+      'Gold Purity',
+      'Gross Weight',
+      'Net Weight',
+      'Stone Weight',
+      'Making Charge',
+      'Wastage',
+    };
+
     final shades = product.shades.map((s) => s.name).join(', ');
     final sizes = product.sizes.map((s) => s.name).join(', ');
 
@@ -220,6 +359,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
     final rows = <(String, String)>[];
     for (final field in config.productFields) {
+      if (dedicatedToOtherAccordions.contains(field)) continue;
       final value = resolve(field);
       if (value != null && value.isNotEmpty) rows.add((field, value));
     }
@@ -274,6 +414,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     Product product, {
     double? height,
   }) {
+    final images = _galleryImages(product);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -282,7 +423,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           width: double.infinity,
           child: ProductImageCarousel(
             key: _carouselKey,
-            images: product.images,
+            images: images,
             placeholderIcon: product.icon,
             placeholderColor: config.accentColor,
             placeholderAccent: config.primaryColor,
@@ -291,8 +432,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             showCounter: product.hasMultipleImages,
             onImageTap: () => showImageViewer(
               context,
-              url: product.images.isEmpty ? '' : product.images[_activeImage],
-              images: product.images,
+              url: images.isEmpty ? '' : images[_activeImage],
+              images: images,
               initialIndex: _activeImage,
               placeholderIcon: product.icon,
             ),
@@ -301,8 +442,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             onPageChanged: (i) => setState(() => _activeImage = i),
             onZoomRequested: () => showImageViewer(
               context,
-              url: product.images.isEmpty ? '' : product.images[_activeImage],
-              images: product.images,
+              url: images.isEmpty ? '' : images[_activeImage],
+              images: images,
               initialIndex: _activeImage,
               placeholderIcon: product.icon,
             ),
@@ -311,7 +452,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         if (product.hasMultipleImages) ...[
           const SizedBox(height: AppSpacing.sm),
           ProductThumbnailRail(
-            images: product.images,
+            images: images,
             activeIndex: _activeImage,
             placeholderIcon: product.icon,
             placeholderAccent: config.primaryColor,
@@ -334,9 +475,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _gallery(context, config, product, height: 360),
+          _gallery(context, config, product, height: 420),
           _info(context, config, product),
-          _related(context, product),
+          _rails(context, product),
         ],
       ),
     );
@@ -375,12 +516,42 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _info(context, config, product),
-                _related(context, product),
+                _rails(context, product),
               ],
             ),
           ),
         ),
       ],
+    );
+  }
+
+  /// Today's board line under the price — the same gold/silver per-gram
+  /// numbers the shell's rate strip boards, so the shopper sees what the
+  /// price is linked to (SPEC-19 dynamic pricing). Only shows when the
+  /// owner has turned on the `showMetalRates` business rule.
+  Widget _rateUnderPrice(BuildContext context) {
+    final showRates = context
+        .watch<BusinessConfigProvider>()
+        .config
+        .rules
+        .showMetalRates;
+    if (!showRates) return const SizedBox.shrink();
+    final store = context.watch<CommerceStore>();
+    final parts = <String>[
+      if (store.goldRateInrPerGram != null)
+        'Gold ${Pricing.money(store.goldRateInrPerGram!)}/g',
+      if (store.silverRateInrPerGram != null)
+        'Silver ${Pricing.money(store.silverRateInrPerGram!)}/g',
+      if (store.platinumRateInrPerGram != null)
+        'Platinum ${Pricing.money(store.platinumRateInrPerGram!)}/g',
+    ];
+    if (parts.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.xs),
+      child: Text(
+        'Today\u2019s rate: ${parts.join(' · ')}',
+        style: AppTypography.caption.copyWith(color: AppPalette.textSecondary),
+      ),
     );
   }
 
@@ -421,40 +592,56 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           ),
           const SizedBox(height: AppSpacing.md),
           if (rules.showPrices)
-            // Wrap rather than Row so a long price plus the discount badge
-            // flows onto a second line instead of overflowing at 320px.
-            Wrap(
-              crossAxisAlignment: WrapCrossAlignment.end,
-              spacing: AppSpacing.sm,
-              runSpacing: AppSpacing.xs,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  Pricing.money(
-                    product.price,
-                    currencySymbol: config.currencySymbol,
-                  ),
-                  style: AppTypography.display.copyWith(fontSize: 26),
-                ),
-                if (product.hasDiscount) ...[
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 3),
-                    child: Text(
+                // Wrap rather than Row so a long price plus the discount
+                // badge flows onto a second line instead of overflowing at
+                // 320px.
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.end,
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.xs,
+                  children: [
+                    Text(
                       Pricing.money(
-                        product.mrp,
+                        _priceOf(product),
                         currencySymbol: config.currencySymbol,
                       ),
-                      style: AppTypography.priceStrike.copyWith(fontSize: 13),
+                      style: AppTypography.display.copyWith(fontSize: 26),
                     ),
+                    if (_mrpOf(product) > _priceOf(product)) ...[
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 3),
+                        child: Text(
+                          Pricing.money(
+                            _mrpOf(product),
+                            currencySymbol: config.currencySymbol,
+                          ),
+                          style: AppTypography.priceStrike.copyWith(
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 3),
+                        child: ProductBadge(
+                          label: '${product.discountPercent}% off',
+                          background: AppPalette.goldLight,
+                          foreground: AppPalette.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.xxs),
+                Text(
+                  '(Inclusive of all taxes)',
+                  style: AppTypography.caption.copyWith(
+                    color: AppPalette.textMuted,
                   ),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 3),
-                    child: ProductBadge(
-                      label: '${product.discountPercent}% off',
-                      background: AppPalette.goldLight,
-                      foreground: AppPalette.textPrimary,
-                    ),
-                  ),
-                ],
+                ),
+                _rateUnderPrice(context),
               ],
             )
           else
@@ -463,14 +650,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               style: AppTypography.title.copyWith(color: config.primaryColor),
             ),
           const SizedBox(height: AppSpacing.sm),
-          // Tamannaah's product code + ship status line.
+          // Tamannaah's product code + ship status line. The code carries the
+          // chosen variant so it changes with the selections.
           Wrap(
             crossAxisAlignment: WrapCrossAlignment.center,
             spacing: AppSpacing.sm,
             runSpacing: AppSpacing.xs,
             children: [
               Text(
-                'Product Code: ${product.sku}',
+                'Product Code: ${_variantSku(product)}',
                 style: AppTypography.caption.copyWith(
                   color: AppPalette.textSecondary,
                 ),
@@ -488,6 +676,72 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             Text(
               product.description.trim(),
               style: AppTypography.body.copyWith(fontSize: 14),
+            ),
+          ],
+          if (product.shades.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.lg),
+            _SectionLabel(
+              'Metal',
+              trailing: _selectedShade ?? 'Select a shade',
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: product.shades
+                  .map(
+                    (s) => _ShadeSwatch(
+                      shade: s,
+                      selected: _selectedShade == s.name,
+                      onTap: () {
+                        setState(() {
+                          _selectedShade = s.name;
+                          _activeImage = 0;
+                        });
+                        _carouselKey.currentState?.goTo(0);
+                      },
+                    ),
+                  )
+                  .toList(),
+            ),
+          ],
+          if (_baseKarat(product) != null) ...[
+            const SizedBox(height: AppSpacing.lg),
+            _SectionLabel(
+              'Purity',
+              trailing: '${_selectedKarat ?? _baseKarat(product)}K',
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: _purityOptions(_baseKarat(product)!)
+                  .map(
+                    (karat) => _SizeChip(
+                      label: '${karat}K',
+                      selected: _selectedKarat == karat,
+                      onTap: () => setState(() => _selectedKarat = karat),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ],
+          if (product.sizes.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.lg),
+            _SectionLabel('Size', trailing: _selectedSize ?? 'Select a size'),
+            const SizedBox(height: AppSpacing.sm),
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: product.sizes
+                  .map(
+                    (s) => _SizeChip(
+                      label: s.name,
+                      selected: _selectedSize == s.name,
+                      onTap: () => setState(() => _selectedSize = s.name),
+                    ),
+                  )
+                  .toList(),
             ),
           ],
           if (!product.inStock)
@@ -517,6 +771,60 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 ],
               ),
             ),
+          const SizedBox(height: AppSpacing.lg),
+          _PincodeCheck(
+            deliveryDays: product.deliveryDays,
+            accent: config.primaryColor,
+          ),
+          if (Responsive.isDesktop(context)) ...[
+            const SizedBox(height: AppSpacing.lg),
+            if (product.ownerId.isNotEmpty) ...[
+              SizedBox(
+                width: double.infinity,
+                child: AppButton(
+                  text: 'Enquire with the seller',
+                  type: AppButtonType.outlined,
+                  onPressed: () => _enquire(config, product),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+            ],
+            SizedBox(
+              width: double.infinity,
+              child: AppButton(
+                text: _ctaLabel(product),
+                color: config.primaryColor,
+                textColor: config.onPrimaryColor,
+                onPressed: product.inStock
+                    ? () => _add(context, buyNow: false)
+                    : null,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            SizedBox(
+              width: double.infinity,
+              child: AppButton(
+                text: 'Buy Now',
+                type: AppButtonType.outlined,
+                onPressed: product.inStock
+                    ? () => _add(context, buyNow: true)
+                    : null,
+              ),
+            ),
+            if (config.rules.coupons) ...[
+              const SizedBox(height: AppSpacing.lg),
+              Text(
+                'OFFERS',
+                style: AppTypography.eyebrow.copyWith(
+                  color: AppPalette.textSecondary,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              _offerChips(context, config),
+            ],
+            const SizedBox(height: AppSpacing.lg),
+            _trustRow(config),
+          ],
           const SizedBox(height: AppSpacing.xl),
           _SectionAccordion(
             title: 'Product Details',
@@ -548,10 +856,60 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               ],
             ),
           ),
+          if (rules.showPrices)
+            _SectionAccordion(
+              title: 'Price Breakup',
+              accent: config.primaryColor,
+              child: _breakupTable(config, product),
+            ),
+          if (_diamondRows(product).isNotEmpty)
+            _SectionAccordion(
+              title: 'Diamond Details',
+              accent: config.primaryColor,
+              child: _specTable(_diamondRows(product)),
+            ),
+          if (_specRows(product, _goldSpecFields).isNotEmpty)
+            _SectionAccordion(
+              title: 'Gold Details',
+              accent: config.primaryColor,
+              child: _specTable(_specRows(product, _goldSpecFields)),
+            ),
           _SectionAccordion(
-            title: 'Delivery',
+            title: 'Shipping & Returns',
             accent: config.primaryColor,
             child: _deliveryDetails(config, rules, product),
+          ),
+          _SectionAccordion(
+            title: 'Care',
+            accent: config.primaryColor,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final line in const [
+                  'Store it in the supplied box, away from moisture',
+                  'Remove it before perfume, lotion and swimming',
+                  'Wipe with a soft dry cloth after every wear',
+                ])
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(top: 5, right: 6),
+                          child: Icon(
+                            Icons.check,
+                            size: 13,
+                            color: config.primaryColor,
+                          ),
+                        ),
+                        Expanded(child: Text(line, style: AppTypography.bodyMuted)),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
           ),
           if (product.highlights.isNotEmpty)
             _SectionAccordion(
@@ -672,6 +1030,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           text: 'GST of ${Pricing.gstRate * 100}% is included at checkout',
           color: config.primaryColor,
         ),
+        const SizedBox(height: AppSpacing.sm),
+        _factRow(
+          icon: Icons.swap_horiz_outlined,
+          text: 'Returns and exchanges run through the Ease Returns policy',
+          color: config.primaryColor,
+        ),
         if (rules.showMOQ) ...[
           const SizedBox(height: AppSpacing.sm),
           _factRow(
@@ -680,6 +1044,179 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             color: config.primaryColor,
           ),
         ],
+      ],
+    );
+  }
+
+  static const List<String> _goldSpecFields = [
+    'Gold Purity',
+    'Gross Weight',
+    'Net Weight',
+    'Making Charge',
+    'Wastage',
+  ];
+
+  static List<(String, String)> _specRows(
+    Product product,
+    List<String> fields,
+  ) {
+    final rows = <(String, String)>[];
+    for (final field in fields) {
+      final value = (product.specs[field] ?? '').trim();
+      if (value.isNotEmpty) rows.add((field, value));
+    }
+    return rows;
+  }
+
+  /// Diamond facts only appear for pieces that actually carry stones, with
+  /// the carat figure derived from the declared stone weight.
+  static List<(String, String)> _diamondRows(Product product) {
+    final rows = _specRows(product, const ['Stone Weight']);
+    final stoneGrams = Pricing.gramsOf(product.specs['Stone Weight']);
+    if (rows.isEmpty || stoneGrams <= 0) return const [];
+    final carats = stoneGrams * 5;
+    return [...rows, ('Carat (approx)', '${carats.toStringAsFixed(2)} ct')];
+  }
+
+  Widget _specTable(List<(String, String)> rows) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (final row in rows)
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 120,
+                  child: Text(row.$1, style: AppTypography.caption),
+                ),
+                Expanded(
+                  child: Text(
+                    row.$2,
+                    style: AppTypography.body.copyWith(fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// The breakup table: every row derives from the price the selected
+  /// variant currently shows, and the rows add back up to it exactly.
+  Widget _breakupTable(BusinessConfig config, Product product) {
+    final breakup = _breakupOf(product);
+
+    Widget row(String label, int value, {bool emphasised = false}) {
+      final labelStyle = emphasised
+          ? AppTypography.sectionTitle
+          : AppTypography.body.copyWith(fontSize: 13.5);
+      final valueStyle = emphasised
+          ? AppTypography.subtitle
+          : AppTypography.body.copyWith(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w600,
+            );
+      return Padding(
+        padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+        child: Row(
+          children: [
+            Expanded(child: Text(label, style: labelStyle)),
+            Text(
+              Pricing.money(value, currencySymbol: config.currencySymbol),
+              style: valueStyle,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        row('Gold value', breakup.gold),
+        row('Diamond value', breakup.diamond),
+        row('Making charges', breakup.making),
+        row('GST (${(Pricing.gstRate * 100).round()}%)', breakup.gst),
+        const Divider(height: AppSpacing.lg),
+        row('Total', breakup.total, emphasised: true),
+        const SizedBox(height: AppSpacing.xxs),
+        Text(
+          'Calculated for the selected variant.',
+          style: AppTypography.caption.copyWith(color: AppPalette.textMuted),
+        ),
+      ],
+    );
+  }
+
+  /// Offer chips for every live coupon; tapping one opens the mini cart
+  /// where the code can actually be applied.
+  Widget _offerChips(BuildContext context, BusinessConfig config) {
+    return Wrap(
+      spacing: AppSpacing.sm,
+      runSpacing: AppSpacing.sm,
+      children: [
+        for (final coupon in context.watch<CommerceStore>().coupons)
+          if (coupon.isLive)
+            InkWell(
+              onTap: () => showMiniCart(context),
+              borderRadius: AppRadius.allPill,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.xs + 2,
+                ),
+                decoration: BoxDecoration(
+                  color: AppPalette.surfaceMuted,
+                  borderRadius: AppRadius.allPill,
+                  border: Border.all(color: AppPalette.divider),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.local_offer_outlined,
+                      size: 13,
+                      color: AppPalette.copperDark,
+                    ),
+                    const SizedBox(width: AppSpacing.xs),
+                    Text(
+                      'Flat ${Pricing.money(coupon.flatOffInr, currencySymbol: config.currencySymbol)} off above ${Pricing.money(coupon.minSubtotal, currencySymbol: config.currencySymbol)}',
+                      style: AppTypography.caption.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+      ],
+    );
+  }
+
+  /// The three promises the top strip makes, repeated beside the CTAs.
+  Widget _trustRow(BusinessConfig config) {
+    Widget item(IconData icon, String label) => Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 15, color: config.primaryColor),
+        const SizedBox(width: AppSpacing.xs),
+        Text(label, style: AppTypography.caption),
+      ],
+    );
+
+    return Wrap(
+      spacing: AppSpacing.lg,
+      runSpacing: AppSpacing.sm,
+      children: [
+        item(Icons.local_shipping_outlined, 'Free Shipping'),
+        item(Icons.swap_horiz, 'Ease Returns'),
+        item(Icons.history, 'Lifetime Buyback'),
       ],
     );
   }
@@ -735,9 +1272,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
-  /// Related rail: same category first, then the rest of the shop so a
-  /// category with a single piece still shows suggestions.
-  Widget _related(BuildContext context, Product product) {
+  /// The three rails under the detail page: related pieces first, then what
+  /// the shopper looked at before, then other categories that complete the
+  /// outfit. Rails with nothing to show are dropped.
+  Widget _rails(BuildContext context, Product product) {
     final store = context.watch<CommerceStore>();
     final all = store.shopProducts;
     final sameCategory = all
@@ -747,21 +1285,36 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     final related = sameCategory.isNotEmpty
         ? sameCategory
         : all.where((p) => p.id != product.id).take(8).toList();
-    if (related.isEmpty) return const SizedBox.shrink();
+    final viewed = store.recentlyViewed
+        .where((p) => p.id != product.id)
+        .take(8)
+        .toList();
+    final complete = all
+        .where((p) => p.id != product.id && p.category != product.category)
+        .take(8)
+        .toList();
 
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (related.isNotEmpty) _rail('You may also like', related),
+        if (viewed.isNotEmpty) _rail('Recently viewed', viewed),
+        if (complete.isNotEmpty) _rail('Complete the look', complete),
+      ],
+    );
+  }
+
+  Widget _rail(String title, List<Product> products) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: AppSpacing.xl),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenH),
-          child: SectionHeader(
-            title: 'You may also like',
-            padding: EdgeInsets.zero,
-          ),
+          child: SectionHeader(title: title, padding: EdgeInsets.zero),
         ),
         const SizedBox(height: AppSpacing.md),
-        ProductRail(products: related),
+        ProductRail(products: products),
       ],
     );
   }
@@ -826,6 +1379,7 @@ class _SectionAccordionState extends State<_SectionAccordion> {
 class _BuyBar extends StatelessWidget {
   final Color primaryColor;
   final Color onPrimaryColor;
+  final String ctaLabel;
   final bool enabled;
   final VoidCallback? onEnquire;
   final VoidCallback onAddToBag;
@@ -834,6 +1388,7 @@ class _BuyBar extends StatelessWidget {
   const _BuyBar({
     required this.primaryColor,
     required this.onPrimaryColor,
+    required this.ctaLabel,
     required this.enabled,
     this.onEnquire,
     required this.onAddToBag,
@@ -869,8 +1424,9 @@ class _BuyBar extends StatelessWidget {
                 children: [
                   Expanded(
                     child: AppButton(
-                      text: 'Add to Cart',
-                      type: AppButtonType.outlined,
+                      text: ctaLabel,
+                      color: primaryColor,
+                      textColor: onPrimaryColor,
                       onPressed: enabled ? onAddToBag : null,
                     ),
                   ),
@@ -878,8 +1434,7 @@ class _BuyBar extends StatelessWidget {
                   Expanded(
                     child: AppButton(
                       text: 'Buy Now',
-                      color: primaryColor,
-                      textColor: onPrimaryColor,
+                      type: AppButtonType.outlined,
                       onPressed: enabled ? onBuyNow : null,
                     ),
                   ),
@@ -1027,6 +1582,126 @@ class _ContactRow extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
         ),
+      ],
+    );
+  }
+}
+
+/// Pincode delivery check: a six-digit answer gives the date the piece
+/// arrives; anything else is called out inline.
+class _PincodeCheck extends StatefulWidget {
+  final int deliveryDays;
+  final Color accent;
+
+  const _PincodeCheck({required this.deliveryDays, required this.accent});
+
+  @override
+  State<_PincodeCheck> createState() => _PincodeCheckState();
+}
+
+class _PincodeCheckState extends State<_PincodeCheck> {
+  static const _weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  static const _months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+
+  final _controller = TextEditingController();
+  String? _error;
+  String? _deliveryBy;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _check() {
+    final value = _controller.text.trim();
+    if (!RegExp(r'^\d{6}$').hasMatch(value)) {
+      setState(() {
+        _error = 'Enter a 6-digit pincode';
+        _deliveryBy = null;
+      });
+      return;
+    }
+    final eta = DateTime.now().add(Duration(days: widget.deliveryDays));
+    setState(() {
+      _error = null;
+      _deliveryBy =
+          'Delivery by ${_weekdays[eta.weekday - 1]}, ${eta.day} ${_months[eta.month - 1]}';
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('Check delivery', style: AppTypography.subtitle),
+        const SizedBox(height: AppSpacing.sm),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _controller,
+                keyboardType: TextInputType.number,
+                onSubmitted: (_) => _check(),
+                decoration: InputDecoration(
+                  counterText: '',
+                  hintText: 'Enter 6-digit pincode',
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            AppButton(text: 'Check', onPressed: _check),
+          ],
+        ),
+        if (_error != null) ...[
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            _error!,
+            style: AppTypography.caption.copyWith(color: AppPalette.error),
+          ),
+        ],
+        if (_deliveryBy != null) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Row(
+            children: [
+              Icon(
+                Icons.local_shipping_outlined,
+                size: 15,
+                color: widget.accent,
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              Expanded(
+                child: Text(
+                  _deliveryBy!,
+                  style: AppTypography.caption.copyWith(
+                    color: AppPalette.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }

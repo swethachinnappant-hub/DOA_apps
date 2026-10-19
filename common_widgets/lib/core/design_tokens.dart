@@ -16,13 +16,26 @@ class AppSpacing {
 
   static const double screenH = 16;
   static const double screenV = 16;
-  static const double sectionGap = 24;
+
+  /// Section rhythm / grid gutters run tight — the storefront is image-first,
+  /// so chrome spacing yields to photography (thin gutters, dense grids).
+  static const double sectionGap = 14;
   static const double headerToContent = 12;
-  static const double gridCross = 12;
-  static const double gridMain = 12;
+  static const double gridCross = 6;
+  static const double gridMain = 6;
   static const double cardPadding = 12;
   static const double listGap = 12;
   static const double chipGap = 8;
+
+  // Section rhythm per device class (architecture §2.3, tightened).
+  static const double sectionGapCompact = 18;
+  static const double sectionGapMedium = 22;
+  static const double sectionGapExpanded = 28;
+
+  // Grid gutters per device class (architecture §3.1, tightened to thin gaps).
+  static const double gutterCompact = 4;
+  static const double gutterMedium = 6;
+  static const double gutterExpanded = 10;
 
   static const EdgeInsets screen = EdgeInsets.symmetric(
     horizontal: 16,
@@ -60,7 +73,8 @@ class AppPalette {
   static const Color background = Color(0xFFFFFFFF);
   static const Color surface = Color(0xFFFFFFFF);
   static const Color surfaceMuted = Color(0xFFF7F7F7);
-  static const Color textPrimary = Color(0xFF171717);
+  /// Pure black — the storefront runs a strict black-on-white type scheme.
+  static const Color textPrimary = Color(0xFF000000);
   static const Color textSecondary = Color(0xFF666666);
   static const Color textHint = Color(0xFF888888);
   static const Color divider = Color(0xFFE8E8E8);
@@ -76,6 +90,42 @@ class AppPalette {
   static const Color goldLight = Color(0xFFE8DCC8);
   static const Color goldDark = Color(0xFF8B6914);
   static const Color onGold = Color(0xFF171717);
+
+  // --- Jewellery storefront brand (architecture §2.1) --------------------
+  /// Primary brand copper. Verified live site theme colour.
+  static const Color copper = Color(0xFFC87F44);
+
+  /// Hover / pressed copper. Also the smallest safe copper text on white.
+  static const Color copperDark = Color(0xFFA9672F);
+
+  /// Pressed state and body-size copper text (contrast-safe ≈ 4.5:1+).
+  static const Color copperPressed = Color(0xFF94592A);
+
+  /// Selected chips, coupon background, eligible-state fill.
+  static const Color copperTint = Color(0xFFF3E3D3);
+
+  /// Alternate warm section band.
+  static const Color warm = Color(0xFFFAF6F1);
+
+  /// Hairline dividers / card borders on warm surfaces.
+  static const Color hairline = Color(0xFFEAE3DB);
+
+  /// Architectural ink (headings/body) per spec.
+  static const Color ink = Color(0xFF1E1E1E);
+
+  /// Supporting text per spec.
+  static const Color textSupporting = Color(0xFF555555);
+
+  /// Captions / strikethrough MRP per spec.
+  static const Color textMuted = Color(0xFF8A8A8A);
+
+  /// Mobile drawer / dark chrome surface (inferred from white icon set).
+  static const Color drawerSurface = Color(0xFF1E1E1E);
+
+  // Metal swatch colours (replace with brand swatch images when available).
+  static const Color metalYellow = Color(0xFFE6C46A);
+  static const Color metalWhite = Color(0xFFE5E5E8);
+  static const Color metalRose = Color(0xFFE8B4A0);
 }
 
 class AppShadows {
@@ -95,6 +145,11 @@ class AppShadows {
     BoxShadow(color: Color(0x14000000), blurRadius: 20, offset: Offset(0, 8)),
   ];
 
+  /// Hover-lifted card / mega-menu panel elevation (architecture §2.3).
+  static const List<BoxShadow> lift = [
+    BoxShadow(color: Color(0x14000000), blurRadius: 24, offset: Offset(0, 6)),
+  ];
+
   static List<BoxShadow> primary(Color color) => [
     BoxShadow(
       color: color.withValues(alpha: 0.28),
@@ -108,7 +163,6 @@ class AppTypography {
   const AppTypography._();
 
   static const TextStyle display = TextStyle(
-    fontFamily: 'serif',
     fontSize: 32,
     fontWeight: FontWeight.w300,
     letterSpacing: -1.0,
@@ -117,7 +171,6 @@ class AppTypography {
   );
 
   static const TextStyle headline = TextStyle(
-    fontFamily: 'serif',
     fontSize: 24,
     fontWeight: FontWeight.w400,
     letterSpacing: -0.5,
@@ -221,6 +274,54 @@ class AppTypography {
     fontWeight: FontWeight.w600,
     letterSpacing: 0.5,
     height: 1.2,
+  );
+
+  // --- Jewellery storefront additions (architecture §2.2) ----------------
+
+  /// Top-nav label: UI sans, uppercase, tracked out. Uppercase the string
+  /// at the call site (`label.toUpperCase()`).
+  static const TextStyle navLabel = TextStyle(
+    fontSize: 13,
+    fontWeight: FontWeight.w500,
+    letterSpacing: 0.8,
+    height: 1.2,
+    color: AppPalette.textPrimary,
+  );
+
+  /// Primary button label: uppercase, tracked (§2.2).
+  static const TextStyle buttonUppercase = TextStyle(
+    fontSize: 13,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0.6,
+    height: 1.2,
+    color: Colors.white,
+  );
+
+  /// Hero / display headline for the expanded shell (§2.2: 48/56).
+  static const TextStyle heroLarge = TextStyle(
+    fontSize: 48,
+    fontWeight: FontWeight.w500,
+    letterSpacing: -1.2,
+    height: 1.1,
+    color: AppPalette.textPrimary,
+  );
+
+  /// Small copper eyebrow above section titles.
+  static const TextStyle eyebrow = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 1.8,
+    height: 1.3,
+    color: AppPalette.copperDark,
+  );
+
+  /// Footer column heading (§5.8).
+  static const TextStyle footerHeading = TextStyle(
+    fontSize: 13,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0.6,
+    height: 1.3,
+    color: AppPalette.textPrimary,
   );
 }
 

@@ -21,6 +21,16 @@ class BusinessRules {
   final bool showContactInfo;
   final bool allowPriceSharing;
   final bool showMOQ;
+  final bool coupons;
+
+  /// §10.6 / §11.3: gates the live virtual try-on, virtual store walkthrough
+  /// and co-shopping screens. Off (the default) renders the designed
+  /// "Coming soon" heroes instead.
+  final bool virtualTryOn;
+
+  /// Gates the gold/silver live-rate strip above the page. Off (the
+  /// default) hides it entirely; owners opt in via Business Rules.
+  final bool showMetalRates;
 
   const BusinessRules({
     this.allowScreenshots = true,
@@ -31,6 +41,9 @@ class BusinessRules {
     this.showContactInfo = true,
     this.allowPriceSharing = true,
     this.showMOQ = true,
+    this.coupons = true,
+    this.virtualTryOn = false,
+    this.showMetalRates = false,
   });
 
   BusinessRules copyWith({
@@ -42,6 +55,9 @@ class BusinessRules {
     bool? showContactInfo,
     bool? allowPriceSharing,
     bool? showMOQ,
+    bool? coupons,
+    bool? virtualTryOn,
+    bool? showMetalRates,
   }) {
     return BusinessRules(
       allowScreenshots: allowScreenshots ?? this.allowScreenshots,
@@ -52,6 +68,9 @@ class BusinessRules {
       showContactInfo: showContactInfo ?? this.showContactInfo,
       allowPriceSharing: allowPriceSharing ?? this.allowPriceSharing,
       showMOQ: showMOQ ?? this.showMOQ,
+      coupons: coupons ?? this.coupons,
+      virtualTryOn: virtualTryOn ?? this.virtualTryOn,
+      showMetalRates: showMetalRates ?? this.showMetalRates,
     );
   }
 
@@ -64,6 +83,9 @@ class BusinessRules {
     'showContactInfo': 'Show Seller Contact Info',
     'allowPriceSharing': 'Allow Price List Sharing',
     'showMOQ': 'Show Minimum Order Quantity',
+    'coupons': 'Coupons at Checkout',
+    'virtualTryOn': 'Virtual Try-On Suite',
+    'showMetalRates': 'Show Live Metal Rates',
   };
 
   static const Map<String, String> ruleDescriptions = {
@@ -77,6 +99,11 @@ class BusinessRules {
     'allowPriceSharing':
         'When disabled, price list cannot be shared externally',
     'showMOQ': 'Show minimum order quantity on product pages',
+    'coupons': 'When disabled, coupon codes are hidden in cart and mini-cart',
+    'virtualTryOn':
+        'When disabled, virtual try-on, store and co-shopping show "Coming soon"',
+    'showMetalRates':
+        'When on, the gold/silver per-gram rate strip shows above the page',
   };
 
   static const Map<String, IconData> ruleIcons = {
@@ -88,6 +115,9 @@ class BusinessRules {
     'showContactInfo': Icons.contact_phone,
     'allowPriceSharing': Icons.price_change,
     'showMOQ': Icons.shopping_bag,
+    'coupons': Icons.local_offer_outlined,
+    'virtualTryOn': Icons.view_in_ar_outlined,
+    'showMetalRates': Icons.price_change_outlined,
   };
 }
 
@@ -169,8 +199,17 @@ class BusinessConfig {
       secondaryColor != defaults.secondaryColor ||
       accentColor != defaults.accentColor;
 
-  Color get onPrimaryColor =>
-      primaryColor.computeLuminance() > 0.55 ? Colors.black : Colors.white;
+  /// The readable text colour for buttons/badges filled with [primaryColor].
+  ///
+  /// Picks whichever of black/white scores higher on the WCAG contrast
+  /// ratio, so mid-tone primaries (the storefront copper #C87F44, L≈0.28)
+  /// get dark text while deep colours keep white — both stay ≥ 4.5:1.
+  Color get onPrimaryColor {
+    final l = primaryColor.computeLuminance();
+    final whiteRatio = 1.05 / (l + 0.05);
+    final blackRatio = (l + 0.05) / 0.05;
+    return blackRatio >= whiteRatio ? Colors.black : Colors.white;
+  }
 
   static const Map<BusinessType, BusinessConfig> configs = {
     BusinessType.jewellery: BusinessConfig(
@@ -178,9 +217,11 @@ class BusinessConfig {
       name: 'Jewellery B2B',
       tagline: 'Private Wholesale Jewellery Platform',
       icon: Icons.diamond,
-      primaryColor: Color(0xFF171717),
-      secondaryColor: Color(0xFF777777),
-      accentColor: Color(0xFFF3F3F3),
+      // Copper brand system from the storefront architecture (§2.1):
+      // primary #C87F44, dark #A9672F, tint #F3E3D3.
+      primaryColor: Color(0xFFC87F44),
+      secondaryColor: Color(0xFFA9672F),
+      accentColor: Color(0xFFF3E3D3),
       categories: [
         'Gold Chains',
         'Gold Rings',
@@ -215,7 +256,9 @@ class BusinessConfig {
       ],
       searchHint: 'Search jewellery, SKU, category...',
       rules: BusinessRules(
-        allowScreenshots: false,
+        // B2C storefront: shoppers may capture screenshots (the rules screen
+        // can still switch protection on per store).
+        allowScreenshots: true,
         allowDownload: false,
         allowShare: false,
         showWatermark: true,
@@ -513,7 +556,7 @@ class BusinessConfig {
       ],
       searchHint: 'Search cosmetics, SKU, brand...',
       rules: BusinessRules(
-        allowScreenshots: false,
+        allowScreenshots: true,
         allowDownload: false,
         allowShare: true,
         showWatermark: true,
@@ -649,6 +692,12 @@ class BusinessConfig {
       primary: Color(0xFF9A3412),
       secondary: Color(0xFFF97316),
       accent: Color(0xFFFDEEE2),
+    ),
+    ColorPaletteOption(
+      name: 'Warm Copper',
+      primary: Color(0xFFC87F44),
+      secondary: Color(0xFFA9672F),
+      accent: Color(0xFFF3E3D3),
     ),
     ColorPaletteOption(
       name: 'Rose Quartz',

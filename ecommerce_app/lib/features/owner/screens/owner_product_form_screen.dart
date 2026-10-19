@@ -8,6 +8,7 @@ import 'package:common_widgets/common_widgets.dart';
 import '../../../core/demo_catalog.dart';
 import '../../../core/product.dart';
 import '../../../core/store/commerce_store.dart';
+import '../../../core/taxonomy.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../config/providers/business_config_provider.dart';
 
@@ -45,6 +46,20 @@ class _OwnerProductFormScreenState extends State<OwnerProductFormScreen> {
   final Set<String> _shades = {};
   String? _category;
   String? _badge;
+
+  // SPEC-18 merchandising + SEO fields. Empty string / empty set means the
+  // seller never chose one, mirroring the model defaults.
+  String? _family;
+  String? _style;
+  String? _metal;
+  String? _purity;
+  String? _audience;
+  final Set<String> _occasions = {};
+  final Set<String> _collectionIds = {};
+  final _slug = TextEditingController();
+  final _seoTitle = TextEditingController();
+  final _priceUsd = TextEditingController();
+
   bool _saving = false;
   String? _formError;
 
@@ -71,6 +86,16 @@ class _OwnerProductFormScreenState extends State<OwnerProductFormScreen> {
         _shades.addAll(found.shades.map((v) => v.name));
         _category = found.category;
         _badge = found.badges.isEmpty ? null : found.badges.first;
+        _family = found.family.isEmpty ? null : found.family;
+        _style = found.style.isEmpty ? null : found.style;
+        _metal = found.metal.isEmpty ? null : found.metal;
+        _purity = found.purity.isEmpty ? null : found.purity;
+        _audience = found.audience.isEmpty ? null : found.audience;
+        _occasions.addAll(found.occasions);
+        _collectionIds.addAll(found.collectionIds);
+        _slug.text = found.slug;
+        _seoTitle.text = found.seoTitle;
+        if (found.priceUsd > 0) _priceUsd.text = '${found.priceUsd}';
         for (final entry in _specFields.entries) {
           entry.value.text = found.specs[entry.key] ?? '';
         }
@@ -96,6 +121,9 @@ class _OwnerProductFormScreenState extends State<OwnerProductFormScreen> {
     _stock.dispose();
     _highlights.dispose();
     _description.dispose();
+    _slug.dispose();
+    _seoTitle.dispose();
+    _priceUsd.dispose();
     for (final controller in _specFields.values) {
       controller.dispose();
     }
@@ -130,6 +158,17 @@ class _OwnerProductFormScreenState extends State<OwnerProductFormScreen> {
 
   void _removeImage(int index) {
     setState(() => _images.removeAt(index));
+  }
+
+  /// Lazily add a diamond paperwork row (SPEC-18): the chip only offers keys
+  /// that are not on the form yet, so seeding is safe.
+  void _addDiamondSpec(String key) {
+    if (_specFields.containsKey(key)) return;
+    setState(() {
+      _specFields[key] = TextEditingController(
+        text: _existing?.specs[key] ?? '',
+      );
+    });
   }
 
   Future<void> _save() async {
@@ -191,6 +230,16 @@ class _OwnerProductFormScreenState extends State<OwnerProductFormScreen> {
           .toList(growable: false),
       badges: _badge == null ? const [] : [_badge!],
       description: _description.text.trim(),
+      slug: _slug.text.trim(),
+      seoTitle: _seoTitle.text.trim(),
+      priceUsd: int.tryParse(_priceUsd.text.trim()) ?? 0,
+      family: _family ?? '',
+      style: _style ?? '',
+      metal: _metal ?? '',
+      purity: _purity ?? '',
+      audience: _audience ?? '',
+      occasions: List.unmodifiable(_occasions),
+      collectionIds: List.unmodifiable(_collectionIds),
       specs: {
         for (final entry in _specFields.entries)
           if (entry.value.text.trim().isNotEmpty)
@@ -382,6 +431,118 @@ class _OwnerProductFormScreenState extends State<OwnerProductFormScreen> {
                   ),
                   SizedBox(height: spacing),
 
+                  _SectionLabel(
+                    title: 'Merchandising',
+                    hint: 'Powers filters and collections',
+                  ),
+                  SizedBox(height: spacing),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _Dropdown(
+                          label: 'Family',
+                          value: _family,
+                          items: Taxonomy.families,
+                          hint: 'Not set',
+                          allowClear: true,
+                          onChanged: (v) => setState(() => _family = v),
+                        ),
+                      ),
+                      SizedBox(width: spacing),
+                      Expanded(
+                        child: _Dropdown(
+                          label: 'Style',
+                          value: _style,
+                          items: Taxonomy.styles,
+                          hint: 'Not set',
+                          allowClear: true,
+                          onChanged: (v) => setState(() => _style = v),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: spacing),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _Dropdown(
+                          label: 'Metal',
+                          value: _metal,
+                          items: Taxonomy.metals,
+                          hint: 'Not set',
+                          allowClear: true,
+                          onChanged: (v) => setState(() => _metal = v),
+                        ),
+                      ),
+                      SizedBox(width: spacing),
+                      Expanded(
+                        child: _Dropdown(
+                          label: 'Purity',
+                          value: _purity,
+                          items: Taxonomy.purities,
+                          hint: 'Not set',
+                          allowClear: true,
+                          onChanged: (v) => setState(() => _purity = v),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: spacing),
+                  _Dropdown(
+                    label: 'Audience',
+                    value: _audience,
+                    items: Taxonomy.audiences,
+                    hint: 'Not set',
+                    allowClear: true,
+                    onChanged: (v) => setState(() => _audience = v),
+                  ),
+                  SizedBox(height: spacing),
+                  _ChipInput(
+                    label: 'Occasions',
+                    values: _occasions,
+                    suggestions: Taxonomy.occasions,
+                    onChanged: () => setState(() {}),
+                  ),
+                  SizedBox(height: spacing),
+                  _CollectionsPicker(
+                    collectionIds: _collectionIds,
+                    onChanged: () => setState(() {}),
+                  ),
+                  SizedBox(height: spacing),
+
+                  _SectionLabel(
+                    title: 'Search & SEO',
+                    hint: 'Optional',
+                  ),
+                  SizedBox(height: spacing),
+                  AppTextField(
+                    key: const ValueKey('product-slug'),
+                    controller: _slug,
+                    label: 'URL slug',
+                    hint: 'silk-embroidered-kurta (blank = from name)',
+                    textCapitalization: TextCapitalization.none,
+                  ),
+                  SizedBox(height: spacing),
+                  AppTextField(
+                    key: const ValueKey('product-seo-title'),
+                    controller: _seoTitle,
+                    label: 'SEO title',
+                    hint: 'Browser tab title (blank = product name)',
+                    textCapitalization: TextCapitalization.sentences,
+                  ),
+                  SizedBox(height: spacing),
+                  AppTextField(
+                    key: const ValueKey('product-price-usd'),
+                    controller: _priceUsd,
+                    label: 'Price in USD (optional)',
+                    prefixText: '\$ ',
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  ),
+                  SizedBox(height: spacing),
+
                   _SectionLabel(title: 'Details', hint: 'One per line'),
                   SizedBox(height: spacing),
                   AppTextField(
@@ -405,6 +566,28 @@ class _OwnerProductFormScreenState extends State<OwnerProductFormScreen> {
                     allowClear: true,
                     onChanged: (v) => setState(() => _badge = v),
                   ),
+                  if (Taxonomy.diamondSpecs
+                      .any((key) => !_specFields.containsKey(key))) ...[
+                    SizedBox(height: spacing),
+                    _SectionLabel(
+                      title: 'Diamond specs',
+                      hint: 'One tap adds a row below',
+                    ),
+                    SizedBox(height: spacing),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final key in Taxonomy.diamondSpecs)
+                          if (!_specFields.containsKey(key))
+                            ActionChip(
+                              avatar: const Icon(Icons.add, size: 16),
+                              label: Text(key),
+                              onPressed: () => _addDiamondSpec(key),
+                            ),
+                      ],
+                    ),
+                  ],
                   if (_specFields.isNotEmpty) ...[
                     SizedBox(height: spacing),
                     _SectionLabel(
@@ -790,6 +973,59 @@ class _ChipInput extends StatelessWidget {
             style: TextStyle(fontSize: 11.5, color: Colors.grey[500]),
           ),
         ],
+      ],
+    );
+  }
+}
+
+/// Multi-select of the seller's collections (SPEC-18). The product stores
+/// only IDs, so toggling is just set membership and survives renames.
+class _CollectionsPicker extends StatelessWidget {
+  const _CollectionsPicker({
+    required this.collectionIds,
+    required this.onChanged,
+  });
+
+  final Set<String> collectionIds;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final collections = context.watch<CommerceStore>().collections;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Collections',
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 8),
+        if (collections.isEmpty)
+          Text(
+            'No collections yet — create them in the seller studio.',
+            style: TextStyle(fontSize: 11.5, color: Colors.grey[500]),
+          )
+        else
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final collection in collections)
+                FilterChip(
+                  label: Text(collection.name),
+                  selected: collectionIds.contains(collection.id),
+                  onSelected: (selected) {
+                    if (selected) {
+                      collectionIds.add(collection.id);
+                    } else {
+                      collectionIds.remove(collection.id);
+                    }
+                    onChanged();
+                  },
+                ),
+            ],
+          ),
       ],
     );
   }

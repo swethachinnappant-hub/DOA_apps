@@ -7,15 +7,50 @@ import 'package:common_widgets/common_widgets.dart';
 import '../../../core/models/user.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../auth/widgets/sign_out_action.dart';
+import '../../config/providers/business_config_provider.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key, this.showAppBar = false});
 
   final bool showAppBar;
 
+  void _showMyProfile(BuildContext context, AppUser? user) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('My Profile'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(user?.displayName ?? 'Guest account',
+                style: AppTypography.subtitle),
+            const SizedBox(height: AppSpacing.sm),
+            if (user?.phone.isNotEmpty ?? false)
+              Text(user!.phone, style: AppTypography.bodyMuted),
+            if (user?.email.isNotEmpty ?? false)
+              Text(user!.email, style: AppTypography.bodyMuted),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              user?.role.label ?? 'Guest',
+              style: AppTypography.caption,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
+    final rules = context.watch<BusinessConfigProvider>().config.rules;
     final isOwner = user?.role == UserRole.owner;
     final details = [
       if (user?.phone.isNotEmpty ?? false) user!.phone,
@@ -88,24 +123,61 @@ class ProfileScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 30),
-              Text('ACCOUNT & PREFERENCES', style: AppTypography.overline),
+              Text('ACCOUNT', style: AppTypography.overline),
               const SizedBox(height: 10),
+              _AccountAction(
+                icon: Icons.person_outline_rounded,
+                title: 'My Profile',
+                subtitle: 'Name, phone and email',
+                onTap: () => _showMyProfile(context, user),
+              ),
               _AccountAction(
                 icon: Icons.notifications_none_rounded,
                 title: 'Notifications',
                 subtitle: 'Order updates and shop messages',
                 onTap: () => context.push('/notifications'),
               ),
+              _AccountAction(
+                icon: Icons.help_outline_rounded,
+                title: 'Help',
+                subtitle: 'Frequently asked questions',
+                onTap: () => context.push('/faq'),
+              ),
               if (!isOwner) ...[
                 const SizedBox(height: 30),
                 Text('YOUR SHOPPING', style: AppTypography.overline),
                 const SizedBox(height: 10),
                 _AccountAction(
+                  icon: Icons.receipt_long_outlined,
+                  title: 'My Orders',
+                  subtitle: 'Track, download or reorder',
+                  onTap: () => context.push('/orders'),
+                ),
+                _AccountAction(
+                  icon: Icons.location_on_outlined,
+                  title: 'Addresses',
+                  subtitle: 'Where we deliver',
+                  onTap: () => context.push('/addresses'),
+                ),
+                _AccountAction(
                   icon: Icons.favorite_border_rounded,
-                  title: 'Saved pieces',
-                  subtitle: 'Your jewellery wishlist',
+                  title: 'Wishlist',
+                  subtitle: 'Your saved pieces',
                   onTap: () => context.go('/wishlist'),
                 ),
+                _AccountAction(
+                  icon: Icons.stars_outlined,
+                  title: 'Loyalty Points',
+                  subtitle: 'Club Loyal balance and ledger',
+                  onTap: () => context.push('/loyalty'),
+                ),
+                if (rules.coupons)
+                  _AccountAction(
+                    icon: Icons.local_offer_outlined,
+                    title: 'Coupons',
+                    subtitle: 'Codes ready to apply',
+                    onTap: () => context.push('/coupons'),
+                  ),
               ],
               const SizedBox(height: 30),
               Divider(color: scheme.outlineVariant),

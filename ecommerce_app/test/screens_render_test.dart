@@ -88,9 +88,11 @@ void main() {
           await render('${screen.key} @ ${viewport.key}', screen.value);
         }
 
-        // The home tab must show the auto/manual category carousel.
+        // The home tab must show the auto/manual category carousel once the
+        // §6.3 skeleton (320 ms) has handed over to real content.
         await tester.pumpWidget(wrap(const MainScreen()));
         await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
         if (find.byType(CategoryCarousel).evaluate().isEmpty) {
           failures.add('no CategoryCarousel @ ${viewport.key}');
         }

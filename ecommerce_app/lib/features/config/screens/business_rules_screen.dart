@@ -22,6 +22,9 @@ class BusinessRulesScreen extends StatelessWidget {
       'showContactInfo',
       'allowPriceSharing',
       'showMOQ',
+      'coupons',
+      'virtualTryOn',
+      'showMetalRates',
     ];
 
     return Scaffold(
@@ -91,7 +94,14 @@ class BusinessRulesScreen extends StatelessWidget {
             // Sharing Rules
             SectionHeader(title: 'Sharing & Ordering', padding: EdgeInsets.only(top: 16)),
             SizedBox(height: Responsive.spacing(context, mobile: 8)),
-            ..._buildRuleGroup(context, configProvider, config, ruleKeys.sublist(6, 8)),
+            ..._buildRuleGroup(context, configProvider, config, ruleKeys.sublist(6, 9)),
+
+            SizedBox(height: Responsive.spacing(context, mobile: 20)),
+
+            // Experience Rules
+            SectionHeader(title: 'Experience', padding: EdgeInsets.only(top: 16)),
+            SizedBox(height: Responsive.spacing(context, mobile: 8)),
+            ..._buildRuleGroup(context, configProvider, config, ruleKeys.sublist(9, 11)),
 
             SizedBox(height: Responsive.spacing(context, mobile: 24)),
 
@@ -170,6 +180,9 @@ class BusinessRulesScreen extends StatelessWidget {
       case 'showContactInfo': return rules.showContactInfo;
       case 'allowPriceSharing': return rules.allowPriceSharing;
       case 'showMOQ': return rules.showMOQ;
+      case 'coupons': return rules.coupons;
+      case 'virtualTryOn': return rules.virtualTryOn;
+      case 'showMetalRates': return rules.showMetalRates;
       default: return false;
     }
   }

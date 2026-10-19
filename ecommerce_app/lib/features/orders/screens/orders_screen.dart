@@ -125,6 +125,50 @@ class _OrderCard extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              for (var i = 0; i < order.items.length && i < 4; i++) ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: SizedBox(
+                    width: 40,
+                    height: 50,
+                    child: order.items[i].images.isEmpty
+                        ? ColoredBox(
+                            color: brand.withValues(alpha: 0.08),
+                            child: Icon(
+                              Icons.image_outlined,
+                              size: 17,
+                              color: brand.withValues(alpha: 0.45),
+                            ),
+                          )
+                        : ProductImageTile(
+                            url: order.items[i].images.first,
+                            fit: BoxFit.contain,
+                            placeholderIcon: Icons.image_outlined,
+                            placeholderColor: brand,
+                            placeholderAccent: brand,
+                          ),
+                  ),
+                ),
+                if (i < 3 && i != order.items.length - 1)
+                  const SizedBox(width: 6),
+              ],
+              if (order.items.length > 4)
+                Padding(
+                  padding: const EdgeInsets.only(left: 6),
+                  child: Text(
+                    '+${order.items.length - 4}',
+                    style: TextStyle(
+                      fontSize: Responsive.fontSize(context, mobile: 12),
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ],
       ),
     );

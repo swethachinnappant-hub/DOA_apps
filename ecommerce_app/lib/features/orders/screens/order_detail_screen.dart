@@ -102,6 +102,47 @@ class OrderDetailScreen extends StatelessWidget {
           ),
           SizedBox(height: Responsive.spacing(context, mobile: 14)),
           _Card(
+            title: 'Actions',
+            child: Column(
+              children: [
+                _ActionButton(
+                  icon: Icons.receipt_long_outlined,
+                  label: 'Download invoice',
+                  onTap: () => _downloadInvoice(context, order),
+                ),
+                const SizedBox(height: 8),
+                _ActionButton(
+                  icon: Icons.shopping_bag_outlined,
+                  label: 'Reorder',
+                  onTap: () => _reorder(context, store, order),
+                ),
+                if (order.status == OrderStatus.delivered) ...[
+                  const SizedBox(height: 8),
+                  _ActionButton(
+                    icon: Icons.swap_horiz_rounded,
+                    label: 'Return / Exchange',
+                    onTap: () => _returnExchange(context),
+                  ),
+                ],
+                const SizedBox(height: 8),
+                _ActionButton(
+                  icon: Icons.support_agent_outlined,
+                  label: 'Contact customer delight',
+                  onTap: () => ScaffoldMessenger.of(context)
+                    ..hideCurrentSnackBar()
+                    ..showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Call 1800 120 0411 or WhatsApp +91 98948 40711',
+                        ),
+                      ),
+                    ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: Responsive.spacing(context, mobile: 14)),
+          _Card(
             title: 'Payment',
             child: Column(
               children: [
@@ -164,6 +205,114 @@ class OrderDetailScreen extends StatelessWidget {
             onPressed: () => context.go('/orders'),
             icon: const Icon(Icons.arrow_back, size: 18),
             label: const Text('Back to orders'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _downloadInvoice(BuildContext context, Order order) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Download invoice'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Invoice for ${order.id} is ready.',
+              style: const TextStyle(fontSize: 14, height: 1.5),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'A copy is also emailed to the address on the order.',
+              style: TextStyle(fontSize: 12.5, color: Colors.grey[600]),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Close'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              ScaffoldMessenger.of(context)
+                ..hideCurrentSnackBar()
+                ..showSnackBar(
+                  SnackBar(content: Text('Invoice for ${order.id} saved')),
+                );
+            },
+            child: const Text('Download'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _reorder(BuildContext context, CommerceStore store, Order order) {
+    var added = 0;
+    for (final item in order.items) {
+      final product = store.productById(item.productId);
+      if (product == null) continue;
+      store.addToCart(
+        product,
+        quantity: item.quantity,
+        selectedSize: item.selectedSize,
+        selectedShade: item.selectedShade,
+      );
+      added += item.quantity;
+    }
+    final messenger = ScaffoldMessenger.of(context);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            added == 0
+                ? 'Those designs are no longer available'
+                : '$added item${added == 1 ? '' : 's'} added to your bag',
+          ),
+          action: SnackBarAction(
+            label: 'View bag',
+            onPressed: () => context.go('/cart'),
+          ),
+        ),
+      );
+  }
+
+  void _returnExchange(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Return or exchange'),
+        content: const Text(
+          'Our team will arrange a reverse pickup within two working days. '
+          'Exchanges are free once per order; refunds reach you within seven '
+          'working days of the pickup.',
+          style: TextStyle(fontSize: 14, height: 1.6),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              ScaffoldMessenger.of(context)
+                ..hideCurrentSnackBar()
+                ..showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Request raised — we will call you to confirm the pickup',
+                    ),
+                  ),
+                );
+            },
+            child: const Text('Raise request'),
           ),
         ],
       ),
@@ -304,6 +453,37 @@ class _StatusBanner extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  const _ActionButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: onTap,
+        icon: Icon(icon, size: 18),
+        label: Text(label),
+        style: OutlinedButton.styleFrom(
+          alignment: Alignment.centerLeft,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+          side: BorderSide(color: Colors.grey[300]!),
+          foregroundColor: Theme.of(context).colorScheme.onSurface,
+          textStyle: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600),
+        ),
       ),
     );
   }

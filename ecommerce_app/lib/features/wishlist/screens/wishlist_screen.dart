@@ -23,7 +23,11 @@ class WishlistScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Wishlist'),
+        title: Text(
+          products.isEmpty
+              ? 'Wishlist'
+              : 'My Wishlist (${products.length})',
+        ),
         actions: [
           if (products.isNotEmpty)
             IconButton(
@@ -71,6 +75,12 @@ class WishlistScreen extends StatelessWidget {
               color: Colors.grey[400],
             ),
           ),
+          const SizedBox(height: 20),
+          AppButton(
+            text: 'Continue shopping',
+            type: AppButtonType.outlined,
+            onPressed: () => context.go('/app'),
+          ),
         ],
       ),
     );
@@ -88,89 +98,95 @@ class WishlistScreen extends StatelessWidget {
 
     return AppCard(
       onTap: () => context.push('/product/${product.id}'),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: SizedBox(
-              width: 60,
-              height: 60,
-              child: product.images.isEmpty
-                  ? ColoredBox(
-                      color: accent,
-                      child: Icon(
-                        config.icon,
-                        size: 28,
-                        color: primary.withValues(alpha: 0.5),
-                      ),
-                    )
-                  : ProductImageTile(
-                      url: product.images.first,
-                      fit: BoxFit.contain,
-                      placeholderIcon: config.icon,
-                      placeholderColor: accent,
-                      placeholderAccent: primary,
-                    ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  product.name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: Responsive.fontSize(context, mobile: 14),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${product.brand.toUpperCase()} · ${product.sku}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: Responsive.fontSize(context, mobile: 11),
-                    color: Colors.grey[500],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisSize: MainAxisSize.min,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              showPrice
-                  ? Text(
-                      Pricing.money(
-                        product.price,
-                        currencySymbol: config.currencySymbol,
-                      ),
-                      maxLines: 1,
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: SizedBox(
+                  width: 60,
+                  height: 60,
+                  child: product.images.isEmpty
+                      ? ColoredBox(
+                          color: accent,
+                          child: Icon(
+                            config.icon,
+                            size: 28,
+                            color: primary.withValues(alpha: 0.5),
+                          ),
+                        )
+                      : ProductImageTile(
+                          url: product.images.first,
+                          fit: BoxFit.contain,
+                          placeholderIcon: config.icon,
+                          placeholderColor: accent,
+                          placeholderAccent: primary,
+                        ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      product.name,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: Responsive.fontSize(context, mobile: 14),
-                        fontWeight: FontWeight.bold,
-                        color: primary,
+                        fontWeight: FontWeight.w600,
                       ),
-                    )
-                  : Text(
-                      'Contact for Price',
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${product.brand.toUpperCase()} · ${product.sku}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: Responsive.fontSize(context, mobile: 12),
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey,
+                        fontSize: Responsive.fontSize(context, mobile: 11),
+                        color: Colors.grey[500],
                       ),
                     ),
-              const SizedBox(height: 4),
+                    const SizedBox(height: 6),
+                    showPrice
+                        ? Text(
+                            Pricing.money(
+                              product.price,
+                              currencySymbol: config.currencySymbol,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: Responsive.fontSize(
+                                context,
+                                mobile: 14,
+                              ),
+                              fontWeight: FontWeight.bold,
+                              color: primary,
+                            ),
+                          )
+                        : Text(
+                            'Contact for Price',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: Responsive.fontSize(
+                                context,
+                                mobile: 12,
+                              ),
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey,
+                            ),
+                          ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
               IconButton(
                 visualDensity: VisualDensity.compact,
                 tooltip: 'Remove from wishlist',
@@ -183,7 +199,39 @@ class WishlistScreen extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              const Spacer(),
+              SizedBox(
+                height: 30,
+                child: AppButton(
+                  text: 'Move to cart',
+                  type: AppButtonType.text,
+                  height: 30,
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  textColor: primary,
+                  onPressed: () => _moveToCart(context, store, product),
+                ),
+              ),
+            ],
+          ),
         ],
+      ),
+    );
+  }
+
+  void _moveToCart(
+    BuildContext context,
+    CommerceStore store,
+    Product product,
+  ) {
+    store.addToCart(product);
+    if (store.isWishlisted(product.id)) store.toggleWishlist(product.id);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Moved to cart'),
+        duration: Duration(seconds: 2),
       ),
     );
   }

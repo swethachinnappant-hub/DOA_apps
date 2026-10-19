@@ -7,6 +7,7 @@ import 'package:common_widgets/common_widgets.dart';
 import '../../../core/models/order.dart';
 import '../../../core/models/user.dart';
 import '../../../core/pricing.dart';
+import '../../../core/product.dart';
 import '../../../core/store/commerce_store.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../config/providers/business_config_provider.dart';
@@ -34,6 +35,35 @@ class OwnerDashboardScreen extends StatelessWidget {
         .where((o) => o.status != OrderStatus.cancelled)
         .fold<int>(0, (sum, o) => sum + o.subtotal);
     final config = context.watch<BusinessConfigProvider>().config;
+
+    // SPEC-18 dashboard additions: today's activity, coupon redemptions and
+    // the pieces actually selling.
+    final now = DateTime.now();
+    final todayOrders = orders
+        .where((o) =>
+            o.placedAt.year == now.year &&
+            o.placedAt.month == now.month &&
+            o.placedAt.day == now.day)
+        .length;
+    final redemptions =
+        orders.where((o) => o.couponCode != null).length;
+
+    final unitsByName = <String, int>{};
+    final revenueByName = <String, int>{};
+    for (final order in orders) {
+      if (order.status == OrderStatus.cancelled) continue;
+      for (final item in order.items) {
+        unitsByName[item.name] = (unitsByName[item.name] ?? 0) + item.quantity;
+        revenueByName[item.name] =
+            (revenueByName[item.name] ?? 0) + item.lineTotal;
+      }
+    }
+    final topNames = unitsByName.keys.toList()
+      ..sort((a, b) => unitsByName[b]!.compareTo(unitsByName[a]!));
+    final topProducts = [
+      for (final name in topNames.take(5))
+        (name: name, units: unitsByName[name]!, revenue: revenueByName[name]!),
+    ];
 
     return Scaffold(
       body: CustomScrollView(
@@ -69,7 +99,7 @@ class OwnerDashboardScreen extends StatelessWidget {
                   currency: config.currencySymbol,
                   orderCount: orders.length,
                 ),
-                SizedBox(height: Responsive.spacing(context, mobile: 24)),
+                SizedBox(height: Responsive.spacing(context, mobile: 12)),
                 _StatGrid(
                   revenue: revenue,
                   orderCount: orders.length,
@@ -77,12 +107,46 @@ class OwnerDashboardScreen extends StatelessWidget {
                   listed: products.length,
                   open: openOrders.length,
                   low: lowStock.length,
+                  today: todayOrders,
+                  redemptions: redemptions,
                 ),
-                SizedBox(height: Responsive.spacing(context, mobile: 24)),
+                SizedBox(height: Responsive.spacing(context, mobile: 12)),
                 _SectionHeader(title: 'Quick actions', onSeeAll: null),
                 SizedBox(height: Responsive.spacing(context, mobile: 12)),
                 _QuickActions(lowStock: lowStock.length),
-                SizedBox(height: Responsive.spacing(context, mobile: 24)),
+                if (topProducts.isNotEmpty) ...[
+                  SizedBox(height: Responsive.spacing(context, mobile: 12)),
+                  _SectionHeader(title: 'Top products', onSeeAll: null),
+                  SizedBox(height: Responsive.spacing(context, mobile: 12)),
+                  for (final item in topProducts)
+                    Padding(
+                      padding: EdgeInsets.only(
+                        bottom: Responsive.spacing(context, mobile: 10),
+                      ),
+                      child: _TopProductRow(
+                        name: item.name,
+                        units: item.units,
+                        revenue: item.revenue,
+                        currency: config.currencySymbol,
+                      ),
+                    ),
+                ],
+                if (lowStock.isNotEmpty) ...[
+                  SizedBox(height: Responsive.spacing(context, mobile: 12)),
+                  _SectionHeader(
+                    title: 'Low stock',
+                    onSeeAll: () => context.go('/owner/products'),
+                  ),
+                  SizedBox(height: Responsive.spacing(context, mobile: 12)),
+                  for (final product in lowStock.take(4))
+                    Padding(
+                      padding: EdgeInsets.only(
+                        bottom: Responsive.spacing(context, mobile: 10),
+                      ),
+                      child: _LowStockRow(product: product),
+                    ),
+                ],
+                SizedBox(height: Responsive.spacing(context, mobile: 12)),
                 _SectionHeader(
                   title: 'Recent orders',
                   onSeeAll: orders.isEmpty
@@ -94,9 +158,6 @@ class OwnerDashboardScreen extends StatelessWidget {
                   const _EmptyState(
                     icon: Icons.receipt_long_outlined,
                     title: 'No orders yet',
-                    body:
-                        'Orders the moment a customer buys will land here, '
-                        'with the status one tap away.',
                   )
                 else
                   ...orders
@@ -109,7 +170,7 @@ class OwnerDashboardScreen extends StatelessWidget {
                           child: _OrderRow(order: o),
                         ),
                       ),
-                SizedBox(height: Responsive.spacing(context, mobile: 24)),
+                SizedBox(height: Responsive.spacing(context, mobile: 12)),
               ]),
             ),
           ),
@@ -138,7 +199,7 @@ class _ShopOverview extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(Responsive.spacing(context, mobile: 22)),
+      padding: EdgeInsets.all(Responsive.spacing(context, mobile: 14)),
       decoration: BoxDecoration(
         color: const Color(0xFF171717),
         borderRadius: BorderRadius.circular(22),
@@ -192,7 +253,7 @@ class _ShopOverview extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 27),
+          const SizedBox(height: 10),
           Text(
             'Sales at a glance',
             style: TextStyle(
@@ -238,28 +299,6 @@ class _ShopOverview extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 19),
-          Row(
-            children: [
-              const Icon(
-                Icons.auto_awesome_outlined,
-                size: 14,
-                color: Color(0xFFD9C9A3),
-              ),
-              const SizedBox(width: 7),
-              Expanded(
-                child: Text(
-                  'A considered view of your jewellery business',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: .7),
-                    fontSize: 11,
-                  ),
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     );
@@ -274,6 +313,8 @@ class _StatGrid extends StatelessWidget {
     required this.listed,
     required this.open,
     required this.low,
+    required this.today,
+    required this.redemptions,
   });
 
   final int revenue;
@@ -282,6 +323,8 @@ class _StatGrid extends StatelessWidget {
   final int listed;
   final int open;
   final int low;
+  final int today;
+  final int redemptions;
 
   @override
   Widget build(BuildContext context) {
@@ -301,6 +344,16 @@ class _StatGrid extends StatelessWidget {
         value: '$open',
       ),
       (icon: Icons.warning_amber_outlined, label: 'Low stock', value: '$low'),
+      (
+        icon: Icons.today_outlined,
+        label: "Today's orders",
+        value: '$today',
+      ),
+      (
+        icon: Icons.local_offer_outlined,
+        label: 'Coupon redemptions',
+        value: '$redemptions',
+      ),
     ];
 
     // 2 columns keeps the numbers readable on a phone; 4 on a wide screen.
@@ -391,6 +444,111 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
+/// One line of the "Top products" ranking: units sold and revenue across
+/// the seller's own orders (SPEC-18).
+class _TopProductRow extends StatelessWidget {
+  const _TopProductRow({
+    required this.name,
+    required this.units,
+    required this.revenue,
+    required this.currency,
+  });
+
+  final String name;
+  final int units;
+  final int revenue;
+  final String currency;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      borderRadius: Responsive.borderRadius(context),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            const Icon(Icons.trending_up, size: 20, color: AppPalette.goldDark),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+            Text(
+              '$units sold',
+              style: TextStyle(fontSize: 12.5, color: Colors.grey[600]),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              Pricing.money(revenue, currencySymbol: currency),
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 13.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A listing running out (SPEC-18): the piece, what is left, and a hop to
+/// the form where the seller restocks it.
+class _LowStockRow extends StatelessWidget {
+  const _LowStockRow({required this.product});
+
+  final Product product;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = product.isAvailable ? '${product.stock} left' : 'Out of stock';
+    return Material(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      borderRadius: Responsive.borderRadius(context),
+      child: InkWell(
+        borderRadius: Responsive.borderRadius(context),
+        onTap: () => context.go('/owner/products/${product.id}/edit'),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              Icon(
+                product.isAvailable
+                    ? Icons.warning_amber_outlined
+                    : Icons.remove_shopping_cart_outlined,
+                size: 20,
+                color: product.isAvailable
+                    ? AppPalette.goldDark
+                    : const Color(0xFF8A4943),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  product.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+              Text(
+                label,
+                style: TextStyle(fontSize: 12.5, color: Colors.grey[600]),
+              ),
+              const SizedBox(width: 6),
+              const Icon(Icons.chevron_right, size: 18),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _OrderRow extends StatelessWidget {
   const _OrderRow({required this.order});
 
@@ -441,21 +599,16 @@ class _OrderRow extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({
-    required this.icon,
-    required this.title,
-    required this.body,
-  });
+  const _EmptyState({required this.icon, required this.title});
 
   final IconData icon;
   final String title;
-  final String body;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(14),
@@ -468,16 +621,6 @@ class _EmptyState extends StatelessWidget {
             title,
             style: const TextStyle(fontWeight: FontWeight.w600),
             textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 6),
-          Text(
-            body,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey[600],
-              height: 1.4,
-            ),
           ),
         ],
       ),

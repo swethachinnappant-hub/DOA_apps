@@ -67,6 +67,10 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     final config = context.watch<BusinessConfigProvider>().config;
+    final size = MediaQuery.sizeOf(context);
+    final wide = size.width > 700;
+    final compactHeight = size.height < 500;
+    final horizontal = wide ? 72.0 : 28.0;
     return Scaffold(
       backgroundColor: AppPalette.textPrimary,
       body: AnimatedBuilder(
@@ -75,56 +79,40 @@ class _SplashScreenState extends State<SplashScreen>
           opacity: _fadeIn.value,
           child: Transform.scale(
             scale: _scaleUp.value,
-            child: Stack(
-              fit: StackFit.expand,
+            child: Column(
               children: [
-                if (config.type == BusinessType.jewellery)
-                  const ProductImageTile(
-                    url: 'assets/demo_jewellery/bridal_set.jpg',
-                    fit: BoxFit.cover,
-                    placeholderIcon: Icons.diamond_outlined,
-                    placeholderColor: Color(0xFF211D17),
-                    placeholderAccent: Color(0xFFD8C39A),
-                  )
-                else
-                  ColoredBox(color: config.primaryColor),
-                const DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Color(0x55000000),
-                        Color(0x22000000),
-                        Color(0xE6000000),
-                      ],
-                      stops: [0, .42, 1],
-                    ),
-                  ),
-                ),
-                SafeArea(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final wide = constraints.maxWidth > 700;
-                      final compactHeight = constraints.maxHeight < 500;
-                      final horizontal = wide ? 72.0 : 28.0;
-                      return Padding(
-                        padding: EdgeInsets.fromLTRB(
-                          horizontal,
-                          28,
-                          horizontal,
-                          38,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
+                // The picture shows full and clear — no shade over it.
+                Expanded(
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (config.type == BusinessType.jewellery)
+                        const ProductImageTile(
+                          url: 'assets/demo_jewellery/bridal_set.jpg',
+                          fit: BoxFit.cover,
+                          placeholderIcon: Icons.diamond_outlined,
+                          placeholderColor: Color(0xFF211D17),
+                          placeholderAccent: Color(0xFFD8C39A),
+                        )
+                      else
+                        ColoredBox(color: config.primaryColor),
+                      SafeArea(
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(
+                            horizontal,
+                            28,
+                            horizontal,
+                            0,
+                          ),
+                          child: Align(
+                            alignment: Alignment.topLeft,
+                            child: Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 13,
                                 vertical: 9,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: .36),
+                                color: AppPalette.textPrimary,
                                 borderRadius: AppRadius.allPill,
                                 border: Border.all(
                                   color: Colors.white.withValues(alpha: .3),
@@ -151,89 +139,101 @@ class _SplashScreenState extends State<SplashScreen>
                                 ],
                               ),
                             ),
-                            const Spacer(),
-                            ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 620),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'FINE JEWELLERY  ·  THOUGHTFULLY CHOSEN',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Copy lives on its own solid brand panel under the picture.
+                Container(
+                  width: double.infinity,
+                  color: AppPalette.textPrimary,
+                  child: SafeArea(
+                    top: false,
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        horizontal,
+                        28,
+                        horizontal,
+                        38,
+                      ),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 620),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'FINE JEWELLERY  ·  THOUGHTFULLY CHOSEN',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTypography.overline.copyWith(
+                                color: const Color(0xFFE4D6B7),
+                                letterSpacing: 2,
+                              ),
+                            ),
+                            SizedBox(height: compactHeight ? 7 : 12),
+                            Text(
+                              'Made to be\ntreasured.',
+                              style: AppTypography.display.copyWith(
+                                color: Colors.white,
+                                fontSize: compactHeight
+                                    ? 34
+                                    : wide
+                                    ? 56
+                                    : 42,
+                                height: 1.02,
+                                letterSpacing: -1.4,
+                              ),
+                            ),
+                            SizedBox(height: compactHeight ? 7 : 12),
+                            Text(
+                              config.tagline,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTypography.body.copyWith(
+                                color: Colors.white.withValues(alpha: .8),
+                              ),
+                            ),
+                            SizedBox(height: compactHeight ? 12 : 25),
+                            Row(
+                              children: [
+                                Container(
+                                  width: 34,
+                                  height: 1,
+                                  color: const Color(0xFFD8C39A),
+                                ),
+                                const SizedBox(width: 12),
+                                SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 1.5,
+                                    valueColor:
+                                        const AlwaysStoppedAnimation<Color>(
+                                          Color(0xFFD8C39A),
+                                        ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    'PREPARING YOUR EXPERIENCE',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: AppTypography.overline.copyWith(
-                                      color: const Color(0xFFE4D6B7),
-                                      letterSpacing: 2,
+                                      color: Colors.white.withValues(alpha: .7),
+                                      fontSize: 9,
+                                      letterSpacing: 1.3,
                                     ),
                                   ),
-                                  SizedBox(height: compactHeight ? 7 : 12),
-                                  Text(
-                                    'Made to be\ntreasured.',
-                                    style: AppTypography.display.copyWith(
-                                      color: Colors.white,
-                                      fontSize: compactHeight
-                                          ? 34
-                                          : wide
-                                          ? 56
-                                          : 42,
-                                      height: 1.02,
-                                      letterSpacing: -1.4,
-                                    ),
-                                  ),
-                                  SizedBox(height: compactHeight ? 7 : 12),
-                                  Text(
-                                    config.tagline,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: AppTypography.body.copyWith(
-                                      color: Colors.white.withValues(alpha: .8),
-                                    ),
-                                  ),
-                                  SizedBox(height: compactHeight ? 12 : 25),
-                                  Row(
-                                    children: [
-                                      Container(
-                                        width: 34,
-                                        height: 1,
-                                        color: const Color(0xFFD8C39A),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      SizedBox(
-                                        width: 16,
-                                        height: 16,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 1.5,
-                                          valueColor:
-                                              const AlwaysStoppedAnimation<
-                                                Color
-                                              >(Color(0xFFD8C39A)),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Expanded(
-                                        child: Text(
-                                          'PREPARING YOUR EXPERIENCE',
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: AppTypography.overline
-                                              .copyWith(
-                                                color: Colors.white.withValues(
-                                                  alpha: .7,
-                                                ),
-                                                fontSize: 9,
-                                                letterSpacing: 1.3,
-                                              ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
-                      );
-                    },
+                      ),
+                    ),
                   ),
                 ),
               ],

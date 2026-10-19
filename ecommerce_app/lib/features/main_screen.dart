@@ -1,169 +1,69 @@
-import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:common_widgets/common_widgets.dart';
+import 'package:provider/provider.dart';
+import '../core/navigation/nav_helpers.dart';
 import '../core/store/commerce_store.dart';
-import 'auth/providers/auth_provider.dart';
-import 'config/providers/business_config_provider.dart';
 import 'catalogue/screens/catalogue_screen.dart';
-import 'home/home_sections.dart';
-import 'wishlist/screens/wishlist_screen.dart';
-import 'orders/screens/orders_screen.dart';
+import 'config/providers/business_config_provider.dart';
+import 'home/home_layout.dart';
+import 'home/home_skeleton.dart';
 import 'profile/screens/profile_screen.dart';
+import 'shell/bottom_bar.dart';
+import 'shell/store_shell.dart';
 
+/// Customer shell: top USP strip · responsive header · body · bottom bar
+/// (compact only) · cookie banner (architecture §5).
+///
+/// The bottom bar carries the four verified destinations — Home, Catalogue
+/// (listing with its grid/list view toggle), Cart(n), Account — and the
+/// drawer opens from the header's menu button.
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  /// Home section order (§6.1). Pass a customised [HomeLayout] to reorder
+  /// sections without touching the shell.
+  final HomeLayout? layout;
+
+  const MainScreen({super.key, this.layout});
 
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
+  /// The bar's own visual indices: 0 Home · 1 Catalogue · 3 Account.
+  /// Slot 2 is Cart, which pushes its own route and never rests here.
   int _currentIndex = 0;
 
-  static const List<String> _titles = [
-    'Home',
-    'Catalogue',
-    'Wishlist',
-    'Orders',
-    'Account',
-  ];
-
-  static const List<IconData> _icons = [
-    Icons.home_outlined,
-    Icons.storefront_outlined,
-    Icons.favorite_border,
-    Icons.receipt_long_outlined,
-    Icons.person_outline,
-  ];
-
-  static const List<IconData> _activeIcons = [
-    Icons.home,
-    Icons.storefront,
-    Icons.favorite,
-    Icons.receipt_long,
-    Icons.person,
-  ];
+  bool get _showBottomBar => MediaQuery.sizeOf(context).width < 768;
 
   @override
   Widget build(BuildContext context) {
-    final config = context.watch<BusinessConfigProvider>().config;
-    final store = context.watch<CommerceStore>();
-    final user = context.watch<AuthProvider>().user;
-    final hasItems = store.cartCount > 0;
-    final hasUnread = user != null && store.unreadCount(user.id) > 0;
-
-    return Scaffold(
-      backgroundColor: AppPalette.background,
-      appBar: AppBar(
-        titleSpacing: AppSpacing.screenH,
-        title: Row(
-          children: [
-            Container(
-              height: 32,
-              width: 32,
-              decoration: BoxDecoration(
-                color: config.primaryColor,
-                borderRadius: AppRadius.allSm,
-              ),
-              child: Icon(config.icon, size: 18, color: config.onPrimaryColor),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: Text(
-                config.name,
-                style: AppTypography.title.copyWith(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 1,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          _CircleAction(
-            icon: Icons.search,
-            tooltip: 'Search',
-            onTap: () => context.push('/catalogue'),
-          ),
-          _CircleAction(
-            icon: Icons.shopping_bag_outlined,
-            tooltip: 'Cart',
-            onTap: () => context.push('/cart'),
-            badge: hasItems,
-          ),
-          _CircleAction(
-            icon: Icons.notifications_none,
-            tooltip: 'Notifications',
-            onTap: () => context.push('/notifications'),
-            badge: hasUnread,
-          ),
-          const SizedBox(width: AppSpacing.sm),
-        ],
-      ),
-      body: _buildBody(),
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: AppPalette.surface,
-          border: Border(top: BorderSide(color: AppPalette.divider)),
-        ),
-        child: SafeArea(
-          top: false,
-          child: SizedBox(
-            height: 62,
-            child: Row(
-              children: List.generate(_titles.length, (i) {
-                final selected = i == _currentIndex;
-                return Expanded(
-                  child: InkWell(
-                    onTap: () => setState(() => _currentIndex = i),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        AnimatedContainer(
-                          duration: AppDurations.fast,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.lg,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: selected
-                                ? config.accentColor
-                                : Colors.transparent,
-                            borderRadius: AppRadius.allPill,
-                          ),
-                          child: Icon(
-                            selected ? _activeIcons[i] : _icons[i],
-                            size: 21,
-                            color: selected
-                                ? config.primaryColor
-                                : AppPalette.textSecondary,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          _titles[i],
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTypography.caption.copyWith(
-                            fontSize: 10.5,
-                            fontWeight: selected
-                                ? FontWeight.w600
-                                : FontWeight.w400,
-                            color: selected
-                                ? config.primaryColor
-                                : AppPalette.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }),
-            ),
+    // §16.4 Android: system back walks tabs home-ward before leaving the
+    // shop; the cart entry pushes its own route and is unaffected.
+    return PopScope(
+      canPop: _currentIndex == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && mounted) {
+          setState(() => _currentIndex = 0);
+        }
+      },
+      child: StoreShell(
+        bottomBar: _showBottomBar
+            ? BottomBar(
+                selectedIndex: _currentIndex,
+                onSelect: (index) => setState(() => _currentIndex = index),
+                cartCount: context.watch<CommerceStore>().cartCount,
+                onCart: () => navTo(context, '/cart'),
+              )
+            : null,
+        // Smooth tab changes: the outgoing screen fades out as the incoming
+        // one fades in instead of swapping on a single frame.
+        body: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 180),
+          switchInCurve: Curves.easeOut,
+          switchOutCurve: Curves.easeIn,
+          child: KeyedSubtree(
+            key: ValueKey(_currentIndex),
+            child: _buildBody(),
           ),
         ),
       ),
@@ -172,96 +72,53 @@ class _MainScreenState extends State<MainScreen> {
 
   Widget _buildBody() {
     switch (_currentIndex) {
-      case 0:
-        return const _HomeTab();
       case 1:
-        return CatalogueScreen(onExit: () => setState(() => _currentIndex = 0));
-      case 2:
-        return const WishlistScreen();
+        // The listing lives in the shell: its own grid/list view toggle,
+        // sort and filters, with "back to home" wired to the first tab.
+        return CatalogueScreen(
+          onExit: () => setState(() => _currentIndex = 0),
+        );
       case 3:
-        return const OrdersScreen();
-      case 4:
         return const ProfileScreen();
+      case 0:
+      case 2:
       default:
-        return const _HomeTab();
+        return _HomeTab(layout: widget.layout);
     }
   }
 }
 
-class _CircleAction extends StatelessWidget {
-  final IconData icon;
-  final String tooltip;
-  final VoidCallback onTap;
-  final bool badge;
+// ----------------------------------------------------------------- home tab
 
-  const _CircleAction({
-    required this.icon,
-    required this.tooltip,
-    required this.onTap,
-    this.badge = false,
-  });
+class _HomeTab extends StatefulWidget {
+  const _HomeTab({this.layout});
+
+  final HomeLayout? layout;
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(left: AppSpacing.xs),
-      child: Tooltip(
-        message: tooltip,
-        child: InkWell(
-          onTap: onTap,
-          customBorder: const CircleBorder(),
-          child: Container(
-            height: 38,
-            width: 38,
-            alignment: Alignment.center,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Icon(icon, size: 21, color: AppPalette.textPrimary),
-                if (badge)
-                  Positioned(
-                    right: -1,
-                    top: -1,
-                    child: Container(
-                      height: 7,
-                      width: 7,
-                      decoration: const BoxDecoration(
-                        color: AppPalette.error,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  State<_HomeTab> createState() => _HomeTabState();
 }
 
-class _HomeTab extends StatelessWidget {
-  const _HomeTab();
+class _HomeTabState extends State<_HomeTab> with SingleTickerProviderStateMixin {
+  /// Skeleton holds the screen for §6.3's minimum ~300 ms before the real
+  /// sections paint, so first load never flickers.
+  late final AnimationController _loaded = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 320),
+  )..forward();
 
-  String? _photoFor(CommerceStore store, String category) {
-    for (final product in store.shopProducts) {
-      if (product.category == category && product.images.isNotEmpty) {
-        return product.images.first;
-      }
-    }
-    return null;
+  @override
+  void dispose() {
+    _loaded.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final config = context.watch<BusinessConfigProvider>().config;
-    final store = context.watch<CommerceStore>();
-    final featured = [...store.shopProducts]
-      ..sort((a, b) {
-        final rating = b.rating.compareTo(a.rating);
-        return rating != 0 ? rating : b.reviewCount.compareTo(a.reviewCount);
-      });
-    final curated = featured.take(10).toList();
+    // §6.1 revision: the category circles lead the stack at every width;
+    // owner edits from the Home Builder (SPEC-18) reorder/hide from there.
+    final layout = widget.layout ?? resolveHomeLayout(context.watch<CommerceStore>());
 
     return SingleChildScrollView(
       padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
@@ -276,10 +133,7 @@ class _HomeTab extends StatelessWidget {
               children: [
                 Text(
                   'THE JEWELLERY EDIT',
-                  style: AppTypography.overline.copyWith(
-                    color: AppPalette.textSecondary,
-                    letterSpacing: 1.8,
-                  ),
+                  style: AppTypography.eyebrow,
                 ),
                 const SizedBox(height: 6),
                 Text(
@@ -294,7 +148,10 @@ class _HomeTab extends StatelessWidget {
                   onSubmitted: (value) {
                     final search = value.trim();
                     if (search.isNotEmpty) {
-                      context.push('/catalogue?search=${Uri.encodeQueryComponent(search)}');
+                      navTo(
+                        context,
+                        '/catalogue?search=${Uri.encodeQueryComponent(search)}',
+                      );
                     }
                   },
                 ),
@@ -302,73 +159,26 @@ class _HomeTab extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenH),
-            child: HeroCarousel(products: curated),
+          AnimatedBuilder(
+            animation: _loaded,
+            builder: (context, _) {
+              if (!_loaded.isCompleted) {
+                return const HomeSkeleton(key: Key('home-skeleton'));
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (var i = 0; i < layout.sections.length; i++) ...[
+                    if (i > 0) const SizedBox(height: AppSpacing.md),
+                    KeyedSubtree(
+                      key: Key('home-section-${layout.sections[i].id}'),
+                      child: layout.sections[i].build(context),
+                    ),
+                  ],
+                ],
+              );
+            },
           ),
-          const SizedBox(height: AppSpacing.xxl),
-
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenH),
-            child: SectionHeader(
-              title: 'Shop by Style',
-              padding: EdgeInsets.zero,
-              trailing: TextButton(
-                onPressed: () => context.push(catalogueLocation()),
-                style: TextButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.sm,
-                  ),
-                ),
-                child: const Text('View All'),
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          CategoryCarousel(
-            primaryColor: config.primaryColor,
-            accentColor: config.accentColor,
-            items: config.categories
-                .map(
-                  (cat) => CategoryCarouselItem(
-                    label: cat,
-                    emoji: config.categoryIcons[cat] ?? '\u{1F4E6}',
-                    imageUrl: _photoFor(store, cat),
-                    onTap: () => context.push(catalogueLocation(category: cat)),
-                  ),
-                )
-                .toList(),
-          ),
-          const SizedBox(height: AppSpacing.xxl),
-
-          const NewArrivalsRail(),
-          const SizedBox(height: AppSpacing.xxl),
-
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenH),
-            child: SectionHeader(
-              title: 'Featured products',
-              padding: EdgeInsets.zero,
-              trailing: TextButton(
-                onPressed: () => context.push(catalogueLocation()),
-                style: TextButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.sm,
-                  ),
-                ),
-                child: const Text('Explore all'),
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          ProductRail(products: curated, autoSlideImages: true),
-          const SizedBox(height: AppSpacing.xxl),
-
-          const PriceBands(),
-          const SizedBox(height: AppSpacing.xxl),
-          const PromiseGrid(),
         ],
       ),
     );

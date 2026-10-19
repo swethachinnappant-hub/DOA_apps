@@ -160,6 +160,15 @@ class BusinessConfigProvider extends ChangeNotifier {
       case 'showMOQ':
         newRules = currentRules.copyWith(showMOQ: value);
         break;
+      case 'coupons':
+        newRules = currentRules.copyWith(coupons: value);
+        break;
+      case 'virtualTryOn':
+        newRules = currentRules.copyWith(virtualTryOn: value);
+        break;
+      case 'showMetalRates':
+        newRules = currentRules.copyWith(showMetalRates: value);
+        break;
       default:
         return;
     }

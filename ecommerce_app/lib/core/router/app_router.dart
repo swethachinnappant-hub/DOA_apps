@@ -8,6 +8,7 @@ import '../../features/auth/screens/register_screen.dart';
 import '../../features/auth/screens/splash_screen.dart';
 import '../../features/cart/screens/cart_screen.dart';
 import '../../features/catalogue/screens/catalogue_screen.dart';
+import '../../features/checkout/order_success_screen.dart';
 import '../../features/checkout/screens/checkout_screen.dart';
 import '../../features/config/screens/business_config_screen.dart';
 import '../../features/config/screens/business_rules_screen.dart';
@@ -15,14 +16,24 @@ import '../../features/main_screen.dart';
 import '../../features/notifications/screens/notifications_screen.dart';
 import '../../features/orders/screens/order_detail_screen.dart';
 import '../../features/orders/screens/orders_screen.dart';
+import '../../features/owner/screens/owner_categories_screen.dart';
+import '../../features/owner/screens/owner_collections_screen.dart';
+import '../../features/owner/screens/owner_coupons_screen.dart';
+import '../../features/owner/screens/owner_customers_screen.dart';
 import '../../features/owner/screens/owner_dashboard_screen.dart';
+import '../../features/owner/screens/owner_gold_rate_screen.dart';
+import '../../features/owner/screens/owner_home_builder_screen.dart';
 import '../../features/owner/screens/owner_order_detail_screen.dart';
 import '../../features/owner/screens/owner_orders_screen.dart';
 import '../../features/owner/screens/owner_product_form_screen.dart';
 import '../../features/owner/screens/owner_products_screen.dart';
 import '../../features/owner/screens/owner_shell.dart';
 import '../../features/product/screens/product_detail_screen.dart';
+import '../../features/profile/screens/addresses_screen.dart';
+import '../../features/profile/screens/coupons_screen.dart';
+import '../../features/profile/screens/loyalty_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
+import '../../features/shell/section_screen.dart';
 import '../../features/wishlist/screens/wishlist_screen.dart';
 import '../../core/models/user.dart';
 
@@ -44,6 +55,12 @@ const Set<String> _sharedPaths = {
   '/notifications',
 };
 
+/// Root navigator key shared by overlays (search, mini-cart) that must open
+/// from app-level keyboard shortcuts above any route.
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>(
+  debugLabel: 'root',
+);
+
 /// Builds the router with a role guard bound to [auth].
 ///
 /// `refreshListenable` is the important part: when someone signs in or out,
@@ -52,6 +69,7 @@ const Set<String> _sharedPaths = {
 /// screen they have no business seeing.
 GoRouter buildAppRouter({required AuthProvider auth}) {
   return GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: '/',
     refreshListenable: auth,
     redirect: (context, state) => guardLocation(auth, state.matchedLocation),
@@ -125,6 +143,34 @@ GoRouter buildAppRouter({required AuthProvider auth}) {
         ],
       ),
 
+      // ----------------------------------------------- seller console pages
+      // SPEC-18 storefront management: pushed full-screen from the shell's
+      // sidebar / "More" sheet, owner-only via the `/owner` guard below.
+      GoRoute(
+        path: '/owner/categories',
+        builder: (context, state) => const OwnerCategoriesScreen(),
+      ),
+      GoRoute(
+        path: '/owner/collections',
+        builder: (context, state) => const OwnerCollectionsScreen(),
+      ),
+      GoRoute(
+        path: '/owner/home-builder',
+        builder: (context, state) => const OwnerHomeBuilderScreen(),
+      ),
+      GoRoute(
+        path: '/owner/coupons',
+        builder: (context, state) => const OwnerCouponsScreen(),
+      ),
+      GoRoute(
+        path: '/owner/gold-rate',
+        builder: (context, state) => const OwnerGoldRateScreen(),
+      ),
+      GoRoute(
+        path: '/owner/customers',
+        builder: (context, state) => const OwnerCustomersScreen(),
+      ),
+
       // ---------------------------------------------------------- storefront
       GoRoute(path: '/app', builder: (context, state) => const MainScreen()),
       GoRoute(
@@ -136,6 +182,7 @@ GoRouter buildAppRouter({required AuthProvider auth}) {
             initialQuery: query['search'],
             priceMin: int.tryParse(query['min'] ?? ''),
             priceMax: int.tryParse(query['max'] ?? ''),
+            initialMetal: query['metal'],
           );
         },
       ),
@@ -163,12 +210,100 @@ GoRouter buildAppRouter({required AuthProvider auth}) {
             OrderDetailScreen(orderId: state.pathParameters['id'] ?? ''),
       ),
       GoRoute(
+        path: '/order-success/:id',
+        builder: (context, state) =>
+            OrderSuccessScreen(orderId: state.pathParameters['id'] ?? ''),
+      ),
+      GoRoute(
         path: '/profile',
         builder: (context, state) => const ProfileScreen(showAppBar: true),
       ),
       GoRoute(
         path: '/notifications',
         builder: (context, state) => const NotificationsScreen(),
+      ),
+      GoRoute(
+        path: '/addresses',
+        builder: (context, state) => const AddressesScreen(),
+      ),
+      GoRoute(
+        path: '/loyalty',
+        builder: (context, state) => const LoyaltyScreen(),
+      ),
+      GoRoute(
+        path: '/coupons',
+        builder: (context, state) => const CouponsScreen(),
+      ),
+
+      // ------------------------------------------- §4.3 alias & band paths
+      GoRoute(
+        path: '/shopping-cart',
+        builder: (context, state) => const CartScreen(),
+      ),
+      GoRoute(
+        path: '/account',
+        builder: (context, state) => const ProfileScreen(showAppBar: true),
+      ),
+      // INR price bands feed the existing query-string PLP (rule 4), so a
+      // band deep link keeps filter/sort/refresh behaviour for free.
+      GoRoute(
+        path: '/20k-products',
+        builder: (context, state) => const CatalogueScreen(priceMax: 20000),
+      ),
+      GoRoute(
+        path: '/30k-products',
+        builder: (context, state) => const CatalogueScreen(priceMax: 30000),
+      ),
+      GoRoute(
+        path: '/50k-products',
+        builder: (context, state) => const CatalogueScreen(priceMax: 50000),
+      ),
+      GoRoute(
+        path: '/above-50k',
+        builder: (context, state) => const CatalogueScreen(priceMin: 50001),
+      ),
+      // Legacy USD bands (US locale) redirect to the nearest INR band.
+      GoRoute(
+        path: '/500-dollar-products',
+        redirect: (context, state) => '/50k-products',
+      ),
+      GoRoute(
+        path: '/1000-dollar-products',
+        redirect: (context, state) => '/above-50k',
+      ),
+      GoRoute(
+        path: '/2000-dollar-products',
+        redirect: (context, state) => '/above-50k',
+      ),
+      GoRoute(
+        path: '/above-2000-dollar-products',
+        redirect: (context, state) => '/above-50k',
+      ),
+      // Footer extra: the old product list is the PLP itself.
+      GoRoute(
+        path: '/product-list',
+        redirect: (context, state) => '/catalogue',
+      ),
+
+      // --------------------------------------------- catch-all shop paths
+      // Declared last so every explicit route above wins the match. These
+      // cover the verified kirtilals.com slugs (/diamond-earrings/studs and
+      // friends): known paths render a section landing, the rest the
+      // designed 404 (§10.8) — both still pass through the role guard.
+      GoRoute(
+        path: '/:slug',
+        builder: (context, state) =>
+            SectionScreen(path: state.matchedLocation),
+      ),
+      GoRoute(
+        path: '/:slug/:facet',
+        builder: (context, state) =>
+            SectionScreen(path: state.matchedLocation),
+      ),
+      GoRoute(
+        path: '/:slug/:facet/:sub',
+        builder: (context, state) =>
+            SectionScreen(path: state.matchedLocation),
       ),
     ],
   );

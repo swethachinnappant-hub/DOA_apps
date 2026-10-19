@@ -4,32 +4,53 @@ import 'package:provider/provider.dart';
 
 import 'package:common_widgets/common_widgets.dart';
 
+import '../../../core/business_config.dart';
 import '../../../core/models/cart.dart';
 import '../../../core/pricing.dart';
 import '../../../core/product.dart';
 import '../../../core/store/commerce_store.dart';
 import '../../config/providers/business_config_provider.dart';
+import '../../home/home_sections.dart';
+import '../widgets/coupon_section.dart';
+import '../widgets/order_summary.dart';
 
-/// The shopper's bag, backed by [CommerceStore].
+/// The shopper's bag in the §9.2 shape: line items on the left, a sticky
+/// ORDER SUMMARY on the right at desktop widths, and the coupon block wired
+/// to the same store the mini-cart uses.
 ///
-/// Quantity controls are wired rather than decorative: the plus/minus buttons
-/// change real state, the totals recompute, and removing the last unit drops
-/// the line.
-class CartScreen extends StatelessWidget {
+/// Quantity controls are real: plus/minus change state, totals recompute, and
+/// removing the last unit drops the line.
+class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
+
+  @override
+  State<CartScreen> createState() => _CartScreenState();
+}
+
+class _CartScreenState extends State<CartScreen> {
+  bool _giftWrap = false;
+  final _giftNote = TextEditingController();
+
+  @override
+  void dispose() {
+    _giftNote.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final config = context.watch<BusinessConfigProvider>().config;
     final store = context.watch<CommerceStore>();
-    final rules = config.rules;
-
     final lines = store.cart;
-    final subtotal = store.cartSubtotal;
+    final desktop = Responsive.isDesktop(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Cart${lines.isEmpty ? '' : ' (${store.cartCount})'}'),
+        title: Text(
+          lines.isEmpty
+              ? 'Shopping Cart'
+              : 'Shopping Cart (${store.cartCount})',
+        ),
         actions: [
           if (lines.isNotEmpty)
             IconButton(
@@ -40,52 +61,255 @@ class CartScreen extends StatelessWidget {
         ],
       ),
       body: lines.isEmpty
-          ? _EmptyCart(brand: config.primaryColor, icon: config.icon)
-          : Column(
-              children: [
-                Expanded(
-                  child: ListView.separated(
-                    padding: Responsive.padding(context),
-                    itemCount: lines.length,
-                    separatorBuilder: (_, _) => SizedBox(
-                      height: Responsive.spacing(context, mobile: 10),
-                    ),
-                    itemBuilder: (context, index) {
-                      final line = lines[index];
-                      final product = store.productFor(line);
-                      final available = product?.stock ?? 0;
-                      final atLimit =
-                          product != null &&
-                          product.ownerId.isNotEmpty &&
-                          line.quantity >= available;
+          ? _empty(context, config, store)
+          : desktop
+          ? _desktop(context, config, store)
+          : _compact(context, config, store),
+      bottomNavigationBar:
+          lines.isNotEmpty && !desktop
+              ? _stickyCta(context, config)
+              : null,
+    );
+  }
 
-                      return _CartLine(
-                        line: line,
-                        product: product,
-                        accent: config.accentColor,
-                        brandColor: config.primaryColor,
-                        fallbackIcon: config.icon,
-                        showPrice: rules.showPrices,
-                        currency: config.currencySymbol,
-                        atLimit: atLimit,
-                        onIncrement: atLimit
-                            ? null
-                            : () => store.incrementCart(line.lineKey),
-                        onDecrement: () => store.decrementCart(line.lineKey),
-                        onRemove: () => store.removeFromCart(line.lineKey),
-                      );
-                    },
+  Widget _desktop(
+    BuildContext context,
+    BusinessConfig config,
+    CommerceStore store,
+  ) {
+    final lines = store.cart;
+    final totals = store.cartTotals;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: Responsive.padding(context),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (var i = 0; i < lines.length; i++)
+                  Padding(
+                    padding: EdgeInsets.only(
+                      bottom: Responsive.spacing(context, mobile: 12),
+                    ),
+                    child: _line(context, config, store, lines[i]),
+                  ),
+                SizedBox(height: Responsive.spacing(context, mobile: 8)),
+                _giftWrapCard(context, config),
+                SizedBox(height: Responsive.spacing(context, mobile: 16)),
+                AppCard(child: _CartPincode(accent: config.accentColor)),
+              ],
+            ),
+          ),
+        ),
+        Container(
+          width: 400,
+          decoration: BoxDecoration(
+            border: Border(
+              left: BorderSide(color: Theme.of(context).dividerColor),
+            ),
+          ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'ORDER SUMMARY',
+                  style: AppTypography.eyebrow.copyWith(
+                    color: AppPalette.textSecondary,
                   ),
                 ),
-                _CartSummary(
-                  subtotal: subtotal,
-                  showPrice: rules.showPrices,
+                const SizedBox(height: AppSpacing.md),
+                OrderSummary(
+                  totals: totals,
+                  showPrice: config.rules.showPrices,
                   currency: config.currencySymbol,
                   primary: config.primaryColor,
                   onCheckout: () => context.push('/checkout'),
                 ),
+                if (config.rules.coupons) ...[
+                  const SizedBox(height: AppSpacing.xl),
+                  const Divider(height: 1),
+                  const SizedBox(height: AppSpacing.lg),
+                  CouponSection(
+                    subtotal: store.cartSubtotal,
+                    appliedCode: store.appliedCoupon?.code,
+                    onApply: store.applyCoupon,
+                    onRemove: store.removeCoupon,
+                  ),
+                ],
               ],
             ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _compact(
+    BuildContext context,
+    BusinessConfig config,
+    CommerceStore store,
+  ) {
+    final lines = store.cart;
+    final totals = store.cartTotals;
+
+    return SingleChildScrollView(
+      padding: Responsive.padding(context),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final line in lines)
+            Padding(
+              padding: EdgeInsets.only(
+                bottom: Responsive.spacing(context, mobile: 12),
+              ),
+              child: _line(context, config, store, line),
+            ),
+          _giftWrapCard(context, config),
+          SizedBox(height: Responsive.spacing(context, mobile: 16)),
+          AppCard(child: _CartPincode(accent: config.accentColor)),
+          if (config.rules.coupons) ...[
+            SizedBox(height: Responsive.spacing(context, mobile: 20)),
+            CouponSection(
+              subtotal: store.cartSubtotal,
+              appliedCode: store.appliedCoupon?.code,
+              onApply: store.applyCoupon,
+              onRemove: store.removeCoupon,
+            ),
+          ],
+          SizedBox(height: Responsive.spacing(context, mobile: 20)),
+          const Divider(height: 1),
+          SizedBox(height: Responsive.spacing(context, mobile: 16)),
+          OrderSummary(
+            totals: totals,
+            showPrice: config.rules.showPrices,
+            currency: config.currencySymbol,
+            primary: config.primaryColor,
+          ),
+          SizedBox(height: Responsive.spacing(context, mobile: 8)),
+        ],
+      ),
+    );
+  }
+
+  Widget _stickyCta(BuildContext context, BusinessConfig config) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.sm,
+        AppSpacing.lg,
+        AppSpacing.md,
+      ),
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        border: Border(top: BorderSide(color: Theme.of(context).dividerColor)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: AppButton(
+          text: 'Proceed to checkout',
+          isExpanded: true,
+          onPressed: () => context.push('/checkout'),
+        ),
+      ),
+    );
+  }
+
+  Widget _line(
+    BuildContext context,
+    BusinessConfig config,
+    CommerceStore store,
+    CartItem line,
+  ) {
+    final product = store.productFor(line);
+    final available = product?.stock ?? 0;
+    final atLimit =
+        product != null && product.ownerId.isNotEmpty && line.quantity >= available;
+
+    return _CartLine(
+      line: line,
+      product: product,
+      accent: config.accentColor,
+      brandColor: config.primaryColor,
+      fallbackIcon: config.icon,
+      showPrice: config.rules.showPrices,
+      currency: config.currencySymbol,
+      atLimit: atLimit,
+      onIncrement: atLimit ? null : () => store.incrementCart(line.lineKey),
+      onDecrement: () => store.decrementCart(line.lineKey),
+      onRemove: () => store.removeFromCart(line.lineKey),
+      onMove: () => _moveToWishlist(context, store, line),
+    );
+  }
+
+  void _moveToWishlist(BuildContext context, CommerceStore store, CartItem line) {
+    store.removeFromCart(line.lineKey);
+    if (!store.isWishlisted(line.productId)) store.toggleWishlist(line.productId);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Moved to wishlist'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  Widget _giftWrapCard(BuildContext context, BusinessConfig config) {
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Checkbox(
+                value: _giftWrap,
+                activeColor: config.primaryColor,
+                visualDensity: VisualDensity.compact,
+                onChanged: (value) =>
+                    setState(() => _giftWrap = value ?? false),
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  'Gift wrap this order',
+                  style: TextStyle(
+                    fontSize: Responsive.fontSize(context, mobile: 14),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.card_giftcard,
+                size: 18,
+                color: config.accentColor,
+              ),
+            ],
+          ),
+          if (_giftWrap) ...[
+            const SizedBox(height: AppSpacing.sm),
+            TextField(
+              controller: _giftNote,
+              maxLines: 2,
+              minLines: 1,
+              decoration: const InputDecoration(
+                hintText: 'Add a gift note (optional)',
+                isDense: true,
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 
@@ -109,6 +333,29 @@ class CartScreen extends StatelessWidget {
     );
     if (confirmed == true) store.clearCart();
   }
+
+  Widget _empty(
+    BuildContext context,
+    BusinessConfig config,
+    CommerceStore store,
+  ) {
+    return SingleChildScrollView(
+      padding: Responsive.padding(context),
+      child: Column(
+        children: [
+          SizedBox(height: Responsive.spacing(context, mobile: 24)),
+          _EmptyCart(brand: config.primaryColor, icon: config.icon),
+          SizedBox(height: Responsive.spacing(context, mobile: 24)),
+          SectionHeader(
+            title: 'Recommended for you',
+            padding: EdgeInsets.zero,
+          ),
+          SizedBox(height: Responsive.spacing(context, mobile: 12)),
+          ProductRail(products: store.shopProducts.take(6).toList()),
+        ],
+      ),
+    );
+  }
 }
 
 class _CartLine extends StatelessWidget {
@@ -124,6 +371,7 @@ class _CartLine extends StatelessWidget {
     required this.onIncrement,
     required this.onDecrement,
     required this.onRemove,
+    required this.onMove,
   });
 
   final CartItem line;
@@ -137,14 +385,21 @@ class _CartLine extends StatelessWidget {
   final VoidCallback? onIncrement;
   final VoidCallback onDecrement;
   final VoidCallback onRemove;
+  final VoidCallback onMove;
 
   @override
   Widget build(BuildContext context) {
-    final images = product?.images ?? const <String>[];
+    final images = product?.images ?? line.images;
     final name = line.name;
     final qty = line.quantity;
     final lineTotal = line.lineTotal;
     final variant = line.variantLabel;
+    final sku = product?.sku;
+
+    final chips = <String>[
+      if (sku != null && sku.isNotEmpty) sku,
+      if (variant.isNotEmpty) ...variant.split(' · '),
+    ];
 
     return AppCard(
       child: Row(
@@ -208,16 +463,40 @@ class _CartLine extends StatelessWidget {
                     ),
                   ],
                 ),
-                if (variant.isNotEmpty) ...[
-                  const SizedBox(height: 3),
-                  Text(
-                    variant,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: Responsive.fontSize(context, mobile: 11.5),
-                      color: Colors.grey[600],
-                    ),
+                if (chips.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      for (final chip in chips)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context)
+                                .scaffoldBackgroundColor,
+                            border: Border.all(
+                              color: Theme.of(context).dividerColor,
+                            ),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            chip,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: Responsive.fontSize(
+                                context,
+                                mobile: 11,
+                              ),
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ],
                 const SizedBox(height: 8),
@@ -231,11 +510,21 @@ class _CartLine extends StatelessWidget {
                     ),
                     const Spacer(),
                     IconButton(
+                      tooltip: 'Move to wishlist',
+                      visualDensity: VisualDensity.compact,
+                      onPressed: onMove,
+                      icon: Icon(
+                        Icons.favorite_border,
+                        size: 18,
+                        color: Colors.grey[500],
+                      ),
+                    ),
+                    IconButton(
                       tooltip: 'Remove',
                       visualDensity: VisualDensity.compact,
                       onPressed: onRemove,
                       icon: Icon(
-                        Icons.close,
+                        Icons.delete_outline,
                         size: 18,
                         color: Colors.grey[500],
                       ),
@@ -321,148 +610,120 @@ class _Stepper extends StatelessWidget {
   }
 }
 
-class _CartSummary extends StatelessWidget {
-  const _CartSummary({
-    required this.subtotal,
-    required this.showPrice,
-    required this.currency,
-    required this.primary,
-    required this.onCheckout,
-  });
+/// Pincode delivery check for the bag, same six-digit answer as the detail
+/// page: a valid code gives the arrival date, anything else is called out.
+class _CartPincode extends StatefulWidget {
+  const _CartPincode({required this.accent});
 
-  final int subtotal;
-  final bool showPrice;
-  final String currency;
-  final Color primary;
-  final VoidCallback onCheckout;
+  final Color accent;
+
+  @override
+  State<_CartPincode> createState() => _CartPincodeState();
+}
+
+class _CartPincodeState extends State<_CartPincode> {
+  static const _weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  static const _months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+
+  final _controller = TextEditingController();
+  String? _error;
+  String? _deliveryBy;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _check() {
+    final value = _controller.text.trim();
+    if (!RegExp(r'^\d{6}$').hasMatch(value)) {
+      setState(() {
+        _error = 'Enter a 6-digit pincode';
+        _deliveryBy = null;
+      });
+      return;
+    }
+    final eta = DateTime.now().add(const Duration(days: 4));
+    setState(() {
+      _error = null;
+      _deliveryBy =
+          'Delivery by ${_weekdays[eta.weekday - 1]}, ${eta.day} ${_months[eta.month - 1]}';
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final tax = Pricing.tax(subtotal);
-    final shipping = Pricing.shipping(subtotal);
-    final total = Pricing.total(subtotal);
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('Check delivery', style: AppTypography.subtitle),
+        const SizedBox(height: AppSpacing.sm),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _controller,
+                keyboardType: TextInputType.number,
+                onSubmitted: (_) => _check(),
+                decoration: const InputDecoration(
+                  counterText: '',
+                  hintText: 'Enter 6-digit pincode',
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            AppButton(text: 'Check', onPressed: _check),
+          ],
+        ),
+        if (_error != null) ...[
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            _error!,
+            style: AppTypography.caption.copyWith(color: AppPalette.error),
           ),
         ],
-      ),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _row(
-              context,
-              'Subtotal',
-              showPrice
-                  ? Pricing.money(subtotal, currencySymbol: currency)
-                  : 'Contact',
-            ),
-            const SizedBox(height: 6),
-            _row(
-              context,
-              'GST (18%)',
-              showPrice
-                  ? Pricing.money(tax, currencySymbol: currency)
-                  : 'Contact',
-            ),
-            const SizedBox(height: 6),
-            _row(
-              context,
-              'Delivery',
-              !showPrice
-                  ? 'Contact'
-                  : (shipping == 0
-                        ? 'Free'
-                        : Pricing.money(shipping, currencySymbol: currency)),
-            ),
-            if (showPrice && shipping > 0) ...[
-              const SizedBox(height: 4),
-              Align(
-                alignment: Alignment.centerLeft,
+        if (_deliveryBy != null) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Row(
+            children: [
+              Icon(
+                Icons.local_shipping_outlined,
+                size: 15,
+                color: widget.accent,
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              Expanded(
                 child: Text(
-                  'Free delivery on orders above ${Pricing.money(Pricing.freeShippingThreshold, currencySymbol: currency)}',
-                  style: TextStyle(fontSize: 11.5, color: Colors.grey[500]),
+                  _deliveryBy!,
+                  style: AppTypography.caption.copyWith(
+                    color: AppPalette.textSecondary,
+                  ),
                 ),
               ),
             ],
-            const Divider(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Flexible(
-                  child: Text(
-                    'Total',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: Responsive.fontSize(context, mobile: 17),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                Flexible(
-                  child: Text(
-                    showPrice
-                        ? Pricing.money(total, currencySymbol: currency)
-                        : 'Contact for Price',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: Responsive.fontSize(context, mobile: 17),
-                      fontWeight: FontWeight.bold,
-                      color: primary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            AppButton(
-              text: 'Proceed to checkout',
-              isExpanded: true,
-              onPressed: onCheckout,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _row(BuildContext context, String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Flexible(
-          child: Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: Responsive.fontSize(context, mobile: 13.5),
-              color: Colors.grey[600],
-            ),
           ),
-        ),
-        Flexible(
-          child: Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: Responsive.fontSize(context, mobile: 13.5),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
+        ],
       ],
     );
   }
@@ -480,7 +741,7 @@ class _EmptyCart extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: 64, color: Colors.grey[300]),
             const SizedBox(height: 16),

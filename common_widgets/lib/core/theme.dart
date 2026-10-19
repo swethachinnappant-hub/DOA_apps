@@ -101,7 +101,21 @@ class AppTheme {
       textTheme: _textTheme(primary),
       primaryColor: primary,
       splashFactory: InkSparkle.splashFactory,
+      // §11.5: the focus ring on every keyboard-reachable control is copper.
+      focusColor: AppPalette.copper,
       visualDensity: VisualDensity.standard,
+      // Smooth navigation on every platform: mobile-class targets slide in
+      // like iOS (with edge-swipe back); desktop targets rise with a fade.
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.fuchsia: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.windows: FadeUpwardsPageTransitionsBuilder(),
+          TargetPlatform.linux: FadeUpwardsPageTransitionsBuilder(),
+        },
+      ),
       appBarTheme: AppBarTheme(
         backgroundColor: AppPalette.background,
         foregroundColor: AppPalette.textPrimary,

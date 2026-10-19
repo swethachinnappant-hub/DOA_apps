@@ -49,7 +49,7 @@ class CategoryCarousel extends StatefulWidget {
     required this.primaryColor,
     this.accentColor,
     this.itemExtent = 68,
-    this.itemSpacing = AppSpacing.md,
+    this.itemSpacing = 3,
     this.perPage,
     this.autoSlide = true,
     this.interval = AppDurations.carousel,
@@ -62,16 +62,21 @@ class CategoryCarousel extends StatefulWidget {
 }
 
 class _CategoryCarouselState extends State<CategoryCarousel> {
-  late final PageController _controller;
+  /// Repetitions of the page cycle. The viewport starts mid-cycle so the
+  /// rail scrolls forward and backward forever without ever showing a
+  /// blank end page (page 0's content = cycle content).
+  static const int _cycles = 1000;
+
+  PageController? _controller;
   Timer? _timer;
   int _page = 0;
   int _pageCount = 1;
+  int _total = 1;
   bool _dragging = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = PageController(viewportFraction: 1.0);
     if (widget.autoSlide) _startTimer();
   }
 
@@ -90,7 +95,7 @@ class _CategoryCarouselState extends State<CategoryCarousel> {
   @override
   void dispose() {
     _stopTimer();
-    _controller.dispose();
+    _controller?.dispose();
     super.dispose();
   }
 
@@ -106,8 +111,9 @@ class _CategoryCarouselState extends State<CategoryCarousel> {
 
   void _advance() {
     if (!mounted || _dragging || _pageCount <= 1) return;
-    final next = (_page + 1) % _pageCount;
-    _controller.animateToPage(
+    final next = _page + 1;
+    if (next >= _total) return;
+    _controller!.animateToPage(
       next,
       duration: AppDurations.slow,
       curve: Curves.easeInOutCubic,
@@ -133,8 +139,20 @@ class _CategoryCarouselState extends State<CategoryCarousel> {
                     (widget.itemExtent + widget.itemSpacing))
                 .floor()
                 .clamp(3, 5);
-        final perPage = resolved < 1 ? 1 : resolved;
+        // Never show a tile twice on one page (would duplicate a label)
+        // and never leave empty slots (would show white space): the row
+        // shows at most one full set of items, all pages wrap around.
+        final perPage = resolved < 1
+            ? 1
+            : (resolved > widget.items.length
+                  ? widget.items.length
+                  : resolved);
         _pageCount = (widget.items.length / perPage).ceil();
+        _total = _pageCount * _cycles;
+        _controller ??= PageController(
+          viewportFraction: 1.0,
+          initialPage: _total ~/ 2,
+        );
 
         return Column(
           mainAxisSize: MainAxisSize.min,
@@ -155,39 +173,37 @@ class _CategoryCarouselState extends State<CategoryCarousel> {
                 },
                 child: PageView.builder(
                   controller: _controller,
-                  itemCount: _pageCount,
+                  itemCount: _total,
                   onPageChanged: _onPageChanged,
                   physics: const PageScrollPhysics(),
                   padEnds: false,
                   itemBuilder: (context, page) {
                     final start = page * perPage;
-                    final end = (start + perPage).clamp(0, widget.items.length);
-                    final slice = widget.items.sublist(start, end);
+                    final slice = [
+                      for (var i = 0; i < perPage; i++)
+                        widget.items[(start + i) % widget.items.length],
+                    ];
                     return Padding(
                       padding: widget.padding,
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          for (var i = 0; i < perPage; i++) ...[
-                            if (i < slice.length)
-                              Expanded(
-                                child: Padding(
-                                  padding: EdgeInsets.only(
-                                    right: i == perPage - 1
-                                        ? 0
-                                        : widget.itemSpacing,
-                                  ),
-                                  child: _CategoryCircle(
-                                    item: slice[i],
-                                    diameter: widget.itemExtent,
-                                    primaryColor: widget.primaryColor,
-                                    accentColor: widget.accentColor,
-                                  ),
+                          for (var i = 0; i < perPage; i++)
+                            Expanded(
+                              child: Padding(
+                                padding: EdgeInsets.only(
+                                  right: i == perPage - 1
+                                      ? 0
+                                      : widget.itemSpacing,
                                 ),
-                              )
-                            else
-                              const Expanded(child: SizedBox.shrink()),
-                          ],
+                                child: _CategoryTile(
+                                  item: slice[i],
+                                  height: widget.itemExtent,
+                                  primaryColor: widget.primaryColor,
+                                  accentColor: widget.accentColor,
+                                ),
+                              ),
+                            ),
                         ],
                       ),
                     );
@@ -199,7 +215,7 @@ class _CategoryCarouselState extends State<CategoryCarousel> {
               const SizedBox(height: AppSpacing.xs),
               _Indicator(
                 count: _pageCount,
-                active: _page,
+                active: _page % _pageCount,
                 color: widget.primaryColor,
               ),
             ],
@@ -210,15 +226,15 @@ class _CategoryCarouselState extends State<CategoryCarousel> {
   }
 }
 
-class _CategoryCircle extends StatelessWidget {
+class _CategoryTile extends StatelessWidget {
   final CategoryCarouselItem item;
-  final double diameter;
+  final double height;
   final Color primaryColor;
   final Color? accentColor;
 
-  const _CategoryCircle({
+  const _CategoryTile({
     required this.item,
-    required this.diameter,
+    required this.height,
     required this.primaryColor,
     this.accentColor,
   });
@@ -231,56 +247,59 @@ class _CategoryCircle extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
-            width: diameter,
-            height: diameter,
+            height: height,
             decoration: BoxDecoration(
-              shape: BoxShape.circle,
+              borderRadius: AppRadius.allMd,
               color: tint,
               border: Border.all(
                 color: primaryColor.withValues(alpha: 0.18),
                 width: 1,
               ),
             ),
+            clipBehavior: Clip.antiAlias,
             alignment: Alignment.center,
             child: item.imageUrl != null
-                ? ClipOval(
-                    child: item.imageUrl!.startsWith('assets/')
-                        ? Image.asset(
-                            item.imageUrl!,
-                            width: diameter,
-                            height: diameter,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => _imageFallback(tint),
-                          )
-                        : Image.network(
-                            item.imageUrl!,
-                            width: diameter,
-                            height: diameter,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => _imageFallback(tint),
-                          ),
-                  )
+                ? (item.imageUrl!.startsWith('assets/')
+                      ? Image.asset(
+                          item.imageUrl!,
+                          width: double.infinity,
+                          height: height,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, _, _) => _imageFallback(tint),
+                        )
+                      : Image.network(
+                          item.imageUrl!,
+                          width: double.infinity,
+                          height: height,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, _, _) => _imageFallback(tint),
+                        ))
                 : item.icon != null
-                ? Icon(item.icon, size: diameter * 0.42, color: primaryColor)
+                ? Icon(item.icon, size: height * 0.42, color: primaryColor)
                 : Text(
                     item.emoji ?? '',
-                    style: TextStyle(fontSize: diameter * 0.40),
+                    style: TextStyle(fontSize: height * 0.40),
                     textAlign: TextAlign.center,
                   ),
           ),
           const SizedBox(height: AppSpacing.xs),
-          Text(
-            item.label,
-            textAlign: TextAlign.center,
-            maxLines: _labelMaxLines,
-            overflow: TextOverflow.ellipsis,
-            style: AppTypography.caption.copyWith(
-              fontSize: _labelFontSize,
-              fontWeight: FontWeight.w500,
-              color: AppPalette.textPrimary,
-              height: _labelLineHeight,
+          // §11.5: keep the label inside the fixed cell even when
+          // Dynamic Type doubles the font — it shrinks and ellipsizes.
+          Flexible(
+            child: Text(
+              item.label,
+              textAlign: TextAlign.center,
+              maxLines: _labelMaxLines,
+              overflow: TextOverflow.ellipsis,
+              style: AppTypography.caption.copyWith(
+                fontSize: _labelFontSize,
+                fontWeight: FontWeight.w500,
+                color: AppPalette.textPrimary,
+                height: _labelLineHeight,
+              ),
             ),
           ),
         ],
@@ -292,10 +311,10 @@ class _CategoryCircle extends StatelessWidget {
     color: tint,
     alignment: Alignment.center,
     child: item.icon != null
-        ? Icon(item.icon, size: diameter * 0.42, color: primaryColor)
+        ? Icon(item.icon, size: height * 0.42, color: primaryColor)
         : Text(
             item.emoji ?? '',
-            style: TextStyle(fontSize: diameter * 0.40),
+            style: TextStyle(fontSize: height * 0.40),
             textAlign: TextAlign.center,
           ),
   );
@@ -367,9 +386,9 @@ class CategoryGrid extends StatelessWidget {
         mainAxisSpacing: AppSpacing.lg,
         childAspectRatio: 0.70,
       ),
-      itemBuilder: (context, index) => _CategoryCircle(
+      itemBuilder: (context, index) => _CategoryTile(
         item: items[index],
-        diameter: itemExtent,
+        height: itemExtent,
         primaryColor: primaryColor,
         accentColor: accentColor,
       ),

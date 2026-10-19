@@ -228,6 +228,11 @@ class Order {
   final String paymentMethod;
   final String deliveryAddress;
 
+  /// Coupon redeemed on this order, if any — the seller console's redemption
+  /// counts and the customer's order summary both read these (SPEC-18).
+  final String? couponCode;
+  final int couponDiscount;
+
   /// GST at 18%, the rate the rest of the app already assumes.
   static const double taxRate = 0.18;
 
@@ -243,16 +248,18 @@ class Order {
     this.updatedAt,
     this.paymentMethod = 'UPI',
     this.deliveryAddress = '',
+    this.couponCode,
+    this.couponDiscount = 0,
   });
 
   int get subtotal =>
       items.fold<int>(0, (sum, item) => sum + item.lineTotal);
 
-  int get tax => (subtotal * taxRate).round();
+  int get tax => ((subtotal - couponDiscount) * taxRate).round();
 
   int get shipping => subtotal >= 999 ? 0 : 79;
 
-  int get total => subtotal + tax + shipping;
+  int get total => subtotal - couponDiscount + tax + shipping;
 
   int get itemCount => items.fold<int>(0, (sum, item) => sum + item.quantity);
 
@@ -292,6 +299,8 @@ class Order {
       updatedAt: stamped,
       paymentMethod: paymentMethod ?? this.paymentMethod,
       deliveryAddress: deliveryAddress ?? this.deliveryAddress,
+      couponCode: couponCode,
+      couponDiscount: couponDiscount,
     );
   }
 
@@ -330,6 +339,8 @@ class Order {
         'updatedAt': updatedAt?.toIso8601String(),
         'paymentMethod': paymentMethod,
         'deliveryAddress': deliveryAddress,
+        'couponCode': couponCode,
+        'couponDiscount': couponDiscount,
       };
 
   factory Order.fromJson(Map<String, Object?> json) => Order(
@@ -347,5 +358,7 @@ class Order {
         updatedAt: DateTime.tryParse(json['updatedAt'] as String? ?? ''),
         paymentMethod: json['paymentMethod'] as String? ?? 'UPI',
         deliveryAddress: json['deliveryAddress'] as String? ?? '',
+        couponCode: json['couponCode'] as String?,
+        couponDiscount: (json['couponDiscount'] as num?)?.toInt() ?? 0,
       );
 }

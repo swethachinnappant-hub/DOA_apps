@@ -1,8 +1,13 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 
+import '../catalog_repository.dart';
 import '../models/cart.dart';
+import '../models/cart_totals.dart';
+import '../models/cms.dart';
+import '../models/coupon.dart';
 import '../models/notification.dart';
 import '../models/order.dart';
+import '../navigation/menu_data.dart';
 import '../product.dart';
 import '../services/realtime_service.dart';
 
@@ -12,10 +17,31 @@ import '../services/realtime_service.dart';
 /// edit and a buyer's catalogue view must never disagree. Every mutation
 /// publishes to [RealtimeService] so the other role updates with no refresh.
 class CommerceStore extends ChangeNotifier {
-  CommerceStore({RealtimeService? realtime})
-      : _realtime = realtime ?? RealtimeService.instance;
+  CommerceStore({RealtimeService? realtime, CatalogRepository? repository})
+      : _realtime = realtime ?? RealtimeService.instance,
+        _repository = repository,
+        _navHeaderKeys = [
+          for (final menu in StoreNav.desktopOrder) menu.route,
+        ],
+        _navDrawerKeys = [
+          for (final menu in StoreNav.drawerOrder) menu.route,
+        ],
+        _coupons = List.of(defaultCoupons),
+        _collections = [
+          for (var i = 0; i < StoreNav.collections.tiles.length; i++)
+            ShopCollection(
+              id: StoreNav.collections.tiles[i].route
+                  .replaceAll(RegExp(r'^/+|/+$'), ''),
+              name: StoreNav.collections.tiles[i].label,
+              route: StoreNav.collections.tiles[i].route,
+            ),
+        ],
+        _customers = List.of(_defaultCustomers);
 
   final RealtimeService _realtime;
+
+  /// Saves CMS edits when set (SPEC-18); null keeps everything in memory.
+  final CatalogRepository? _repository;
 
   final List<Product> _products = [];
   final List<Order> _orders = [];
@@ -92,6 +118,37 @@ class CommerceStore extends ChangeNotifier {
   /// or repriced since the line was added.
   Product? productFor(CartItem item) => productById(item.productId);
 
+  // ---------------------------------------------------------- recent views
+
+  static const int _maxRecentlyViewed = 10;
+
+  final List<String> _recentlyViewedIds = [];
+
+  /// Detail pages in the order they were last opened, newest first, for the
+  /// "Recently viewed" rail.
+  List<Product> get recentlyViewed {
+    final out = <Product>[];
+    for (final id in _recentlyViewedIds) {
+      final product = productById(id);
+      if (product != null) out.add(product);
+    }
+    return out;
+  }
+
+  /// Records a detail-page view. Deliberately does not notify listeners: it
+  /// runs during the screen's `initState`, and the rail that reads it renders
+  /// in that same first frame.
+  void recordView(String productId) {
+    _recentlyViewedIds.remove(productId);
+    _recentlyViewedIds.insert(0, productId);
+    if (_recentlyViewedIds.length > _maxRecentlyViewed) {
+      _recentlyViewedIds.removeRange(
+        _maxRecentlyViewed,
+        _recentlyViewedIds.length,
+      );
+    }
+  }
+
   List<CartItem> get cartProducts => _cart
       .where((item) => productFor(item) != null)
       .toList(growable: false);
@@ -101,6 +158,128 @@ class CommerceStore extends ChangeNotifier {
   int get cartCount => _cart.fold<int>(0, (sum, l) => sum + l.quantity);
 
   bool get isCartEmpty => _cart.isEmpty;
+
+  // --------------------------------------------------------------- coupons
+
+  /// The coupons a fresh store starts with (SPEC-18); the live list is
+  /// [coupons], which the owner console edits.
+  static const List<Coupon> defaultCoupons = [
+    Coupon(
+      code: 'HOPE500',
+      flatOffInr: 500,
+      minSubtotal: 95900,
+      description: 'Flat ₹500 off on orders above ₹95,900',
+    ),
+    Coupon(
+      code: 'DIAMOND200',
+      flatOffInr: 200,
+      minSubtotal: 49900,
+      description: 'Flat ₹200 off on orders above ₹49,900',
+    ),
+    Coupon(
+      code: 'GIFT1000',
+      flatOffInr: 1000,
+      minSubtotal: 149900,
+      description: 'Flat ₹1,000 off on orders above ₹1,49,900',
+    ),
+  ];
+
+  final List<Coupon> _coupons;
+
+  Coupon? _appliedCoupon;
+
+  List<Coupon> get coupons => List.unmodifiable(_coupons);
+
+  Coupon? get appliedCoupon => _appliedCoupon;
+
+  Coupon? couponByCode(String code) {
+    for (final c in _coupons) {
+      if (c.code.toUpperCase() == code.trim().toUpperCase()) return c;
+    }
+    return null;
+  }
+
+  bool isCouponEligible(Coupon coupon) =>
+      coupon.isLive &&
+      !coupon.isExhausted &&
+      !isCartEmpty &&
+      coupon.isSatisfiedBy(cartSubtotal);
+
+  /// Adds a coupon or replaces the one with the same code (case-insensitive).
+  void upsertCoupon(Coupon coupon) {
+    final index =
+        _coupons.indexWhere((c) => c.code.toUpperCase() == coupon.code.toUpperCase());
+    if (index == -1) {
+      _coupons.insert(0, coupon);
+    } else {
+      _coupons[index] = coupon;
+    }
+    _revalidateCoupon();
+    notifyListeners();
+    _persist();
+  }
+
+  void removeCouponCode(String code) {
+    final index =
+        _coupons.indexWhere((c) => c.code.toUpperCase() == code.trim().toUpperCase());
+    if (index == -1) return;
+    _coupons.removeAt(index);
+    if (_appliedCoupon?.code.toUpperCase() == code.trim().toUpperCase()) {
+      _appliedCoupon = null;
+    }
+    notifyListeners();
+    _persist();
+  }
+
+  int get couponDiscount {
+    final coupon = _appliedCoupon;
+    if (coupon == null) return 0;
+    return coupon.isSatisfiedBy(cartSubtotal) ? coupon.flatOffInr : 0;
+  }
+
+  CartTotals get cartTotals =>
+      CartTotals.compute(subtotal: cartSubtotal, coupon: _appliedCoupon);
+
+  bool applyCoupon(String code) {
+    final coupon = couponByCode(code);
+    if (coupon == null || !isCouponEligible(coupon)) return false;
+    _appliedCoupon = coupon;
+    notifyListeners();
+    return true;
+  }
+
+  void removeCoupon() {
+    if (_appliedCoupon == null) return;
+    _appliedCoupon = null;
+    notifyListeners();
+  }
+
+  void _revalidateCoupon() {
+    final coupon = _appliedCoupon;
+    if (coupon == null) return;
+    if (!coupon.isLive || isCartEmpty || !coupon.isSatisfiedBy(cartSubtotal)) {
+      _appliedCoupon = null;
+    }
+  }
+
+  // ---------------------------------------------------------------- search
+
+  List<Product> search(String query) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return const [];
+    return shopProducts
+        .where(
+          (p) => <String>[
+            p.name,
+            p.brand,
+            p.sku,
+            p.category,
+            p.description,
+            ...p.specs.values,
+          ].any((value) => value.toLowerCase().contains(q)),
+        )
+        .toList();
+  }
 
   // ------------------------------------------------------------- wishlist
 
@@ -265,6 +444,7 @@ class CommerceStore extends ChangeNotifier {
         quantity: _cart[index].quantity + quantity,
       );
     }
+    _revalidateCoupon();
     notifyListeners();
     return _cart.firstWhere((l) => l.lineKey == item.lineKey).quantity;
   }
@@ -279,6 +459,7 @@ class CommerceStore extends ChangeNotifier {
     } else {
       _cart[index] = _cart[index].copyWith(quantity: quantity);
     }
+    _revalidateCoupon();
     notifyListeners();
   }
 
@@ -296,11 +477,13 @@ class CommerceStore extends ChangeNotifier {
 
   void removeFromCart(String lineKey) {
     _cart.removeWhere((l) => l.lineKey == lineKey);
+    _revalidateCoupon();
     notifyListeners();
   }
 
   void clearCart() {
     _cart.clear();
+    _appliedCoupon = null;
     notifyListeners();
   }
 
@@ -318,6 +501,11 @@ class CommerceStore extends ChangeNotifier {
     String paymentMethod = 'UPI',
   }) {
     if (_cart.isEmpty) return null;
+
+    // Captured before the cart clears: the order records what was redeemed
+    // and the coupon's usage count ticks up (SPEC-18).
+    final redeemed = _appliedCoupon;
+    final redeemedDiscount = redeemed == null ? 0 : couponDiscount;
 
     final byOwner = <String, List<CartItem>>{};
     for (final item in _cart) {
@@ -338,6 +526,10 @@ class CommerceStore extends ChangeNotifier {
         placedAt: DateTime.now(),
         paymentMethod: paymentMethod,
         deliveryAddress: deliveryAddress,
+        // A split cart creates one order per seller; the redemption is
+        // recorded once, on the first of them.
+        couponCode: created.isEmpty ? redeemed?.code : null,
+        couponDiscount: created.isEmpty ? redeemedDiscount : 0,
       );
 
       _orders.add(order);
@@ -386,6 +578,16 @@ class CommerceStore extends ChangeNotifier {
     }
 
     _cart.clear();
+    if (redeemed != null) {
+      final index =
+          _coupons.indexWhere((c) => c.code.toUpperCase() == redeemed.code.toUpperCase());
+      if (index != -1) {
+        _coupons[index] = _coupons[index]
+            .copyWith(usedCount: _coupons[index].usedCount + 1);
+      }
+      _appliedCoupon = null;
+      _persist();
+    }
     notifyListeners();
     return created.first;
   }
@@ -474,6 +676,582 @@ class CommerceStore extends ChangeNotifier {
     );
     notifyListeners();
   }
+
+  // --------------------------------------------------- CMS state (SPEC-18)
+  //
+  // Everything below is the owner console's editable storefront config.
+  // Reads resolve over the static §4 defaults so an untouched store renders
+  // exactly the verified live site; every mutation notifies listeners (the
+  // customer side reflects with no restart) and persists via the repository.
+
+  // --- navigation tree
+
+  final List<String> _navHeaderKeys;
+  final List<String> _navDrawerKeys;
+  final Map<String, NavMenuState> _navPatches = {};
+
+  static final Map<String, NavMenu> _navByRoute = {
+    for (final menu in [...StoreNav.desktopOrder, ...StoreNav.drawerOrder])
+      menu.route: menu,
+  };
+
+  List<String> get navHeaderKeys => List.unmodifiable(_navHeaderKeys);
+
+  List<String> get navDrawerKeys => List.unmodifiable(_navDrawerKeys);
+
+  NavMenuState navPatchFor(String route) =>
+      _navPatches[route] ?? const NavMenuState();
+
+  /// The desktop top-nav with the owner's label/icon/visibility edits applied.
+  List<NavMenu> get headerMenus => _resolveNav(_navHeaderKeys);
+
+  /// The mobile drawer, likewise.
+  List<NavMenu> get drawerMenus => _resolveNav(_navDrawerKeys);
+
+  /// Every menu in a stable order — the editor's "add" picker draws from
+  /// this, so a menu hidden in one view can still be placed in the other.
+  List<NavMenu> get allMenus {
+    final seen = <String>{};
+    final out = <NavMenu>[];
+    for (final menu in [...StoreNav.desktopOrder, ...StoreNav.drawerOrder]) {
+      if (seen.add(menu.route)) out.add(menu);
+    }
+    return out;
+  }
+
+  List<NavMenu> _resolveNav(List<String> keys) {
+    final out = <NavMenu>[];
+    for (final route in keys) {
+      final base = _navByRoute[route];
+      if (base == null) continue;
+      final patch = _navPatches[route];
+      if (patch != null && !patch.visible) continue;
+      out.add(_applyNavPatch(base, patch));
+    }
+    return out;
+  }
+
+  static NavMenu _applyNavPatch(NavMenu base, NavMenuState? patch) => NavMenu(
+        label: patch?.label ?? base.label,
+        route: base.route,
+        icon: navIconFor(patch?.iconCode, base.icon),
+        categories: base.categories,
+        groups: base.groups,
+        tiles: base.tiles,
+      );
+
+  void _mutatePatch(String route, NavMenuState Function(NavMenuState) update) {
+    final next = update(_navPatches[route] ?? const NavMenuState());
+    final isDefault = next.label == null && next.iconCode == null && next.visible;
+    if (isDefault) {
+      _navPatches.remove(route);
+    } else {
+      _navPatches[route] = next;
+    }
+    notifyListeners();
+    _persist();
+  }
+
+  /// Empty [label] clears the override and reverts to the built-in text.
+  void setNavLabel(String route, String label) {
+    final trimmed = label.trim();
+    _mutatePatch(
+      route,
+      (p) => NavMenuState(
+        label: trimmed.isEmpty ? null : trimmed,
+        iconCode: p.iconCode,
+        visible: p.visible,
+      ),
+    );
+  }
+
+  /// [codePoint] 0 clears the override and reverts to the built-in icon.
+  void setNavIcon(String route, int codePoint) => _mutatePatch(
+        route,
+        (p) => NavMenuState(
+          label: p.label,
+          iconCode: codePoint == 0 ? null : codePoint,
+          visible: p.visible,
+        ),
+      );
+
+  void setNavVisible(String route, bool visible) => _mutatePatch(
+        route,
+        (p) => NavMenuState(
+          label: p.label,
+          iconCode: p.iconCode,
+          visible: visible,
+        ),
+      );
+
+  List<String> _navKeysFor(String view) =>
+      view == 'header' ? _navHeaderKeys : _navDrawerKeys;
+
+  void moveNavEntry(String view, int index, int delta) {
+    final keys = _navKeysFor(view);
+    final target = index + delta;
+    if (target < 0 || target >= keys.length || index == target) return;
+    final item = keys.removeAt(index);
+    keys.insert(target, item);
+    notifyListeners();
+    _persist();
+  }
+
+  void appendNavEntry(String view, String route) {
+    final keys = _navKeysFor(view);
+    if (!_navByRoute.containsKey(route) || keys.contains(route)) return;
+    keys.add(route);
+    notifyListeners();
+    _persist();
+  }
+
+  void removeNavEntry(String view, String route) {
+    final keys = _navKeysFor(view);
+    if (!keys.remove(route)) return;
+    notifyListeners();
+    _persist();
+  }
+
+  void resetNav() {
+    _navHeaderKeys
+      ..clear()
+      ..addAll([for (final m in StoreNav.desktopOrder) m.route]);
+    _navDrawerKeys
+      ..clear()
+      ..addAll([for (final m in StoreNav.drawerOrder) m.route]);
+    _navPatches.clear();
+    notifyListeners();
+    _persist();
+  }
+
+  // --- home layout
+
+  List<String> _homeOrder = const [];
+  final Set<String> _homeHidden = {};
+
+  List<String> get homeSectionOrder => List.unmodifiable(_homeOrder);
+
+  Set<String> get homeSectionHidden => Set.unmodifiable(_homeHidden);
+
+  bool get hasHomeEdits =>
+      _homeOrder.isNotEmpty || _homeHidden.isNotEmpty;
+
+  /// Records the default section ids the first time the builder opens, so
+  /// moves start from exactly what the customer sees now.
+  void ensureHomeOrder(List<String> standardIds) {
+    if (_homeOrder.isNotEmpty || standardIds.isEmpty) return;
+    _homeOrder = List.of(standardIds);
+    notifyListeners();
+  }
+
+  void moveHomeSection(int index, int delta) {
+    final target = index + delta;
+    if (_homeOrder.isEmpty ||
+        target < 0 ||
+        target >= _homeOrder.length ||
+        target == index) {
+      return;
+    }
+    final item = _homeOrder.removeAt(index);
+    _homeOrder.insert(target, item);
+    notifyListeners();
+    _persist();
+  }
+
+  void setHomeSectionVisible(String id, bool visible) {
+    if (visible) {
+      _homeHidden.remove(id);
+    } else {
+      _homeHidden.add(id);
+    }
+    notifyListeners();
+    _persist();
+  }
+
+  void resetHomeLayout() {
+    _homeOrder = const [];
+    _homeHidden.clear();
+    notifyListeners();
+    _persist();
+  }
+
+  // --- hero slides
+
+  List<HeroSlide>? _heroSlides;
+
+  /// The owner's explicit slides, or null while the config-derived default
+  /// carousel is in charge.
+  List<HeroSlide>? get heroSlides =>
+      _heroSlides == null ? null : List.unmodifiable(_heroSlides!);
+
+  bool get hasHeroEdits => _heroSlides != null;
+
+  void setHeroSlides(List<HeroSlide> slides) {
+    _heroSlides = List.of(slides);
+    notifyListeners();
+    _persist();
+  }
+
+  void resetHeroSlides() {
+    if (_heroSlides == null) return;
+    _heroSlides = null;
+    notifyListeners();
+    _persist();
+  }
+
+  // --- collections
+
+  final List<ShopCollection> _collections;
+
+  List<ShopCollection> get collections => List.unmodifiable(_collections);
+
+  List<ShopCollection> get visibleCollections =>
+      _collections.where((c) => c.visible).toList();
+
+  ShopCollection? collectionById(String id) {
+    for (final c in _collections) {
+      if (c.id == id) return c;
+    }
+    return null;
+  }
+
+  void upsertCollection(ShopCollection collection) {
+    if (collection.id.isEmpty) return;
+    final index = _collections.indexWhere((c) => c.id == collection.id);
+    if (index == -1) {
+      _collections.add(collection);
+    } else {
+      _collections[index] = collection;
+    }
+    notifyListeners();
+    _persist();
+  }
+
+  void removeCollection(String id) {
+    if (!_collections.any((c) => c.id == id)) return;
+    _collections.removeWhere((c) => c.id == id);
+    notifyListeners();
+    _persist();
+  }
+
+  void moveCollection(int index, int delta) {
+    final target = index + delta;
+    if (target < 0 || target >= _collections.length || target == index) return;
+    final item = _collections.removeAt(index);
+    _collections.insert(target, item);
+    notifyListeners();
+    _persist();
+  }
+
+  /// A free id derived from [seed] (route or name), `col-2` style fallback.
+  String collectionIdFor(String seed) {
+    var base = seed
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'^/+'), '')
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '-');
+    base = base.replaceAll(RegExp(r'^-+|-+$'), '');
+    if (base.isEmpty) base = 'collection';
+    var candidate = base;
+    var suffix = 2;
+    while (_collections.any((c) => c.id == candidate)) {
+      candidate = '$base-$suffix';
+      suffix++;
+    }
+    return candidate;
+  }
+
+  // --- daily metal rates (SPEC-18 / SPEC-19)
+
+  // Demo-start board: the storefront shows these from first launch so the
+  // rate strip never sits empty; the owner's save replaces them.
+  static const int defaultGoldRateInrPerGram = 7250;
+  static const int defaultSilverRateInrPerGram = 89;
+  static const int defaultPlatinumRateInrPerGram = 3100;
+
+  int? _goldRateInrPerGram = defaultGoldRateInrPerGram;
+  int? _silverRateInrPerGram = defaultSilverRateInrPerGram;
+  int? _platinumRateInrPerGram = defaultPlatinumRateInrPerGram;
+  DateTime? _ratesUpdatedAt;
+
+  int? get goldRateInrPerGram => _goldRateInrPerGram;
+
+  int? get silverRateInrPerGram => _silverRateInrPerGram;
+
+  int? get platinumRateInrPerGram => _platinumRateInrPerGram;
+
+  DateTime? get ratesUpdatedAt => _ratesUpdatedAt;
+
+  bool get hasRates =>
+      _goldRateInrPerGram != null ||
+      _silverRateInrPerGram != null ||
+      _platinumRateInrPerGram != null;
+
+  /// 0 or less clears that metal's rate.
+  void setRates({
+    required int goldPerGram,
+    required int platinumPerGram,
+    int silverPerGram = 0,
+    DateTime? at,
+  }) {
+    _goldRateInrPerGram = goldPerGram > 0 ? goldPerGram : null;
+    _silverRateInrPerGram = silverPerGram > 0 ? silverPerGram : null;
+    _platinumRateInrPerGram = platinumPerGram > 0 ? platinumPerGram : null;
+    final anySet = hasRates;
+    _ratesUpdatedAt = anySet ? (at ?? DateTime.now()) : null;
+    notifyListeners();
+    _persist();
+  }
+
+  // --- customers & loyalty (SPEC-18)
+
+  static final List<ShopCustomer> _defaultCustomers = [
+    ShopCustomer(
+      id: 'cus-asha',
+      name: 'Asha Patel',
+      phone: '+91 98450 12345',
+      email: 'asha.patel@example.com',
+      points: 1250,
+      joinedAt: DateTime(2025, 11, 12),
+    ),
+    ShopCustomer(
+      id: 'cus-rahul',
+      name: 'Rahul Mehta',
+      phone: '+91 98765 23456',
+      email: 'rahul.mehta@example.com',
+      points: 480,
+      joinedAt: DateTime(2026, 1, 8),
+    ),
+    ShopCustomer(
+      id: 'cus-divya',
+      name: 'Divya Iyer',
+      phone: '+91 99001 34567',
+      email: 'divya.iyer@example.com',
+      points: 2100,
+      joinedAt: DateTime(2026, 3, 21),
+    ),
+  ];
+
+  final List<ShopCustomer> _customers;
+  final List<LoyaltyAdjustment> _loyaltyLedger = [];
+
+  /// Seeded customers first, then buyers seen only in orders (as `auto-…`
+  /// rows that gain full details once loyalty is adjusted for them).
+  List<ShopCustomer> get customers {
+    final out = <ShopCustomer>[..._customers];
+    final seen = {for (final c in _customers) _nameKey(c.name)};
+    for (final order in _orders) {
+      final key = _nameKey(order.customerName);
+      if (key.isEmpty || !seen.add(key)) continue;
+      out.add(ShopCustomer(
+        id: 'auto-$key',
+        name: order.customerName,
+        joinedAt: order.placedAt,
+      ));
+    }
+    return out;
+  }
+
+  static String _nameKey(String name) =>
+      name.trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '');
+
+  ShopCustomer? customerById(String id) {
+    for (final c in customers) {
+      if (c.id == id) return c;
+    }
+    return null;
+  }
+
+  /// Positive [delta] awards points, negative deducts; the ledger records why.
+  void adjustLoyalty(String customerId, int delta, String reason) {
+    if (delta == 0) return;
+    var index = _customers.indexWhere((c) => c.id == customerId);
+    ShopCustomer base;
+    if (index != -1) {
+      base = _customers[index];
+    } else {
+      final derived = customerById(customerId);
+      if (derived == null) return;
+      base = derived;
+    }
+    final updated = base.copyWith(
+      points: base.points + delta < 0 ? 0 : base.points + delta,
+    );
+    if (index != -1) {
+      _customers[index] = updated;
+    } else {
+      _customers.add(updated);
+      index = _customers.length - 1;
+    }
+    _loyaltyLedger.insert(
+      0,
+      LoyaltyAdjustment(
+        customerId: customerId,
+        delta: delta,
+        reason: reason.trim().isEmpty ? 'Manual adjustment' : reason.trim(),
+        at: DateTime.now(),
+      ),
+    );
+    if (_loyaltyLedger.length > 200) {
+      _loyaltyLedger.removeRange(200, _loyaltyLedger.length);
+    }
+    notifyListeners();
+    _persist();
+  }
+
+  List<LoyaltyAdjustment> loyaltyLedgerFor(String customerId) =>
+      _loyaltyLedger.where((e) => e.customerId == customerId).toList();
+
+  // --- persistence (CatalogRepository)
+
+  Future<void> _pendingWrite = Future<void>.value();
+
+  /// Awaits any in-flight CMS save; tests and shutdown call this.
+  Future<void> flushCms() => _pendingWrite;
+
+  Future<void> loadCms() async {
+    final repo = _repository;
+    if (repo == null) return;
+    try {
+      final data = await repo.read();
+      if (data == null) return;
+      _decodeCms(data);
+      notifyListeners();
+    } catch (_) {
+      // Corrupt or partial state falls back to the verified defaults.
+    }
+  }
+
+  void _persist() {
+    final repo = _repository;
+    if (repo == null) return;
+    final payload = _encodeCms();
+    _pendingWrite = _pendingWrite
+        .then((_) => repo.write(payload))
+        .catchError((Object _) {});
+  }
+
+  Map<String, Object?> _encodeCms() => {
+        'v': 1,
+        'navHeaderKeys': _navHeaderKeys,
+        'navDrawerKeys': _navDrawerKeys,
+        'navPatches': {
+          for (final entry in _navPatches.entries)
+            entry.key: entry.value.toJson(),
+        },
+        'homeOrder': _homeOrder,
+        'homeHidden': _homeHidden.toList(),
+        if (_heroSlides != null)
+          'heroSlides': [for (final s in _heroSlides!) s.toJson()],
+        'collections': [for (final c in _collections) c.toJson()],
+        'coupons': [for (final c in _coupons) c.toJson()],
+        'goldRate': _goldRateInrPerGram,
+        'silverRate': _silverRateInrPerGram,
+        'platinumRate': _platinumRateInrPerGram,
+        'ratesUpdatedAt': _ratesUpdatedAt?.toIso8601String(),
+        'customers': [for (final c in _customers) c.toJson()],
+        'loyalty': [for (final e in _loyaltyLedger) e.toJson()],
+      };
+
+  void _decodeCms(Map<String, Object?> data) {
+    final header =
+        _stringList(data['navHeaderKeys']).where(_navByRoute.containsKey);
+    if (header.isNotEmpty) {
+      _navHeaderKeys
+        ..clear()
+        ..addAll(header);
+    }
+    final drawer =
+        _stringList(data['navDrawerKeys']).where(_navByRoute.containsKey);
+    if (drawer.isNotEmpty) {
+      _navDrawerKeys
+        ..clear()
+        ..addAll(drawer);
+    }
+
+    _navPatches.clear();
+    final patches = _jsonMap(data['navPatches']);
+    for (final entry in patches.entries) {
+      if (!_navByRoute.containsKey(entry.key)) continue;
+      _navPatches[entry.key] =
+          NavMenuState.fromJson(_jsonMap(entry.value));
+    }
+
+    if (data['homeOrder'] is List) {
+      _homeOrder = _stringList(data['homeOrder']);
+    }
+    _homeHidden
+      ..clear()
+      ..addAll(_stringList(data['homeHidden']));
+
+    if (data['heroSlides'] is List) {
+      _heroSlides = [
+        for (final raw in _jsonList(data['heroSlides']))
+          HeroSlide.fromJson(raw),
+      ];
+    }
+
+    if (data['collections'] is List) {
+      _collections
+        ..clear()
+        ..addAll([
+          for (final raw in _jsonList(data['collections']))
+            ShopCollection.fromJson(raw),
+        ]);
+    }
+
+    if (data['coupons'] is List) {
+      _coupons
+        ..clear()
+        ..addAll([
+          for (final raw in _jsonList(data['coupons'])) Coupon.fromJson(raw),
+        ]);
+      _revalidateCoupon();
+    }
+
+    // Keys are only overwritten when present so a payload saved before a
+    // metal existed keeps this store's demo-start board value.
+    if (data.containsKey('goldRate')) {
+      _goldRateInrPerGram = (data['goldRate'] as num?)?.toInt();
+    }
+    if (data.containsKey('silverRate')) {
+      _silverRateInrPerGram = (data['silverRate'] as num?)?.toInt();
+    }
+    if (data.containsKey('platinumRate')) {
+      _platinumRateInrPerGram = (data['platinumRate'] as num?)?.toInt();
+    }
+    if (data.containsKey('ratesUpdatedAt')) {
+      _ratesUpdatedAt =
+          DateTime.tryParse(data['ratesUpdatedAt'] as String? ?? '');
+    }
+
+    if (data['customers'] is List) {
+      _customers
+        ..clear()
+        ..addAll([
+          for (final raw in _jsonList(data['customers']))
+            ShopCustomer.fromJson(raw),
+        ]);
+    }
+    _loyaltyLedger
+      ..clear()
+      ..addAll([
+        for (final raw in _jsonList(data['loyalty']))
+          LoyaltyAdjustment.fromJson(raw),
+      ]);
+  }
+
+  static List<String> _stringList(Object? value) =>
+      (value as List? ?? const []).whereType<String>().toList();
+
+  static Map<String, Object?> _jsonMap(Object? value) =>
+      value is Map ? value.cast<String, Object?>() : const {};
+
+  static List<Map<String, Object?>> _jsonList(Object? value) =>
+      (value as List? ?? const [])
+          .whereType<Map>()
+          .map((e) => e.cast<String, Object?>())
+          .toList();
 
   // ---------------------------------------------------------------- helpers
 

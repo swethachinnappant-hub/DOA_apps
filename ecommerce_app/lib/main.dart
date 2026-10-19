@@ -3,12 +3,14 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'core/catalog_repository.dart';
 import 'core/demo_catalog.dart';
 import 'core/router/app_router.dart';
 import 'core/services/screenshot_protection_service.dart';
 import 'core/store/commerce_store.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'features/config/providers/business_config_provider.dart';
+import 'features/search/search_overlay.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -51,7 +53,8 @@ class _EcommerceAppState extends State<EcommerceApp> {
     super.initState();
     _configProvider = BusinessConfigProvider()..load();
     _authProvider = AuthProvider()..restore();
-    _store = CommerceStore();
+    _store = CommerceStore(repository: const LocalCatalogRepository())
+      ..loadCms();
     _router = buildAppRouter(auth: _authProvider);
 
     // The catalogue is derived from the chosen business type, so it is
@@ -98,6 +101,8 @@ class _EcommerceAppState extends State<EcommerceApp> {
             theme: config.getTheme(),
             themeMode: ThemeMode.light,
             routerConfig: _router,
+            builder: (context, child) =>
+                SearchShortcutHost(child: child ?? const SizedBox.shrink()),
           );
         },
       ),

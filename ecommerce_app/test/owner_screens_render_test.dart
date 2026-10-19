@@ -4,7 +4,13 @@ import 'package:ecommerce_app/core/models/user.dart';
 import 'package:ecommerce_app/core/store/commerce_store.dart';
 import 'package:ecommerce_app/features/auth/providers/auth_provider.dart';
 import 'package:ecommerce_app/features/config/providers/business_config_provider.dart';
+import 'package:ecommerce_app/features/owner/screens/owner_categories_screen.dart';
+import 'package:ecommerce_app/features/owner/screens/owner_collections_screen.dart';
+import 'package:ecommerce_app/features/owner/screens/owner_coupons_screen.dart';
+import 'package:ecommerce_app/features/owner/screens/owner_customers_screen.dart';
 import 'package:ecommerce_app/features/owner/screens/owner_dashboard_screen.dart';
+import 'package:ecommerce_app/features/owner/screens/owner_gold_rate_screen.dart';
+import 'package:ecommerce_app/features/owner/screens/owner_home_builder_screen.dart';
 import 'package:ecommerce_app/features/owner/screens/owner_order_detail_screen.dart';
 import 'package:ecommerce_app/features/owner/screens/owner_orders_screen.dart';
 import 'package:ecommerce_app/features/owner/screens/owner_product_form_screen.dart';
@@ -80,6 +86,12 @@ void main() {
       'OwnerOrdersScreen': const OwnerOrdersScreen(),
       'OwnerOrderDetailScreen':
           OwnerOrderDetailScreen(orderId: order?.id ?? ''),
+      'OwnerCategoriesScreen': const OwnerCategoriesScreen(),
+      'OwnerCollectionsScreen': const OwnerCollectionsScreen(),
+      'OwnerHomeBuilderScreen': const OwnerHomeBuilderScreen(),
+      'OwnerCouponsScreen': const OwnerCouponsScreen(),
+      'OwnerGoldRateScreen': const OwnerGoldRateScreen(),
+      'OwnerCustomersScreen': const OwnerCustomersScreen(),
     };
 
     final failures = <String>[];

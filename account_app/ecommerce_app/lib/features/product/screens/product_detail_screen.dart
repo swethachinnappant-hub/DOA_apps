@@ -18,7 +18,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final config = context.watch<BusinessConfigProvider>().config;
-    final rules = config.rules;
     final isWide = Responsive.isDesktop(context);
 
     return Scaffold(

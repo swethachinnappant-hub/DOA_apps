@@ -60,6 +60,26 @@ class Product {
   /// When the listing was last changed, used to order "recently added".
   final DateTime? createdAt;
 
+  // -------------------------------------------------- merchandising (SPEC-18)
+  // Empty values mean "the seller never chose one" and are never rendered.
+
+  /// URL-friendly identifier for shareable links; falls back to the name.
+  final String slug;
+
+  /// Search-engine title; falls back to the name when empty.
+  final String seoTitle;
+
+  /// USD price for the dual-currency display, 0 when not set.
+  final int priceUsd;
+
+  final String family;
+  final String style;
+  final String metal;
+  final String purity;
+  final String audience;
+  final List<String> occasions;
+  final List<String> collectionIds;
+
   const Product({
     required this.id,
     required this.name,
@@ -83,6 +103,16 @@ class Product {
     this.ownerId = '',
     this.stock = 0,
     this.createdAt,
+    this.slug = '',
+    this.seoTitle = '',
+    this.priceUsd = 0,
+    this.family = '',
+    this.style = '',
+    this.metal = '',
+    this.purity = '',
+    this.audience = '',
+    this.occasions = const [],
+    this.collectionIds = const [],
   });
 
   /// Percentage saved off the MRP, e.g. 42 for "42% OFF".
@@ -104,6 +134,16 @@ class Product {
 
   /// Myntra-style trust line.
   String get priceNote => hasDiscount ? '$discountPercent% OFF' : 'Best price ever';
+
+  /// Shareable path segment: the explicit slug when set, else the name
+  /// slugified (lowercase, runs of non-letters collapsed to single dashes).
+  String get effectiveSlug {
+    if (slug.trim().isNotEmpty) return slug.trim();
+    final source = name.trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '-');
+    return source.replaceAll(RegExp(r'^-+|-+$'), '');
+  }
+
+  String get effectiveSeoTitle => seoTitle.trim().isNotEmpty ? seoTitle : name;
 
   /// True when the seller has run out. Seeded listings carry no stock count,
   /// so they fall back to the explicit [inStock] flag.
@@ -135,6 +175,16 @@ class Product {
     String? ownerId,
     int? stock,
     DateTime? createdAt,
+    String? slug,
+    String? seoTitle,
+    int? priceUsd,
+    String? family,
+    String? style,
+    String? metal,
+    String? purity,
+    String? audience,
+    List<String>? occasions,
+    List<String>? collectionIds,
   }) {
     return Product(
       id: id ?? this.id,
@@ -159,6 +209,16 @@ class Product {
       ownerId: ownerId ?? this.ownerId,
       stock: stock ?? this.stock,
       createdAt: createdAt ?? this.createdAt,
+      slug: slug ?? this.slug,
+      seoTitle: seoTitle ?? this.seoTitle,
+      priceUsd: priceUsd ?? this.priceUsd,
+      family: family ?? this.family,
+      style: style ?? this.style,
+      metal: metal ?? this.metal,
+      purity: purity ?? this.purity,
+      audience: audience ?? this.audience,
+      occasions: occasions ?? this.occasions,
+      collectionIds: collectionIds ?? this.collectionIds,
     );
   }
 }

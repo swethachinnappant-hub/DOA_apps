@@ -38,9 +38,18 @@ void main() {
           primaryColor: option.primary,
         );
         final onPrimary = config.onPrimaryColor;
-        final ratio =
-            (onPrimary.computeLuminance() + 0.05) /
-            (option.primary.computeLuminance() + 0.05);
+        // WCAG contrast is symmetric: compare lighter against darker, so
+        // dark text on a copper/tint primary counts the same as white on a
+        // deep one.
+        final lighter = [
+          onPrimary.computeLuminance(),
+          option.primary.computeLuminance(),
+        ].reduce((a, b) => a > b ? a : b);
+        final darker = [
+          onPrimary.computeLuminance(),
+          option.primary.computeLuminance(),
+        ].reduce((a, b) => a < b ? a : b);
+        final ratio = (lighter + 0.05) / (darker + 0.05);
 
         expect(
           ratio,

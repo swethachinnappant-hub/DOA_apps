@@ -1,5 +1,6 @@
 import 'package:common_widgets/common_widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../core/product.dart';
 import '../core/pricing.dart';
@@ -103,6 +104,9 @@ class ProductBadge extends StatelessWidget {
 }
 
 /// Wishlist heart that toggles in place.
+///
+/// §11.5: the icon-only control carries a semantics label and a 44×44 hit
+/// area (the visible disc stays small); the toggle ticks haptically (§16.4).
 class WishlistButton extends StatelessWidget {
   final bool liked;
   final VoidCallback? onTap;
@@ -117,18 +121,31 @@ class WishlistButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white.withValues(alpha: 0.94),
-      shape: const CircleBorder(),
+    return Semantics(
+      button: true,
+      label: liked ? 'Remove from wishlist' : 'Add to wishlist',
       child: InkWell(
-        onTap: onTap,
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap?.call();
+        },
         customBorder: const CircleBorder(),
-        child: Padding(
-          padding: const EdgeInsets.all(6),
-          child: Icon(
-            liked ? Icons.favorite : Icons.favorite_border,
-            size: 16,
-            color: liked ? activeColor : AppPalette.textSecondary,
+        child: SizedBox(
+          height: 44,
+          width: 44,
+          child: Center(
+            child: Material(
+              color: Colors.white.withValues(alpha: 0.94),
+              shape: const CircleBorder(),
+              child: Padding(
+                padding: const EdgeInsets.all(6),
+                child: Icon(
+                  liked ? Icons.favorite : Icons.favorite_border,
+                  size: 16,
+                  color: liked ? activeColor : AppPalette.textSecondary,
+                ),
+              ),
+            ),
           ),
         ),
       ),
@@ -164,6 +181,10 @@ class ProductCard extends StatefulWidget {
   /// Home rails so shoppers can preview the available product views in place.
   final bool autoSlideImages;
 
+  /// Tanishq-style flush tile for the full-bleed catalogue grid: no border,
+  /// radius or inset — the photograph runs edge to edge and owns the cell.
+  final bool flush;
+
   const ProductCard({
     super.key,
     required this.product,
@@ -177,6 +198,7 @@ class ProductCard extends StatefulWidget {
     this.showDelivery = false,
     this.showPrice = true,
     this.autoSlideImages = false,
+    this.flush = false,
   });
 
   @override
@@ -207,25 +229,31 @@ class _ProductCardState extends State<ProductCard> {
 
     return Material(
       color: AppPalette.surface,
-      borderRadius: AppRadius.allLg,
+      borderRadius: widget.flush ? BorderRadius.zero : AppRadius.allLg,
       child: InkWell(
         onTap: widget.onTap,
-        borderRadius: AppRadius.allLg,
+        borderRadius: widget.flush ? BorderRadius.zero : AppRadius.allLg,
         child: Ink(
           decoration: BoxDecoration(
             color: AppPalette.surface,
-            borderRadius: AppRadius.allLg,
-            border: Border.all(color: AppPalette.border),
-            boxShadow: AppShadows.subtle,
+            borderRadius: widget.flush ? BorderRadius.zero : AppRadius.allLg,
+            border: widget.flush
+                ? null
+                : Border.all(color: AppPalette.border),
+            boxShadow: widget.flush ? const [] : AppShadows.subtle,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(7, 7, 7, 0),
+                  padding: widget.flush
+                      ? EdgeInsets.zero
+                      : const EdgeInsets.fromLTRB(7, 7, 7, 0),
                   child: ClipRRect(
-                    borderRadius: AppRadius.allMd,
+                    borderRadius: widget.flush
+                        ? BorderRadius.zero
+                        : AppRadius.allMd,
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
@@ -238,7 +266,9 @@ class _ProductCardState extends State<ProductCard> {
                           autoSlide: widget.autoSlideImages,
                           showDots: p.hasMultipleImages,
                           showCounter: p.hasMultipleImages,
-                          borderRadius: AppRadius.allMd,
+                          borderRadius: widget.flush
+                              ? BorderRadius.zero
+                              : AppRadius.allMd,
                         ),
                         if (p.badges.isNotEmpty)
                           Positioned(
@@ -276,7 +306,7 @@ class _ProductCardState extends State<ProductCard> {
                         if (p.images.isNotEmpty)
                           Positioned(
                             right: AppSpacing.sm,
-                            top: 42,
+                            top: 56,
                             child: Tooltip(
                               message: 'Zoom product image',
                               child: Material(
@@ -315,7 +345,7 @@ class _ProductCardState extends State<ProductCard> {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(8, 10, 8, 12),
+                padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
@@ -391,10 +421,18 @@ class _ProductCardState extends State<ProductCard> {
                       Row(
                         children: [
                           if (widget.showRating)
-                            RatingChip(
-                              rating: p.rating,
-                              reviewCount: p.reviewCount,
-                              compact: false,
+                            // §11.5: at 200% text the chip scales down
+                            // instead of pushing the delivery label out.
+                            Flexible(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: RatingChip(
+                                  rating: p.rating,
+                                  reviewCount: p.reviewCount,
+                                  compact: false,
+                                ),
+                              ),
                             ),
                           if (widget.showDelivery) ...[
                             const SizedBox(width: AppSpacing.xs),
