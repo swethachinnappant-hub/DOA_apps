@@ -21,15 +21,20 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   const sectionOrder = <String>[
-    'categories',
     'hero',
-    'metal',
-    'collections',
+    'categories',
     'bestsellers',
     'newArrivals',
-    'occasion',
+    'metal',
+    'trending',
     'price',
+    'deals',
     'bridal',
+    'collections',
+    'completeLook',
+    'recentlyViewed',
+    'details',
+    'occasion',
     'gifts',
     'social',
     'about',
@@ -114,7 +119,7 @@ void main() {
     expect(
       extraSections.evaluate(),
       hasLength(sectionOrder.length),
-      reason: 'the standard layout is exactly the 13 §6.1 sections',
+      reason: 'the standard layout is exactly the §6.1 sections',
     );
   });
 

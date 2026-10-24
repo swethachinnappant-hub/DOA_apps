@@ -34,6 +34,19 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   String? _selectedShade;
   int? _selectedKarat;
   int _activeImage = 0;
+  // §6.37: the buyer's chosen bulk quantity. Seeded to the MOQ on first build.
+  int? _quantity;
+
+  /// The quantity actually added: the chosen value, clamped between the MOQ
+  /// and the seller's remaining stock (platform seed stock is unlimited).
+  int _effectiveQty(Product product) {
+    final min = product.minimumOrderQuantity;
+    final chosen = _quantity ?? min;
+    final max = product.ownerId.isNotEmpty ? product.stock : null;
+    return max == null
+        ? chosen.clamp(min, 1 << 30).toInt()
+        : chosen.clamp(min, max).toInt();
+  }
 
   @override
   void initState() {
@@ -71,7 +84,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     if (product.sizes.isNotEmpty && _selectedSize == null) {
       return 'Select Size';
     }
-    return 'Add to Bag';
+    final qty = _effectiveQty(product);
+    return qty == 1 ? 'Add to Bag' : 'Add $qty to Bag';
   }
 
   /// The listing's SKU with the chosen variant appended, so the code on the
@@ -145,12 +159,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               primaryColor: config.primaryColor,
               onPrimaryColor: config.onPrimaryColor,
               ctaLabel: ctaLabel,
-              enabled: product.inStock,
+              enabled: product.isAvailable,
               // Enquiries are a real seller channel, so only listings that
               // belong to an account on this device get the button.
               onEnquire: product.ownerId.isEmpty
                   ? null
-                  : () => _enquire(config, product),
+                : () => _enquire(config, product),
               onAddToBag: () => _add(context, buyNow: false),
               onBuyNow: () => _add(context, buyNow: true),
             ),
@@ -178,6 +192,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
     final added = store.addToCart(
       product,
+      quantity: _effectiveQty(product),
       selectedSize: _selectedSize,
       selectedShade: _selectedShade,
     );
@@ -378,7 +393,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       appBar: AppBar(title: const Text('Product')),
       body: Center(
         child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.xl),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -395,7 +410,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 textAlign: TextAlign.center,
                 style: AppTypography.caption,
               ),
-              const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: AppSpacing.md),
               AppButton(
                 text: 'Browse catalogue',
                 type: AppButtonType.outlined,
@@ -663,9 +678,40 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   color: AppPalette.textSecondary,
                 ),
               ),
+              // §6.40: verified suppliers earn a trust chip on the PDP.
+              if (product.isVerifiedSupplier)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppPalette.goldLight,
+                    borderRadius: AppRadius.allPill,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.verified,
+                        size: 13,
+                        color: AppPalette.goldDark,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Verified supplier',
+                        style: AppTypography.caption.copyWith(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppPalette.goldDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ProductBadge(
                 label: _shipStatus(product),
-                background: product.inStock
+                background: product.isAvailable
                     ? AppPalette.success
                     : AppPalette.error,
               ),
@@ -679,7 +725,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             ),
           ],
           if (product.shades.isNotEmpty) ...[
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.md),
             _SectionLabel(
               'Metal',
               trailing: _selectedShade ?? 'Select a shade',
@@ -706,7 +752,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             ),
           ],
           if (_baseKarat(product) != null) ...[
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.md),
             _SectionLabel(
               'Purity',
               trailing: '${_selectedKarat ?? _baseKarat(product)}K',
@@ -727,7 +773,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             ),
           ],
           if (product.sizes.isNotEmpty) ...[
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.md),
             _SectionLabel('Size', trailing: _selectedSize ?? 'Select a size'),
             const SizedBox(height: AppSpacing.sm),
             Wrap(
@@ -744,7 +790,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   .toList(),
             ),
           ],
-          if (!product.inStock)
+          // §6.37: quick quantity selection for bulk ordering. The stepper
+          // snaps between the MOQ and the seller's stock, and steps through
+          // the wholesale tier breaks so the live unit price follows.
+          const SizedBox(height: AppSpacing.md),
+          _QuantitySelector(
+            product: product,
+            quantity: _effectiveQty(product),
+            accent: config.primaryColor,
+            currencySymbol: config.currencySymbol,
+            onChanged: (qty) => setState(() => _quantity = qty),
+          ),
+          if (!product.isAvailable)
             Container(
               margin: const EdgeInsets.only(top: AppSpacing.lg),
               padding: const EdgeInsets.all(AppSpacing.md),
@@ -771,13 +828,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 ],
               ),
             ),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.md),
           _PincodeCheck(
             deliveryDays: product.deliveryDays,
             accent: config.primaryColor,
           ),
           if (Responsive.isDesktop(context)) ...[
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.md),
             if (product.ownerId.isNotEmpty) ...[
               SizedBox(
                 width: double.infinity,
@@ -795,7 +852,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 text: _ctaLabel(product),
                 color: config.primaryColor,
                 textColor: config.onPrimaryColor,
-                onPressed: product.inStock
+                onPressed: product.isAvailable
                     ? () => _add(context, buyNow: false)
                     : null,
               ),
@@ -806,13 +863,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               child: AppButton(
                 text: 'Buy Now',
                 type: AppButtonType.outlined,
-                onPressed: product.inStock
+                onPressed: product.isAvailable
                     ? () => _add(context, buyNow: true)
                     : null,
               ),
             ),
             if (config.rules.coupons) ...[
-              const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: AppSpacing.md),
               Text(
                 'OFFERS',
                 style: AppTypography.eyebrow.copyWith(
@@ -822,10 +879,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               const SizedBox(height: AppSpacing.sm),
               _offerChips(context, config),
             ],
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.md),
             _trustRow(config),
           ],
-          const SizedBox(height: AppSpacing.xl),
+          const SizedBox(height: AppSpacing.md),
           _SectionAccordion(
             title: 'Product Details',
             accent: config.primaryColor,
@@ -996,7 +1053,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   /// Tamannaah-style ship status that answers "when does this leave?".
   static String _shipStatus(Product product) {
-    if (!product.inStock) return 'Out of stock';
+    if (!product.isAvailable) {
+      return product.inStock ? 'Below minimum order' : 'Out of stock';
+    }
     if (product.deliveryDays <= 0) return 'Ready to ship';
     return 'Ships in ${product.deliveryDays} days';
   }
@@ -1040,9 +1099,24 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           const SizedBox(height: AppSpacing.sm),
           _factRow(
             icon: Icons.numbers_outlined,
-            text: 'MOQ 1 unit',
+            text: 'MOQ ${product.minimumOrderQuantity} unit${product.minimumOrderQuantity == 1 ? '' : 's'}',
             color: config.primaryColor,
           ),
+        ],
+        if (product.wholesalePriceTiers.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.md),
+          Text('Wholesale quantity pricing', style: AppTypography.label),
+          const SizedBox(height: AppSpacing.xs),
+          for (final tier in product.wholesalePriceTiers)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Text(
+                '${tier.minimumQuantity}+ units · ${Pricing.money(tier.unitPrice, currencySymbol: config.currencySymbol)} / unit',
+                style: AppTypography.caption.copyWith(
+                  color: AppPalette.textSecondary,
+                ),
+              ),
+            ),
         ],
       ],
     );
@@ -1308,7 +1382,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: AppSpacing.xl),
+        const SizedBox(height: AppSpacing.md),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenH),
           child: SectionHeader(title: title, padding: EdgeInsets.zero),
@@ -1703,6 +1777,152 @@ class _PincodeCheckState extends State<_PincodeCheck> {
           ),
         ],
       ],
+    );
+  }
+}
+
+/// §6.37: quick quantity selection for bulk ordering. The −/+ stepper moves
+/// between the MOQ and the seller's stock, and each step lands on a real
+/// quantity break so the live unit price always reflects the tier the buyer
+/// is actually paying.
+class _QuantitySelector extends StatelessWidget {
+  const _QuantitySelector({
+    required this.product,
+    required this.quantity,
+    required this.accent,
+    required this.currencySymbol,
+    required this.onChanged,
+  });
+
+  final Product product;
+  final int quantity;
+  final Color accent;
+  final String currencySymbol;
+  final ValueChanged<int> onChanged;
+
+  int get _min => product.minimumOrderQuantity;
+  int get _max => product.ownerId.isNotEmpty ? product.stock : 1 << 30;
+
+  /// All the quantities a buyer can step to: the MOQ, every wholesale tier
+  /// break inside the stock window, and the stock ceiling itself.
+  List<int> get _stops {
+    final stops = <int>{_min};
+    for (final tier in product.wholesalePriceTiers) {
+      if (tier.minimumQuantity >= _min && tier.minimumQuantity <= _max) {
+        stops.add(tier.minimumQuantity);
+      }
+    }
+    if (_max < (1 << 30)) stops.add(_max);
+    return stops.toList()..sort();
+  }
+
+  /// The next stop above or below the current quantity; falls back to a
+  /// single-unit nudge when the quantity sits between breaks.
+  int _step(int direction) {
+    final stops = _stops;
+    if (direction > 0) {
+      for (final stop in stops) {
+        if (stop > quantity) return stop.clamp(_min, _max).toInt();
+      }
+      return (quantity + 1).clamp(_min, _max).toInt();
+    }
+    for (final stop in stops.reversed) {
+      if (stop < quantity) return stop.clamp(_min, _max).toInt();
+    }
+    return (quantity - 1).clamp(_min, _max).toInt();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final unit = product.unitPriceForQuantity(quantity);
+    final tiered = unit < product.price;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _SectionLabel(
+          'Quantity',
+          trailing: 'MOQ ${product.minimumOrderQuantity}',
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Row(
+          children: [
+            _QtyButton(
+              icon: Icons.remove,
+              enabled: quantity > _min,
+              onTap: () => onChanged(_step(-1)),
+            ),
+            Container(
+              constraints: const BoxConstraints(minWidth: 48),
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+              child: Text(
+                '$quantity',
+                style: AppTypography.subtitle.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            _QtyButton(
+              icon: Icons.add,
+              enabled: quantity < _max,
+              onTap: () => onChanged(_step(1)),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Text(
+                tiered
+                    ? '${Pricing.money(unit, currencySymbol: currencySymbol)} / unit'
+                    : 'Unit price ${Pricing.money(unit, currencySymbol: currencySymbol)}',
+                style: AppTypography.caption.copyWith(
+                  color: tiered ? accent : AppPalette.textSecondary,
+                  fontWeight: tiered ? FontWeight.w600 : FontWeight.w400,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// A 44×44 stepper button in the same pill language as the size chips.
+class _QtyButton extends StatelessWidget {
+  const _QtyButton({
+    required this.icon,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    return Semantics(
+      button: true,
+      label: icon == Icons.add ? 'Increase quantity' : 'Decrease quantity',
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: AppRadius.allPill,
+        child: Opacity(
+          opacity: enabled ? 1 : 0.38,
+          child: Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              border: Border.all(color: AppPalette.border),
+            ),
+            child: Icon(icon, size: 20, color: primary),
+          ),
+        ),
+      ),
     );
   }
 }

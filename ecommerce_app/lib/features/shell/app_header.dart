@@ -15,9 +15,8 @@ import '../search/search_overlay.dart';
 
 /// Storefront header (architecture Â§5.2).
 ///
-/// * compact  (< 600)  â€” menu Â· logo Â· search Â· cart
-/// * medium   (600+)   â€” adds wishlist heart
-/// * expanded (1200+)  â€” logo Â· horizontal nav with hover panels Â· right cluster
+/// * compact  (< 1200)  â€” menu Â· brand Â· account-menu circle Â· cart
+/// * expanded (1200+)   â€” logo Â· horizontal nav with hover panels Â· right cluster
 class AppHeader extends StatefulWidget {
   const AppHeader({super.key, required this.onMenu});
 
@@ -161,6 +160,8 @@ class _CompactHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final config = context.watch<BusinessConfigProvider>().config;
     final store = context.watch<CommerceStore>();
+    final user = context.watch<AuthProvider>().user;
+    final unread = store.unreadCount(user?.id ?? '');
 
     return Row(
       children: [
@@ -172,7 +173,7 @@ class _CompactHeader extends StatelessWidget {
           child: Semantics(
             button: true,
             label: 'Menu',
-            // §11.5: a 44 px hit target even though the icon stays 24 px.
+            // §11.5: a 44 px hit target even though the icon stays 22 px.
             child: SizedBox(
               width: 44,
               height: 44,
@@ -180,7 +181,7 @@ class _CompactHeader extends StatelessWidget {
                 onPressed: onMenu,
                 tooltip: 'Menu',
                 padding: EdgeInsets.zero,
-                icon: const Icon(Icons.menu, size: 24),
+                icon: const Icon(Icons.menu, size: 22),
               ),
             ),
           ),
@@ -195,23 +196,31 @@ class _CompactHeader extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  height: 28,
-                  width: 28,
+                  height: 32,
+                  width: 32,
                   decoration: BoxDecoration(
-                    color: config.primaryColor,
+                    // §1.3: a gold-framed monogram reads more premium than a
+                    // flat brand-color square, using the palette's own tokens.
+                    color: AppPalette.goldLight,
+                    border: Border.all(color: AppPalette.gold),
                     borderRadius: AppRadius.allSm,
+                    boxShadow: AppShadows.subtle,
                   ),
-                  child: Icon(config.icon, size: 16, color: Colors.white),
+                  child: Icon(config.icon, size: 18, color: AppPalette.goldDark),
                 ),
                 const SizedBox(width: AppSpacing.sm),
                 Flexible(
-                  child: Text(
-                    config.name.toUpperCase(),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTypography.navLabel.copyWith(
-                      letterSpacing: 1.6,
-                      fontWeight: FontWeight.w600,
+                  // The full name always shows — it shrinks to fit instead of
+                  // ellipsizing when the right cluster squeezes it.
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      config.name.toUpperCase(),
+                      maxLines: 1,
+                      style: AppTypography.navLabel.copyWith(
+                        letterSpacing: 1.6,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
@@ -219,14 +228,13 @@ class _CompactHeader extends StatelessWidget {
             ),
           ),
         ),
-        // The phone header stays lean — menu · logo · wishlist · cart.
-        // Search lives in the home search field above the categories and
-        // the profile is consolidated into the bottom bar's Account tab.
-        _HeaderIcon(
-          icon: Icons.favorite_border,
-          tooltip: 'Wishlist',
-          onTap: () => navTo(context, '/wishlist'),
-          count: store.wishlistCount,
+        // Phone header: menu · brand · account menu · cart. Notifications,
+        // wishlist and profile fold behind one circular button so the brand
+        // name is never squeezed by a row of loose icons.
+        _AccountMenuButton(
+          unread: unread,
+          wishlistCount: store.wishlistCount,
+          profileRoute: user == null ? '/login' : '/profile',
         ),
         _HeaderIcon(
           icon: Icons.shopping_bag_outlined,
@@ -235,6 +243,129 @@ class _CompactHeader extends StatelessWidget {
           count: store.cartCount,
         ),
       ],
+    );
+  }
+}
+
+/// One circular control standing in for the old notification / wishlist /
+/// profile icons: tapping it opens a sheet with the three entries.
+class _AccountMenuButton extends StatelessWidget {
+  const _AccountMenuButton({
+    required this.unread,
+    required this.wishlistCount,
+    required this.profileRoute,
+  });
+
+  final int unread;
+  final int wishlistCount;
+  final String profileRoute;
+
+  void _openSheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _sheetTile(
+              sheetContext,
+              context,
+              icon: Icons.notifications_outlined,
+              label: 'Notifications',
+              badge: unread,
+              destination: '/notifications',
+            ),
+            _sheetTile(
+              sheetContext,
+              context,
+              icon: Icons.favorite_border,
+              label: 'Wishlist',
+              badge: wishlistCount,
+              destination: '/wishlist',
+            ),
+            _sheetTile(
+              sheetContext,
+              context,
+              icon: Icons.person_outline,
+              label: 'Account',
+              destination: profileRoute,
+            ),
+            const SizedBox(height: AppSpacing.sm),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _sheetTile(
+    BuildContext sheetContext,
+    BuildContext headerContext, {
+    required IconData icon,
+    required String label,
+    required String destination,
+    int badge = 0,
+  }) => ListTile(
+    leading: Icon(icon, size: 22, color: AppPalette.ink),
+    title: Text(label, style: AppTypography.body),
+    trailing: badge > 0 ? _countPill(badge) : null,
+    onTap: () {
+      Navigator.pop(sheetContext);
+      navTo(headerContext, destination);
+    },
+  );
+
+  Widget _countPill(int count) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    decoration: const BoxDecoration(
+      color: AppPalette.copper,
+      borderRadius: BorderRadius.all(Radius.circular(10)),
+    ),
+    constraints: const BoxConstraints(minWidth: 18),
+    child: Text(
+      count > 99 ? '99+' : '$count',
+      textAlign: TextAlign.center,
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 10,
+        fontWeight: FontWeight.w700,
+        height: 1.3,
+      ),
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Account menu',
+      child: Tooltip(
+        message: 'Account menu',
+        child: InkWell(
+          onTap: () => _openSheet(context),
+          customBorder: const CircleBorder(),
+          child: SizedBox(
+            height: 44,
+            width: 44,
+            child: Center(
+              child: Container(
+                height: 32,
+                width: 32,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppPalette.goldLight,
+                  border: Border.all(color: AppPalette.gold),
+                ),
+                child: const Icon(
+                  Icons.person_outline,
+                  size: 18,
+                  color: AppPalette.goldDark,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -265,13 +396,16 @@ class _ExpandedHeader extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                height: 34,
-                width: 34,
+                height: 32,
+                width: 32,
                 decoration: BoxDecoration(
-                  color: config.primaryColor,
+                  // §1.3: gold-framed monogram, matching the compact header.
+                  color: AppPalette.goldLight,
+                  border: Border.all(color: AppPalette.gold),
                   borderRadius: AppRadius.allSm,
+                  boxShadow: AppShadows.subtle,
                 ),
-                child: Icon(config.icon, size: 19, color: Colors.white),
+                child: Icon(config.icon, size: 18, color: AppPalette.goldDark),
               ),
               const SizedBox(width: AppSpacing.sm),
               Text(
@@ -310,6 +444,13 @@ class _ExpandedHeader extends StatelessWidget {
           tooltip: 'Search',
           onTap: () => showSearchOverlay(context),
         ),
+        // §1.5: a notification bell with the unread count.
+        _HeaderIcon(
+          icon: Icons.notifications_outlined,
+          tooltip: 'Notifications',
+          onTap: () => navTo(context, '/notifications'),
+          count: store.unreadCount(user?.id ?? ''),
+        ),
         const SizedBox(width: AppSpacing.xs),
         InkWell(
           onTap: () =>
@@ -324,7 +465,7 @@ class _ExpandedHeader extends StatelessWidget {
               children: [
                 Icon(
                   Icons.person_outline,
-                  size: 21,
+                  size: 22,
                   color: AppPalette.ink,
                 ),
                 const SizedBox(width: 6),
@@ -707,7 +848,7 @@ class _HeaderIcon extends StatelessWidget {
               clipBehavior: Clip.none,
               alignment: Alignment.center,
               children: [
-                Icon(icon, size: 21, color: AppPalette.ink),
+                Icon(icon, size: 22, color: AppPalette.ink),
                 if (count > 0)
                   Positioned(
                     right: 2,

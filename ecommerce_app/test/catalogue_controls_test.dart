@@ -104,16 +104,16 @@ void main() {
 
     await tester.tap(find.text('Filter'));
     await tester.pumpAndSettle();
-    expect(find.text('Refine collection'), findsOneWidget);
+    expect(find.text('Filters & sort'), findsOneWidget);
     expect(find.text('Gold purity'), findsOneWidget);
 
-    await tester.tap(find.widgetWithText(Tab, 'Sort by'));
+    await tester.tap(find.widgetWithText(Tab, 'SORT BY'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Price: High to Low').last);
     await tester.tap(find.text('Show pieces'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Refine collection'), findsNothing);
+    expect(find.text('Filters & sort'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 

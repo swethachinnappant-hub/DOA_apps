@@ -104,7 +104,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _HeaderBanner(config: config, role: _role),
-                    SizedBox(height: Responsive.spacing(context, mobile: 24)),
+                    SizedBox(height: Responsive.spacing(context, mobile: 14)),
                     RoleSelector(
                       role: _role,
                       config: config,
@@ -120,7 +120,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         });
                       },
                     ),
-                    SizedBox(height: Responsive.spacing(context, mobile: 24)),
+                    SizedBox(height: Responsive.spacing(context, mobile: 14)),
                     if (_isOwner) ...[
                       AppTextField(
                         controller: _shopName,
@@ -186,7 +186,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       ),
                     ],
-                    SizedBox(height: Responsive.spacing(context, mobile: 24)),
+                    SizedBox(height: Responsive.spacing(context, mobile: 14)),
                     AppButton(
                       text: _isOwner ? 'Open my shop' : 'Create account',
                       isLoading: _busy,
@@ -203,7 +203,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: Responsive.fontSize(context, mobile: 13),
-                              color: Colors.grey[600],
+                              color: AppPalette.textSecondary,
                             ),
                           ),
                         ),
@@ -273,7 +273,7 @@ class _HeaderBanner extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: Responsive.fontSize(context, mobile: 12),
-                    color: Colors.grey[700],
+                    color: AppPalette.textSecondary,
                   ),
                 ),
               ],

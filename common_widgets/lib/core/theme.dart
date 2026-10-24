@@ -69,8 +69,8 @@ class AppTheme {
   }
 
   static ThemeData lightTheme({
-    Color primary = const Color(0xFF1E3A5F),
-    Color secondary = const Color(0xFF3B82F6),
+    Color primary = const Color(0xFF171717),
+    Color secondary = const Color(0xFF666666),
     Color? accent,
   }) {
     final scheme = buildColorScheme(primary: primary, secondary: secondary, accent: accent);
@@ -95,6 +95,9 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
+      // UI spec §2: a modern sans (Inter) for every platform; falls back to
+      // the platform default when the font asset is not bundled.
+      fontFamily: 'Inter',
       colorScheme: scheme,
       scaffoldBackgroundColor: AppPalette.background,
       canvasColor: AppPalette.background,
@@ -123,6 +126,9 @@ class AppTheme {
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
+        // Tight flush-left cluster: the back icon sits 12px from the edge
+        // and the title follows immediately, matching the 12px page inset.
+        leadingWidth: 48,
         titleTextStyle: AppTypography.title.copyWith(color: AppPalette.textPrimary),
         iconTheme: const IconThemeData(color: AppPalette.textPrimary, size: 22),
         actionsIconTheme: const IconThemeData(color: AppPalette.textPrimary, size: 22),
@@ -261,6 +267,9 @@ class AppTheme {
         backgroundColor: AppPalette.surface,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
+        // Tighter than the Material default (40): dialogs sit close to the
+        // screen edges instead of floating in a wide white moat.
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         shape: const RoundedRectangleBorder(borderRadius: AppRadius.allLg),
         titleTextStyle: AppTypography.title,
         contentTextStyle: AppTypography.bodyMuted,

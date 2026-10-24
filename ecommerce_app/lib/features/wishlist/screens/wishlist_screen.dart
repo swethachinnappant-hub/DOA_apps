@@ -63,7 +63,7 @@ class WishlistScreen extends StatelessWidget {
             'No items in wishlist',
             style: TextStyle(
               fontSize: Responsive.fontSize(context, mobile: 16),
-              color: Colors.grey[500],
+              color: AppPalette.textMuted,
             ),
           ),
           const SizedBox(height: 8),
@@ -120,7 +120,7 @@ class WishlistScreen extends StatelessWidget {
                         )
                       : ProductImageTile(
                           url: product.images.first,
-                          fit: BoxFit.contain,
+                          fit: BoxFit.cover,
                           placeholderIcon: config.icon,
                           placeholderColor: accent,
                           placeholderAccent: primary,
@@ -149,7 +149,7 @@ class WishlistScreen extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: Responsive.fontSize(context, mobile: 11),
-                        color: Colors.grey[500],
+                        color: AppPalette.textMuted,
                       ),
                     ),
                     const SizedBox(height: 6),

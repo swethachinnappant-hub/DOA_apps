@@ -11,6 +11,7 @@ import '../catalogue/listing_view.dart';
 import '../catalogue/route_scope.dart';
 import '../content/content_pages.dart';
 import '../product/screens/product_detail_screen.dart';
+import '../../widgets/search_action_buttons.dart';
 import 'bottom_bar.dart';
 import 'site_footer.dart';
 import 'store_shell.dart';
@@ -62,7 +63,9 @@ class _SectionScreenState extends State<SectionScreen> {
       case 0:
         navGo(context, '/app');
       case 1:
-        navGo(context, '/tryinstore');
+        // Same destination as the home shell's Catalogue tab so the bar
+        // behaves identically on every screen (§8.51).
+        navGo(context, '/catalogue');
       default:
         navGo(context, '/account');
     }
@@ -157,15 +160,15 @@ class _SectionScreenState extends State<SectionScreen> {
         ),
         const SizedBox(height: AppSpacing.sm),
         Text(title, style: AppTypography.display.copyWith(fontSize: 34)),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: AppSpacing.sm),
         Container(height: 2, width: 64, color: AppPalette.copper),
-        const SizedBox(height: AppSpacing.xl),
+        const SizedBox(height: AppSpacing.md),
         Text(
           'This collection is being prepared. Browse the full catalogue '
           'while the designs for this section are added.',
           style: AppTypography.bodyMuted,
         ),
-        const SizedBox(height: AppSpacing.xxl),
+        const SizedBox(height: AppSpacing.md),
         Wrap(
           spacing: AppSpacing.lg,
           runSpacing: AppSpacing.sm,
@@ -185,7 +188,7 @@ class _SectionScreenState extends State<SectionScreen> {
             ),
           ],
         ),
-        const SizedBox(height: AppSpacing.xxxl),
+        const SizedBox(height: AppSpacing.lg),
         Wrap(
           spacing: AppSpacing.sm,
           runSpacing: AppSpacing.sm,
@@ -225,12 +228,20 @@ class _SectionScreenState extends State<SectionScreen> {
           'were looking for, or start from one of our bestsellers.',
           style: AppTypography.bodyMuted,
         ),
-        const SizedBox(height: AppSpacing.xl),
-        TextField(
-          decoration: AppTheme.inputDecoration(
-            context,
-            hintText: 'Search jewellery…',
-            prefixIcon: const Icon(Icons.search),
+        const SizedBox(height: AppSpacing.md),
+        // §3.12: the same pill search field the home and catalogue use, so
+        // every search surface shares one height, radius and icon set.
+        AppSearchField(
+          hint: 'Search jewellery…',
+          trailing: SearchActionButtons(
+            onVoiceQuery: (query) {
+              final search = query.trim();
+              if (search.isEmpty) return;
+              navTo(
+                context,
+                '/catalogue?search=${Uri.encodeQueryComponent(search)}',
+              );
+            },
           ),
           onSubmitted: (value) {
             final search = value.trim();
@@ -241,7 +252,7 @@ class _SectionScreenState extends State<SectionScreen> {
             );
           },
         ),
-        const SizedBox(height: AppSpacing.xl),
+        const SizedBox(height: AppSpacing.md),
         Wrap(
           spacing: AppSpacing.sm,
           runSpacing: AppSpacing.sm,

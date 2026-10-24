@@ -266,14 +266,16 @@ void main() {
       tester,
       viewport: const Size(1440, 900),
     );
-    router.go('/catalogue?metal=White%20Gold');
+    // Platinum is not offered by any seeded design, so the metal filter
+    // lands on the designed empty state. (White Gold now has real stock.)
+    router.go('/catalogue?metal=Platinum');
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
 
     expect(tester.takeException(), isNull);
     expect(find.text('No designs match'), findsOneWidget);
     expect(find.text('Try removing a filter'), findsOneWidget);
-    expect(find.text('White Gold'), findsWidgets); // Active chip + sidebar.
+    expect(find.text('Platinum'), findsWidgets); // Active chip + sidebar.
 
     await tester.tap(find.text('VIEW BESTSELLERS'));
     await tester.pump();
@@ -333,7 +335,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('the full-bleed grid drops editorial heroes between chunks', (
+  testWidgets('the catalogue drops an editorial collage hero between chunks', (
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({});
@@ -349,13 +351,19 @@ void main() {
       store: store,
     );
 
-    // Two rows of phone (2 columns → chunk of 4) then the multi-image
-    // hero banner; scroll past the first rows to reach it.
+    // Two rows of phone (2 columns → chunk of 4) then the editorial collage
+    // hero between chunks; scroll down to reach it.
     await tester.drag(find.byType(CustomScrollView), const Offset(0, -700));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
+    if (find.text('Made to be noticed').evaluate().isEmpty) {
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -1100));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+    }
 
-    expect(find.textContaining('Explore '), findsWidgets);
+    expect(find.text('Made to be noticed'), findsWidgets);
+    expect(find.text('Explore'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 

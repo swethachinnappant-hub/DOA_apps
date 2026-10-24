@@ -25,6 +25,13 @@ class AppTextField extends StatelessWidget {
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onFieldSubmitted;
 
+  /// Thin variant for compact surfaces (search bars): reduced vertical
+  /// padding, dense layout, optional pill radius.
+  final bool dense;
+
+  /// Corner radius override (defaults to 10).
+  final double radius;
+
   const AppTextField({
     super.key,
     this.label,
@@ -47,6 +54,8 @@ class AppTextField extends StatelessWidget {
     this.focusNode,
     this.textInputAction,
     this.onFieldSubmitted,
+    this.dense = false,
+    this.radius = 10,
   });
 
   @override
@@ -61,7 +70,12 @@ class AppTextField extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: Responsive.fontSize(context, mobile: 13, tablet: 14, desktop: 15),
+              fontSize: Responsive.fontSize(
+                context,
+                mobile: 13,
+                tablet: 14,
+                desktop: 15,
+              ),
               fontWeight: FontWeight.w500,
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -85,41 +99,60 @@ class AppTextField extends StatelessWidget {
           textInputAction: textInputAction,
           onFieldSubmitted: onFieldSubmitted,
           style: TextStyle(
-            fontSize: Responsive.fontSize(context, mobile: 14, tablet: 15, desktop: 16),
+            fontSize: Responsive.fontSize(
+              context,
+              mobile: 14,
+              tablet: 15,
+              desktop: 16,
+            ),
           ),
           decoration: InputDecoration(
             hintText: hint,
             prefixText: prefixText,
             prefixIcon: prefixIcon,
+            prefixIconConstraints: dense
+                ? const BoxConstraints(minWidth: 38, minHeight: 38)
+                : null,
             suffixIcon: suffixIcon,
             counterText: '',
+            isDense: dense,
             filled: true,
             fillColor: enabled
                 ? Theme.of(context).colorScheme.surface
-                : Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                : Theme.of(
+                    context,
+                  ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
             contentPadding: EdgeInsets.symmetric(
-              horizontal: Responsive.spacing(context, mobile: 16),
-              vertical: Responsive.spacing(context, mobile: 14),
+              horizontal: dense ? 12 : Responsive.spacing(context, mobile: 16),
+              vertical: dense ? 0 : Responsive.spacing(context, mobile: 14),
             ),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(radius),
               borderSide: BorderSide(color: Theme.of(context).dividerColor),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(radius),
               borderSide: BorderSide(color: Theme.of(context).dividerColor),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2),
+              borderRadius: BorderRadius.circular(radius),
+              borderSide: BorderSide(
+                color: Theme.of(context).primaryColor,
+                width: 1.5,
+              ),
             ),
             errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Theme.of(context).colorScheme.error),
+              borderRadius: BorderRadius.circular(radius),
+              borderSide: BorderSide(
+                color: Theme.of(context).colorScheme.error,
+              ),
             ),
             focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Theme.of(context).colorScheme.error, width: 2),
+              borderRadius: BorderRadius.circular(radius),
+              borderSide: BorderSide(
+                color: Theme.of(context).colorScheme.error,
+                width: 1.5,
+              ),
             ),
           ),
         ),
@@ -136,14 +169,6 @@ class AppSearchField extends StatelessWidget {
   final VoidCallback? onFilterPressed;
   final Widget? trailing;
 
-  /// Visual (image) search affordance. Tapping shows a placeholder notice
-  /// until a real detector is wired in.
-  final VoidCallback? onCameraPressed;
-
-  /// Voice search affordance. Tapping shows a placeholder notice until
-  /// speech-to-text is wired in.
-  final VoidCallback? onVoicePressed;
-
   const AppSearchField({
     super.key,
     this.hint,
@@ -152,68 +177,96 @@ class AppSearchField extends StatelessWidget {
     this.onSubmitted,
     this.onFilterPressed,
     this.trailing,
-    this.onCameraPressed,
-    this.onVoicePressed,
   });
-
-  void _placeholder(BuildContext context, String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message), duration: const Duration(seconds: 2)));
-  }
 
   @override
   Widget build(BuildContext context) {
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
-    return Row(
-      children: [
-        Expanded(
-          child: AppTextField(
-            hint: hint ?? 'Search...',
+    final searchInput = trailing == null
+        ? AppTextField(
+            hint: hint ?? 'Search jewellery',
             controller: controller,
             onChanged: onChanged,
             onFieldSubmitted: onSubmitted,
-            prefixIcon: Icon(
-              Icons.search,
-              size: 20,
-              color: muted,
+            dense: true,
+            radius: 20,
+            prefixIcon: Icon(Icons.search_rounded, size: 18, color: muted),
+          )
+        : Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              border: Border.all(color: Theme.of(context).dividerColor),
+              borderRadius: BorderRadius.circular(20),
             ),
-            suffixIcon: Row(
-              mainAxisSize: MainAxisSize.min,
+            child: Row(
               children: [
-                IconButton(
-                  onPressed: onCameraPressed ??
-                      () => _placeholder(context, 'Image search is coming soon.'),
-                  tooltip: 'Search by image',
-                  constraints: const BoxConstraints.tightFor(width: 40, height: 40),
-                  icon: Icon(Icons.camera_alt_outlined, size: 20, color: muted),
+                SizedBox(
+                  width: 38,
+                  child: Icon(Icons.search_rounded, size: 18, color: muted),
                 ),
-                IconButton(
-                  onPressed: onVoicePressed ??
-                      () => _placeholder(context, 'Voice search is coming soon.'),
-                  tooltip: 'Voice search',
-                  constraints: const BoxConstraints.tightFor(width: 40, height: 40),
-                  icon: Icon(Icons.mic_none, size: 20, color: muted),
+                Expanded(
+                  child: TextField(
+                    controller: controller,
+                    onChanged: onChanged,
+                    onSubmitted: onSubmitted,
+                    textInputAction: TextInputAction.search,
+                    style: TextStyle(
+                      fontSize: Responsive.fontSize(
+                        context,
+                        mobile: 14,
+                        tablet: 15,
+                        desktop: 16,
+                      ),
+                    ),
+                    decoration: InputDecoration(
+                      hintText: hint ?? 'Search jewellery',
+                      // One box only: the outer Container above is the search
+                      // box. The theme sets inputDecorationTheme.filled=true +
+                      // a muted fillColor, so the inner TextField paints its
+                      // own filled rounded rect nested inside the pill. Force
+                      // it invisible; border variants are pinned to none as
+                      // defence against any themed outline leaking in.
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      errorBorder: InputBorder.none,
+                      focusedErrorBorder: InputBorder.none,
+                      disabledBorder: InputBorder.none,
+                      filled: false,
+                      fillColor: Colors.transparent,
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                    ),
+                  ),
                 ),
+                trailing!,
               ],
             ),
-          ),
-        ),
+          );
+    return Row(
+      children: [
+        Expanded(child: SizedBox(height: 40, child: searchInput)),
         if (onFilterPressed != null) ...[
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           IconButton(
             onPressed: onFilterPressed,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints.tightFor(width: 40, height: 40),
             icon: Icon(
-              Icons.filter_list,
+              Icons.tune,
+              size: 20,
               color: Theme.of(context).primaryColor,
             ),
             style: IconButton.styleFrom(
-              backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              backgroundColor: Theme.of(
+                context,
+              ).primaryColor.withValues(alpha: 0.1),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
             ),
           ),
         ],
-        if (trailing != null) ...[const SizedBox(width: 12), trailing!],
       ],
     );
   }
@@ -251,7 +304,12 @@ class AppDropdown<T> extends StatelessWidget {
           Text(
             label!,
             style: TextStyle(
-              fontSize: Responsive.fontSize(context, mobile: 13, tablet: 14, desktop: 15),
+              fontSize: Responsive.fontSize(
+                context,
+                mobile: 13,
+                tablet: 14,
+                desktop: 15,
+              ),
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -294,4 +352,3 @@ class AppDropdown<T> extends StatelessWidget {
     );
   }
 }
-

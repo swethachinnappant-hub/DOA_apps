@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:common_widgets/common_widgets.dart';
 import 'package:provider/provider.dart';
 import '../core/navigation/nav_helpers.dart';
@@ -7,6 +7,7 @@ import 'catalogue/screens/catalogue_screen.dart';
 import 'config/providers/business_config_provider.dart';
 import 'home/home_layout.dart';
 import 'home/home_skeleton.dart';
+import '../widgets/search_action_buttons.dart';
 import 'profile/screens/profile_screen.dart';
 import 'shell/bottom_bar.dart';
 import 'shell/store_shell.dart';
@@ -75,9 +76,7 @@ class _MainScreenState extends State<MainScreen> {
       case 1:
         // The listing lives in the shell: its own grid/list view toggle,
         // sort and filters, with "back to home" wired to the first tab.
-        return CatalogueScreen(
-          onExit: () => setState(() => _currentIndex = 0),
-        );
+        return CatalogueScreen(onExit: () => setState(() => _currentIndex = 0));
       case 3:
         return const ProfileScreen();
       case 0:
@@ -99,7 +98,10 @@ class _HomeTab extends StatefulWidget {
   State<_HomeTab> createState() => _HomeTabState();
 }
 
-class _HomeTabState extends State<_HomeTab> with SingleTickerProviderStateMixin {
+class _HomeTabState extends State<_HomeTab>
+    with SingleTickerProviderStateMixin {
+  final _searchController = TextEditingController();
+
   /// Skeleton holds the screen for §6.3's minimum ~300 ms before the real
   /// sections paint, so first load never flickers.
   late final AnimationController _loaded = AnimationController(
@@ -110,15 +112,17 @@ class _HomeTabState extends State<_HomeTab> with SingleTickerProviderStateMixin 
   @override
   void dispose() {
     _loaded.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final config = context.watch<BusinessConfigProvider>().config;
-    // §6.1 revision: the category circles lead the stack at every width;
-    // owner edits from the Home Builder (SPEC-18) reorder/hide from there.
-    final layout = widget.layout ?? resolveHomeLayout(context.watch<CommerceStore>());
+    // The promotional hero leads, followed by product discovery; owner edits
+    // from the Home Builder (SPEC-18) can still reorder or hide sections.
+    final layout =
+        widget.layout ?? resolveHomeLayout(context.watch<CommerceStore>());
 
     return SingleChildScrollView(
       padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
@@ -131,20 +135,27 @@ class _HomeTabState extends State<_HomeTab> with SingleTickerProviderStateMixin 
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'THE JEWELLERY EDIT',
-                  style: AppTypography.eyebrow,
-                ),
+                Text('THE JEWELLERY EDIT', style: AppTypography.eyebrow),
                 const SizedBox(height: 6),
                 Text(
                   'Pieces to treasure, every day.',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTypography.display.copyWith(fontSize: 26),
+                  style: AppTypography.display.copyWith(fontSize: 24),
                 ),
                 const SizedBox(height: 15),
                 AppSearchField(
                   hint: config.searchHint,
+                  controller: _searchController,
+                  trailing: SearchActionButtons(
+                    onVoiceQuery: (query) {
+                      _searchController.text = query;
+                      navTo(
+                        context,
+                        '/catalogue?search=${Uri.encodeQueryComponent(query)}',
+                      );
+                    },
+                  ),
                   onSubmitted: (value) {
                     final search = value.trim();
                     if (search.isNotEmpty) {
@@ -158,7 +169,7 @@ class _HomeTabState extends State<_HomeTab> with SingleTickerProviderStateMixin 
               ],
             ),
           ),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.md),
           AnimatedBuilder(
             animation: _loaded,
             builder: (context, _) {

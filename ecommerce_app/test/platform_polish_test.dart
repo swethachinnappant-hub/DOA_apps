@@ -170,9 +170,8 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('the phone header shows the wishlist right next to the cart', (
-    tester,
-  ) async {
+  testWidgets('the phone header folds notifications, wishlist and account '
+      'behind one circular menu', (tester) async {
     final (router, _, _) = await pumpShop(
       tester,
       viewport: const Size(390, 844),
@@ -181,23 +180,42 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
 
-    final wishlist = find.descendant(
+    final accountMenu = find.descendant(
       of: find.byType(AppHeader),
-      matching: find.byTooltip('Wishlist'),
+      matching: find.byTooltip('Account menu'),
     );
     final cart = find.descendant(
       of: find.byType(AppHeader),
       matching: find.byTooltip('Cart'),
     );
-    expect(wishlist, findsOneWidget, reason: 'the mobile bar keeps the heart');
-    expect(cart, findsOneWidget);
+    expect(accountMenu, findsOneWidget, reason: 'one circle replaces the old '
+        'notification / wishlist / profile icons');
+    expect(cart, findsOneWidget, reason: 'cart stays visible on the phone');
+    // No loose search icon anymore — the bottom bar owns search.
+    expect(
+      find.descendant(
+        of: find.byType(AppHeader),
+        matching: find.byTooltip('Search'),
+      ),
+      findsNothing,
+    );
 
-    // The wishlist sits directly to the left of the cart (desktop parity).
-    final wishBox = tester.getRect(wishlist);
+    // The circular button sits directly to the left of the cart.
+    final accountBox = tester.getRect(accountMenu);
     final cartBox = tester.getRect(cart);
-    expect(wishBox.right, closeTo(cartBox.left, 1));
+    expect(accountBox.right, closeTo(cartBox.left, 1));
 
-    await tester.tap(wishlist);
+    // Tapping it opens the sheet with the three entries (scoped to the
+    // sheet's list rows — the bottom bar also labels a tab "Account").
+    await tester.tap(accountMenu);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.widgetWithText(ListTile, 'Notifications'), findsOneWidget);
+    expect(find.widgetWithText(ListTile, 'Wishlist'), findsOneWidget);
+    expect(find.widgetWithText(ListTile, 'Account'), findsOneWidget);
+
+    // The wishlist row routes to the wishlist screen.
+    await tester.tap(find.widgetWithText(ListTile, 'Wishlist'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pump(const Duration(milliseconds: 400));
@@ -413,7 +431,7 @@ void main() {
     expect(find.bySemanticsLabel(RegExp('Add to wishlist')), findsWidgets);
 
     // §11.5: touch targets reach 44 px even though the visuals stay small.
-    for (final tooltip in const ['Menu', 'Wishlist', 'Cart']) {
+    for (final tooltip in const ['Menu', 'Account menu', 'Cart']) {
       final size = tester.getSize(find.byTooltip(tooltip).first);
       expect(size.width, greaterThanOrEqualTo(44), reason: '$tooltip width');
       expect(size.height, greaterThanOrEqualTo(44), reason: '$tooltip height');
@@ -657,7 +675,9 @@ void main() {
     await tabUntil(
       tester,
       find.byType(SiteFooter),
-      limit: 300,
+      // The longer homepage (editorial collage, bridal rail, complete-look
+      // tiles) carries more stoppable controls between header and footer.
+      limit: 420,
       reason: 'the footer',
     );
     expect(tester.takeException(), isNull);

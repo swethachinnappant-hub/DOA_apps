@@ -69,10 +69,14 @@ void main() {
       final width = entry.value.width;
       final why = ' (${entry.key})';
 
-      // Header actions survive at every class (search lives in the home
-      // field below 1200; the desktop header keeps its own icon).
+      // Header actions survive at every class. The compact phone header keeps
+      // cart visible and folds notifications / wishlist / profile behind one
+      // circular account-menu button; the expanded header shows each action.
       expect(find.byType(AppHeader), findsOneWidget, reason: 'app bar$why');
-      for (final tooltip in const ['Wishlist', 'Cart']) {
+      final tooltips = width >= Responsive.tabletMax
+          ? const ['Wishlist', 'Cart', 'Search', 'Notifications']
+          : const ['Cart', 'Account menu'];
+      for (final tooltip in tooltips) {
         expect(
           find.descendant(
             of: find.byType(AppHeader),
@@ -82,14 +86,6 @@ void main() {
           reason: '$tooltip header action$why',
         );
       }
-      expect(
-        find.descendant(
-          of: find.byType(AppHeader),
-          matching: find.byTooltip('Search'),
-        ),
-        width >= Responsive.tabletMax ? findsOneWidget : findsNothing,
-        reason: 'header search only above 1200$why',
-      );
       if (width >= Responsive.tabletMax) {
         expect(
           find.text(store.headerMenus.first.label.toUpperCase()),
@@ -164,15 +160,15 @@ void main() {
     expect(phone.width, lessThan(phone.height), reason: 'portrait rectangle');
     expect(phone.center.dx, closeTo(195, 1), reason: 'centred on the page');
 
-    // Tablet: back to the full-width 224 band.
+    // Tablet: back to the full-width 288 band.
     final tablet = await heroRect(const Size(768, 1024));
-    expect(tablet.height, closeTo(224, 0.5));
+    expect(tablet.height, closeTo(288, 0.5));
     expect(tablet.width, greaterThan(tablet.height));
     expect(tablet.width, closeTo(768, 0.5), reason: 'edge to edge');
 
-    // Desktop: the wide 300 band across the full page width.
+    // Desktop: the wide 320 band across the full page width.
     final desktop = await heroRect(const Size(1440, 900));
-    expect(desktop.height, closeTo(300, 0.5));
+    expect(desktop.height, closeTo(320, 0.5));
     expect(desktop.width, closeTo(1440, 0.5), reason: 'full width band');
     expect(desktop.width, greaterThan(desktop.height * 2));
   });

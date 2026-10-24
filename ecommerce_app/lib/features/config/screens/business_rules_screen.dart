@@ -68,7 +68,7 @@ class BusinessRulesScreen extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(config.name, style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 16), fontWeight: FontWeight.bold, color: config.primaryColor), maxLines: 1, overflow: TextOverflow.ellipsis),
-                        Text('Configure business rules for this type', style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 12), color: Colors.grey[600]), maxLines: 2, overflow: TextOverflow.ellipsis),
+                        Text('Configure business rules for this type', style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 12), color: AppPalette.textSecondary), maxLines: 2, overflow: TextOverflow.ellipsis),
                       ],
                     ),
                   ),
@@ -103,7 +103,7 @@ class BusinessRulesScreen extends StatelessWidget {
             SizedBox(height: Responsive.spacing(context, mobile: 8)),
             ..._buildRuleGroup(context, configProvider, config, ruleKeys.sublist(9, 11)),
 
-            SizedBox(height: Responsive.spacing(context, mobile: 24)),
+            SizedBox(height: Responsive.spacing(context, mobile: 12)),
 
             // Reset to defaults
             AppButton(
@@ -154,7 +154,7 @@ class BusinessRulesScreen extends StatelessWidget {
                   children: [
                     Text(label, style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 14), fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
                     SizedBox(height: 2),
-                    Text(description, style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 11), color: Colors.grey[500]), maxLines: 2, overflow: TextOverflow.ellipsis),
+                    Text(description, style: TextStyle(fontSize: Responsive.fontSize(context, mobile: 11), color: AppPalette.textMuted), maxLines: 2, overflow: TextOverflow.ellipsis),
                   ],
                 ),
               ),

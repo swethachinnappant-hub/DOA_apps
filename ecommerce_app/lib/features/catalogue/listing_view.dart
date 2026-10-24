@@ -3,11 +3,15 @@ import 'package:common_widgets/common_widgets.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/business_config.dart';
+import '../../core/models/order.dart';
 import '../../core/navigation/nav_helpers.dart';
 import '../../core/pricing.dart';
 import '../../core/product.dart';
 import '../../core/store/commerce_store.dart';
 import '../../widgets/product_card.dart';
+import '../../widgets/quick_add_sheet.dart';
+import '../../widgets/search_action_buttons.dart';
+import '../../widgets/jewellery_collage_hero.dart';
 import '../config/providers/business_config_provider.dart';
 import 'filter_panel.dart';
 import 'route_scope.dart';
@@ -29,6 +33,7 @@ class ListingView extends StatefulWidget {
     this.initialPriceMin,
     this.initialPriceMax,
     this.initialMetal,
+    this.initialSort,
     this.footer,
   });
 
@@ -45,6 +50,7 @@ class ListingView extends StatefulWidget {
   final int? initialPriceMin;
   final int? initialPriceMax;
   final String? initialMetal;
+  final String? initialSort;
 
   /// Trailing block rendered as the last sliver of the listing scroll, e.g.
   /// the site footer on catch-all shop pages (§7).
@@ -72,6 +78,9 @@ class _ListingViewState extends State<ListingView> {
       priceMin: widget.initialPriceMin,
       priceMax: widget.initialPriceMax,
       metal: widget.initialMetal,
+      sort: kSortOptions.contains(widget.initialSort)
+          ? widget.initialSort!
+          : 'Featured',
     );
     _query = widget.initialQuery ?? '';
     _searchController = TextEditingController(text: _query);
@@ -107,7 +116,9 @@ class _ListingViewState extends State<ListingView> {
 
   static bool _matchesMetal(Product product, String metal) {
     final needle = metal.toLowerCase();
-    return product.name.toLowerCase().contains(needle) ||
+    // Structured field first, then the free-text surfaces and shade names.
+    return product.metal.toLowerCase().contains(needle) ||
+        product.name.toLowerCase().contains(needle) ||
         product.category.toLowerCase().contains(needle) ||
         product.description.toLowerCase().contains(needle) ||
         product.specs.values.any(
@@ -132,13 +143,27 @@ class _ListingViewState extends State<ListingView> {
       case 'Price: High to Low':
         return [...items]..sort((a, b) => b.price.compareTo(a.price));
       case 'Best sellers':
-        return [...items]..sort(
-          (a, b) => b.reviewCount.compareTo(a.reviewCount),
-        );
+        final soldUnits = <String, int>{};
+        for (final order in context.read<CommerceStore>().allOrders) {
+          if (order.status == OrderStatus.cancelled ||
+              order.status == OrderStatus.returned) {
+            continue;
+          }
+          for (final item in order.items) {
+            soldUnits.update(
+              item.productId,
+              (quantity) => quantity + item.quantity,
+              ifAbsent: () => item.quantity,
+            );
+          }
+        }
+        return [...items]..sort((a, b) {
+          final sales = (soldUnits[b.id] ?? 0).compareTo(soldUnits[a.id] ?? 0);
+          return sales != 0 ? sales : b.reviewCount.compareTo(a.reviewCount);
+        });
       case 'Discount':
-        return [...items]..sort(
-          (a, b) => b.discountPercent.compareTo(a.discountPercent),
-        );
+        return [...items]
+          ..sort((a, b) => b.discountPercent.compareTo(a.discountPercent));
       default:
         return items;
     }
@@ -166,8 +191,6 @@ class _ListingViewState extends State<ListingView> {
     final panel = FilterPanel(
       filters: _filters,
       currencySymbol: config.currencySymbol,
-      primaryColor: config.primaryColor,
-      onPrimaryColor: config.onPrimaryColor,
       purityOptions: purityOptions,
       metalOptions: metalOptions,
       showPriceRange: config.rules.showPrices,
@@ -192,7 +215,7 @@ class _ListingViewState extends State<ListingView> {
                 left: Radius.circular(20),
               ),
               child: SizedBox(
-                width: 420,
+                width: 380,
                 height: double.infinity,
                 child: panel,
               ),
@@ -217,8 +240,10 @@ class _ListingViewState extends State<ListingView> {
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        builder: (_) =>
-            FractionallySizedBox(heightFactor: 0.88, child: panel),
+        builder: (_) => FractionallySizedBox(
+          heightFactor: Responsive.isMobile(context) ? 0.9 : 0.82,
+          child: panel,
+        ),
       );
     }
   }
@@ -235,19 +260,18 @@ class _ListingViewState extends State<ListingView> {
 
     final needle = _query.trim().toLowerCase();
     if (needle.isNotEmpty) {
-      base =
-          base
-              .where(
-                (product) => <String>[
-                  product.name,
-                  product.brand,
-                  product.sku,
-                  product.category,
-                  product.description,
-                  ...product.specs.values,
-                ].any((value) => value.toLowerCase().contains(needle)),
-              )
-              .toList();
+      base = base
+          .where(
+            (product) => <String>[
+              product.name,
+              product.brand,
+              product.sku,
+              product.category,
+              product.description,
+              ...product.specs.values,
+            ].any((value) => value.toLowerCase().contains(needle)),
+          )
+          .toList();
     }
 
     var visible = base;
@@ -255,37 +279,32 @@ class _ListingViewState extends State<ListingView> {
       visible = visible.where((p) => p.category == _filters.category).toList();
     }
     if (_filters.hasPriceBand) {
-      visible =
-          visible
-              .where(
-                (p) =>
-                    (_filters.priceMin == null ||
-                        p.price >= _filters.priceMin!) &&
-                    (_filters.priceMax == null ||
-                        p.price <= _filters.priceMax!),
-              )
-              .toList();
+      visible = visible
+          .where(
+            (p) =>
+                (_filters.priceMin == null || p.price >= _filters.priceMin!) &&
+                (_filters.priceMax == null || p.price <= _filters.priceMax!),
+          )
+          .toList();
     }
     if (_filters.inStockOnly) {
       visible = visible.where((product) => product.isAvailable).toList();
     }
     if (_filters.purity != null) {
-      visible =
-          visible
-              .where(
-                (product) => product.specs.entries.any(
-                  (entry) =>
-                      entry.key.toLowerCase().contains('purity') &&
-                      entry.value.trim() == _filters.purity,
-                ),
-              )
-              .toList();
+      visible = visible
+          .where(
+            (product) => product.specs.entries.any(
+              (entry) =>
+                  entry.key.toLowerCase().contains('purity') &&
+                  entry.value.trim() == _filters.purity,
+            ),
+          )
+          .toList();
     }
     if (_filters.metal != null) {
-      visible =
-          visible
-              .where((product) => _matchesMetal(product, _filters.metal!))
-              .toList();
+      visible = visible
+          .where((product) => _matchesMetal(product, _filters.metal!))
+          .toList();
     }
 
     final sorted = _sorted(visible);
@@ -308,16 +327,30 @@ class _ListingViewState extends State<ListingView> {
       else if (scope != null && scope.subChips.isNotEmpty)
         _subChipSliver(scope),
       if (_filters.activeCount > 0) _activeChipsSliver(config),
-      _controlsSliver(
-        config,
-        purityOptions,
-        metalOptions,
-        total,
-        showSidebar,
-      ),
+      _controlsSliver(config, purityOptions, metalOptions, total, showSidebar),
       if (total == 0)
         SliverFillRemaining(hasScrollBody: false, child: _emptyState())
-      else if (_isGrid)
+      else if (_isGrid && page.length > 7) ...[
+        _gridSliver(page.take(4).toList(), config, store),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+            child: JewelleryCollageHero(
+              // Editorial picks: the grid above shows the first four cards,
+              // so the collage features everything else. (Excluding the whole
+              // page left an empty set whenever every product fit on screen —
+              // the hero silently collapsed to nothing.)
+              products: store.shopProducts
+                  .where(
+                    (product) =>
+                        !page.take(4).any((item) => item.id == product.id),
+                  )
+                  .toList(),
+            ),
+          ),
+        ),
+        _gridSliver(page.skip(4).toList(), config, store),
+      ] else if (_isGrid)
         _gridSliver(page, config, store)
       else
         _listSliver(page, config, store),
@@ -340,8 +373,7 @@ class _ListingViewState extends State<ListingView> {
           ),
         ),
       if (scope != null) _aboutSliver(scope),
-      if (widget.footer != null)
-        SliverToBoxAdapter(child: widget.footer!),
+      if (widget.footer != null) SliverToBoxAdapter(child: widget.footer!),
     ];
 
     final scroll = CustomScrollView(slivers: slivers);
@@ -366,8 +398,6 @@ class _ListingViewState extends State<ListingView> {
                     child: FilterPanel(
                       filters: _filters,
                       currencySymbol: config.currencySymbol,
-                      primaryColor: config.primaryColor,
-                      onPrimaryColor: config.onPrimaryColor,
                       purityOptions: purityOptions,
                       metalOptions: metalOptions,
                       showPriceRange: config.rules.showPrices,
@@ -395,7 +425,7 @@ class _ListingViewState extends State<ListingView> {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.screenH,
-            AppSpacing.lg,
+            AppSpacing.xs,
             AppSpacing.screenH,
             0,
           ),
@@ -425,14 +455,14 @@ class _ListingViewState extends State<ListingView> {
                   ],
                 ],
               ),
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: AppSpacing.xxs),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Expanded(
                     child: Text(
                       scope.title,
-                      style: AppTypography.display.copyWith(fontSize: 30),
+                      style: AppTypography.display.copyWith(fontSize: 26),
                     ),
                   ),
                   const SizedBox(width: AppSpacing.md),
@@ -440,7 +470,6 @@ class _ListingViewState extends State<ListingView> {
                     '$total designs',
                     style: AppTypography.overline.copyWith(
                       color: AppPalette.textSecondary,
-                      letterSpacing: 1.1,
                     ),
                   ),
                   const SizedBox(width: AppSpacing.xs),
@@ -459,7 +488,7 @@ class _ListingViewState extends State<ListingView> {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
           AppSpacing.screenH,
-          AppSpacing.lg,
+          AppSpacing.xs,
           AppSpacing.screenH,
           0,
         ),
@@ -467,21 +496,34 @@ class _ListingViewState extends State<ListingView> {
           hint: config.searchHint,
           controller: _searchController,
           onChanged: (value) => setState(() => _query = value),
+          trailing: SearchActionButtons(
+            onVoiceQuery: (query) {
+              _searchController.text = query;
+              setState(() => _query = query);
+            },
+          ),
         ),
       ),
     );
   }
 
   Widget _categoryChipSliver(BusinessConfig config) {
-    final chips = ['All', ...widget.categoryChips!];
+    // One row, one 'All' — dedupe case-insensitively so an owner category
+    // named 'all' can never render a second identical tag.
+    final chips = <String>['All'];
+    for (final category in widget.categoryChips!) {
+      if (!chips.any((chip) => chip.toLowerCase() == category.toLowerCase())) {
+        chips.add(category);
+      }
+    }
     return SliverToBoxAdapter(
       child: SizedBox(
-        height: 46,
+        height: 36,
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.screenH,
-            vertical: AppSpacing.sm,
+            vertical: AppSpacing.xxs,
           ),
           itemCount: chips.length,
           separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.chipGap),
@@ -523,12 +565,12 @@ class _ListingViewState extends State<ListingView> {
   Widget _subChipSliver(RouteScope scope) {
     return SliverToBoxAdapter(
       child: SizedBox(
-        height: 46,
+        height: 42,
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.screenH,
-            vertical: AppSpacing.sm,
+            vertical: AppSpacing.xxs,
           ),
           itemCount: scope.subChips.length,
           separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.chipGap),
@@ -605,7 +647,7 @@ class _ListingViewState extends State<ListingView> {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
           AppSpacing.screenH,
-          AppSpacing.sm,
+          AppSpacing.xxs,
           AppSpacing.screenH,
           0,
         ),
@@ -655,7 +697,7 @@ class _ListingViewState extends State<ListingView> {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
           AppSpacing.screenH,
-          AppSpacing.sm,
+          AppSpacing.xxs,
           AppSpacing.screenH,
           0,
         ),
@@ -668,14 +710,13 @@ class _ListingViewState extends State<ListingView> {
                     '$total designs',
                     style: AppTypography.overline.copyWith(
                       color: AppPalette.textSecondary,
-                      letterSpacing: 1.1,
                     ),
                   ),
                   const Spacer(),
                   _viewToggle(),
                 ],
               ),
-            const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: 2),
             Row(
               children: [
                 if (!showSidebar) ...[
@@ -685,8 +726,11 @@ class _ListingViewState extends State<ListingView> {
                       label: _filters.activeCount == 0
                           ? 'Filter'
                           : 'Filter (${_filters.activeCount})',
-                      onTap: () =>
-                          _openPanel(config, purityOptions, metalOptions: metalOptions),
+                      onTap: () => _openPanel(
+                        config,
+                        purityOptions,
+                        metalOptions: metalOptions,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -736,7 +780,7 @@ class _ListingViewState extends State<ListingView> {
           PopupMenuItem(value: option, child: Text(option)),
       ],
       child: Container(
-        height: 46,
+        height: 38,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
           border: Border.all(color: AppPalette.border),
@@ -791,68 +835,41 @@ class _ListingViewState extends State<ListingView> {
 
   // ------------------------------------------------------------ grid & co.
 
-  /// Products per grid chunk: two rows at the active column count. After
-  /// each chunk a full-width multi-image hero banner drops in before the
-  /// grid resumes — the Tanishq rhythm of collage rows, story hero, rows.
-  int get _heroChunk {
-    final columns = _density ?? Responsive.gridColumns(context);
-    return columns * 2;
-  }
-
   Widget _gridSliver(
     List<Product> page,
     BusinessConfig config,
     CommerceStore store,
   ) {
-    final chunk = _heroChunk;
-    return SliverMainAxisGroup(
-      slivers: [
-        for (var start = 0; start < page.length; start += chunk) ...[
-          // Full-bleed: the grid runs to both screen edges — no gutters —
-          // with hairline gaps so photography, not whitespace, owns the row.
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(0, 2, 0, 2),
-            sliver: SliverGrid(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: _density ?? Responsive.gridColumns(context),
-                childAspectRatio: Responsive.cardAspectRatio(context),
-                crossAxisSpacing: 2,
-                mainAxisSpacing: 2,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (context, i) {
-                  final product = page[start + i];
-                  return ProductCard(
-                    product: product,
-                    primaryColor: config.primaryColor,
-                    accentColor: config.accentColor,
-                    currency: config.currencySymbol,
-                    showRating: !config.rules.showPrices,
-                    showPrice: config.rules.showPrices,
-                    autoSlideImages: true,
-                    flush: true,
-                    liked: store.isWishlisted(product.id),
-                    onWishlist: () => store.toggleWishlist(product.id),
-                    onTap: () => navTo(context, '/product/${product.id}'),
-                  );
-                },
-                childCount:
-                    (start + chunk).clamp(0, page.length) - start,
-              ),
-            ),
-          ),
-          if (start + chunk < page.length)
-            SliverToBoxAdapter(
-              child: _GridHeroTile(
-                key: ValueKey('grid-hero-${page[start + chunk].id}'),
-                product: page[start + chunk],
-                primaryColor: config.primaryColor,
-                onTap: () =>
-                    navTo(context, '/product/${page[start + chunk].id}'),
-              ),
-            ),
-        ],
-      ],
+    final columns = _density ?? Responsive.gridColumns(context);
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(0, 2, 0, 2),
+      sliver: SliverGrid(
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: columns,
+          childAspectRatio: Responsive.cardAspectRatio(context),
+          crossAxisSpacing: 2,
+          mainAxisSpacing: 2,
+        ),
+        delegate: SliverChildBuilderDelegate((context, index) {
+          final product = page[index];
+          // §6.37/§7.43: the catalogue grid stays lean — photograph, identity,
+          // price and a quick-add; SKU/MOQ/bulk tiers live on the detail page.
+          return ProductCard(
+            product: product,
+            primaryColor: config.primaryColor,
+            accentColor: config.accentColor,
+            currency: config.currencySymbol,
+            showRating: !config.rules.showPrices,
+            showPrice: config.rules.showPrices,
+            onQuickAdd: () => showQuickAddSheet(context, product, store),
+            autoSlideImages: false,
+            flush: true,
+            liked: store.isWishlisted(product.id),
+            onWishlist: () => store.toggleWishlist(product.id),
+            onTap: () => navTo(context, '/product/${product.id}'),
+          );
+        }, childCount: page.length),
+      ),
     );
   }
 
@@ -876,6 +893,7 @@ class _ListingViewState extends State<ListingView> {
             liked: store.isWishlisted(product.id),
             onWishlist: () => store.toggleWishlist(product.id),
             onTap: () => navTo(context, '/product/${product.id}'),
+            onQuickAdd: () => showQuickAddSheet(context, product, store),
           );
         }, childCount: page.length * 2 - 1),
       ),
@@ -950,7 +968,7 @@ class _CollectionControl extends StatelessWidget {
       style: OutlinedButton.styleFrom(
         foregroundColor: AppPalette.textPrimary,
         side: const BorderSide(color: AppPalette.border),
-        minimumSize: const Size.fromHeight(46),
+        minimumSize: const Size.fromHeight(38),
         alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         shape: const RoundedRectangleBorder(borderRadius: AppRadius.allSm),
@@ -966,6 +984,7 @@ class _ProductListTile extends StatelessWidget {
   final bool liked;
   final VoidCallback onWishlist;
   final VoidCallback onTap;
+  final VoidCallback? onQuickAdd;
 
   const _ProductListTile({
     required this.product,
@@ -973,6 +992,7 @@ class _ProductListTile extends StatelessWidget {
     required this.liked,
     required this.onWishlist,
     required this.onTap,
+    this.onQuickAdd,
   });
 
   @override
@@ -1005,20 +1025,26 @@ class _ProductListTile extends StatelessWidget {
                 Positioned(
                   left: AppSpacing.md,
                   top: AppSpacing.md,
-                  child: ProductBadge(
-                    label: product.badges.first,
-                    background: Colors.white.withValues(alpha: .94),
-                    foreground: AppPalette.textPrimary,
+                  // IgnorePointer keeps the badge from swallowing the
+                  // horizontal swipe that drives the image carousel.
+                  child: IgnorePointer(
+                    child: ProductBadge(
+                      label: product.badges.first,
+                      background: Colors.white.withValues(alpha: .94),
+                      foreground: AppPalette.textPrimary,
+                    ),
                   ),
                 ),
               if (product.hasDiscount && showPrice)
                 Positioned(
                   left: AppSpacing.md,
                   bottom: AppSpacing.lg + 18,
-                  child: ProductBadge(
-                    label: '${product.discountPercent}% off',
-                    background: config.primaryColor,
-                    foreground: Colors.white,
+                  child: IgnorePointer(
+                    child: ProductBadge(
+                      label: '${product.discountPercent}% off',
+                      background: config.primaryColor,
+                      foreground: Colors.white,
+                    ),
                   ),
                 ),
               Positioned(
@@ -1026,214 +1052,180 @@ class _ProductListTile extends StatelessWidget {
                 top: AppSpacing.xs,
                 child: WishlistButton(liked: liked, onTap: onWishlist),
               ),
+              // Quick add rides the caption strip but stays outside its
+              // IgnorePointer so taps reach the sheet (§6.37 / §7.46). The
+              // caption reserves a right gutter so the two never overlap.
+              if (onQuickAdd != null)
+                Positioned(
+                  right: AppSpacing.md,
+                  bottom: AppSpacing.lg + 18,
+                  child: Semantics(
+                    button: true,
+                    label: 'Quick add ${product.name} to cart',
+                    child: Material(
+                      color: Colors.white,
+                      shape: const CircleBorder(),
+                      child: InkWell(
+                        onTap: onQuickAdd,
+                        customBorder: const CircleBorder(),
+                        child: const Padding(
+                          padding: EdgeInsets.all(8),
+                          child: Icon(
+                            Icons.add_shopping_cart_outlined,
+                            size: 20,
+                            color: AppPalette.textPrimary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               // Hero-style caption strip: brand, name and price ride the
               // gradient at the bottom of the photograph itself. Extra
-              // bottom padding keeps the swipe dots visible below it.
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withValues(alpha: 0.68),
-                    ],
+              // bottom padding keeps the swipe dots visible below it — all
+              // wrapped in IgnorePointer so drags reach the carousel.
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withValues(alpha: 0.68),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
               Positioned(
                 left: AppSpacing.md,
-                right: AppSpacing.md,
+                // Reserve a gutter for the quick-add circle (§6.37).
+                right: onQuickAdd != null
+                    ? AppSpacing.md + 44
+                    : AppSpacing.md,
                 bottom: AppSpacing.lg + 18,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      product.brand.toUpperCase(),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.overline.copyWith(
-                        color: Colors.white.withValues(alpha: .85),
+                child: IgnorePointer(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        product.brand.toUpperCase(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.overline.copyWith(
+                          color: Colors.white.withValues(alpha: .85),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      product.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.subtitle.copyWith(
-                        fontSize: 16,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
+                      const SizedBox(height: 2),
+                      Text(
+                        product.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.subtitle.copyWith(
+                          fontSize: 16,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        if (showPrice)
-                          Flexible(
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    Pricing.money(
-                                      product.price,
-                                      currencySymbol: config.currencySymbol,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: AppTypography.price.copyWith(
-                                      fontSize: 16,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                                if (product.hasDiscount) ...[
-                                  const SizedBox(width: 5),
+                      // B2B metadata on the feed tile too (§6.38 / §7.44):
+                      // SKU and MOQ stay readable over the gradient.
+                      if (config.rules.showMOQ) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          'SKU ${product.sku}  ·  MOQ ${product.minimumOrderQuantity} units',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.caption.copyWith(
+                            fontSize: 11,
+                            color: Colors.white70,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 4),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          if (showPrice)
+                            Flexible(
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
                                   Flexible(
                                     child: Text(
                                       Pricing.money(
-                                        product.mrp,
+                                        product.price,
                                         currencySymbol: config.currencySymbol,
                                       ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: AppTypography.priceStrike
-                                          .copyWith(
-                                        fontSize: 12,
-                                        color: Colors.white70,
+                                      style: AppTypography.price.copyWith(
+                                        fontSize: 16,
+                                        color: Colors.white,
                                       ),
                                     ),
                                   ),
+                                  if (product.hasDiscount) ...[
+                                    const SizedBox(width: 5),
+                                    Flexible(
+                                      child: Text(
+                                        Pricing.money(
+                                          product.mrp,
+                                          currencySymbol: config.currencySymbol,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: AppTypography.priceStrike
+                                            .copyWith(
+                                              fontSize: 12,
+                                              color: Colors.white70,
+                                            ),
+                                      ),
+                                    ),
+                                  ],
                                 ],
-                              ],
+                              ),
+                            )
+                          else
+                            Text(
+                              'Contact for Price',
+                              style: AppTypography.subtitle.copyWith(
+                                fontSize: 13,
+                                color: Colors.white,
+                              ),
                             ),
-                          )
-                        else
-                          Text(
-                            'Contact for Price',
-                            style: AppTypography.subtitle.copyWith(
-                              fontSize: 13,
-                              color: Colors.white,
+                          const Spacer(),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: RatingChip(
+                              rating: product.rating,
+                              reviewCount: product.reviewCount,
+                              compact: false,
                             ),
                           ),
-                        const Spacer(),
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: RatingChip(
-                            rating: product.rating,
-                            reviewCount: product.reviewCount,
-                            compact: false,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              if (!product.inStock)
-                Positioned.fill(
-                  child: ColoredBox(
-                    color: Colors.white.withValues(alpha: 0.72),
-                    child: const Center(
-                      child: ProductBadge(
-                        label: 'Out of stock',
-                        background: AppPalette.textPrimary,
+                        ],
                       ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Full-bleed editorial banner dropped between grid chunks — the multi-layout
-/// hero that breaks the product rows like the Tanishq catalogue.
-class _GridHeroTile extends StatelessWidget {
-  const _GridHeroTile({
-    super.key,
-    required this.product,
-    required this.primaryColor,
-    required this.onTap,
-  });
-
-  final Product product;
-  final Color primaryColor;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppPalette.surface,
-      child: InkWell(
-        onTap: onTap,
-        child: AspectRatio(
-          aspectRatio: 2.05,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // Multi-image hero: the product's angles swipe in place with
-              // dots and a counter — a collage you scroll through, not a
-              // single frozen banner.
-              ProductImageCarousel(
-                images: product.images,
-                placeholderIcon: product.icon,
-                placeholderColor: primaryColor.withValues(alpha: 0.12),
-                placeholderAccent: primaryColor,
-                autoSlide: true,
-                showDots: true,
-                showCounter: true,
-                borderRadius: BorderRadius.zero,
-              ),
-              // Readable label strip; the photos stay the hero.
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withValues(alpha: 0.62),
                     ],
                   ),
                 ),
               ),
-              Positioned(
-                left: AppSpacing.screenH,
-                right: AppSpacing.screenH,
-                bottom: AppSpacing.md,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      product.category.toUpperCase(),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.overline.copyWith(
-                        color: Colors.white.withValues(alpha: .85),
+              if (!product.inStock)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: ColoredBox(
+                      color: Colors.white.withValues(alpha: 0.72),
+                      child: const Center(
+                        child: ProductBadge(
+                          label: 'Out of stock',
+                          background: AppPalette.textPrimary,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Explore ${product.name}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.title.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
             ],
           ),
         ),

@@ -155,7 +155,7 @@ class _CoShoppingScreenState extends State<CoShoppingScreen> {
               ),
               child: ProductImageTile(
                 url: product.images.isEmpty ? '' : product.images.first,
-                fit: BoxFit.contain,
+                fit: BoxFit.cover,
               ),
             ),
             const SizedBox(height: AppSpacing.sm),

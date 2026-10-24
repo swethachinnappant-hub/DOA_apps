@@ -6,13 +6,16 @@ import 'package:provider/provider.dart';
 import 'package:common_widgets/common_widgets.dart';
 
 import '../../core/business_config.dart';
+import '../../core/demo_catalog.dart';
 import '../../core/models/cms.dart';
+import '../../core/models/order.dart';
 import '../../core/navigation/menu_data.dart';
 import '../../core/navigation/nav_helpers.dart';
 import '../../core/pricing.dart';
 import '../../core/product.dart';
 import '../../core/store/commerce_store.dart';
 import '../../widgets/product_card.dart';
+import '../../widgets/quick_add_sheet.dart';
 import '../config/providers/business_config_provider.dart';
 
 /// Builds a `/catalogue` location carrying the filters a home tile promises,
@@ -43,28 +46,25 @@ ValueKey<String> homeTileKey(String section, String label, String route) =>
 /// The config-derived default hero slides (§6 hero), also the seed list the
 /// Home Builder opens with before an owner takes over (SPEC-18).
 List<HeroSlide> defaultHeroSlides(BusinessConfig config) {
-  final categories = config.categories;
-  final lead = categories.isEmpty ? '' : categories.first;
   return <HeroSlide>[
     HeroSlide(
-      title: config.name,
-      subtitle: config.tagline,
-      cta: 'Browse catalogue',
-      location: catalogueLocation(),
+      title: 'Fresh designs for your store',
+      subtitle: 'Explore newly listed jewellery, ready for wholesale orders.',
+      cta: 'Shop new arrivals',
+      location: '/catalogue?sort=Newest',
     ),
-    if (lead.isNotEmpty)
-      HeroSlide(
-        title: 'Shop by category',
-        subtitle: '${categories.length} collections to explore',
-        cta: lead,
-        location: catalogueLocation(category: lead),
-      ),
+    HeroSlide(
+      title: 'Retailer favourites',
+      subtitle: 'Discover popular designs from the jewellery collection.',
+      cta: 'Shop best sellers',
+      location: '/bestsellers',
+    ),
     if (config.rules.showPrices)
       HeroSlide(
-        title: 'Curated by price',
-        subtitle: 'Find your sparkle for less',
-        cta: 'Under ${config.currencySymbol}1,500',
-        location: catalogueLocation(max: 1500),
+        title: 'Better value on bulk orders',
+        subtitle: 'Explore wholesale prices and available offers.',
+        cta: 'Explore wholesale deals',
+        location: '/catalogue?sort=Discount',
       )
     else
       HeroSlide(
@@ -107,7 +107,9 @@ class _SectionLinkHeader extends StatelessWidget {
                 onPressed: () => navTo(context, route!),
                 style: TextButton.styleFrom(
                   visualDensity: VisualDensity.compact,
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                  ),
                 ),
                 child: Text(actionLabel!),
               ),
@@ -132,12 +134,15 @@ class _HeroCarouselState extends State<HeroCarousel> {
   Timer? _timer;
   int _page = 0;
   int _count = 0;
+  // §5.31: pause the autoplay while the shopper is dragging, so the banner
+  // never fights the gesture.
+  bool _dragging = false;
 
   @override
   void initState() {
     super.initState();
     _timer = Timer.periodic(const Duration(seconds: 5), (_) {
-      if (!mounted || _count <= 1) return;
+      if (!mounted || _dragging || _count <= 1) return;
       _controller.animateToPage(
         (_page + 1) % _count,
         duration: AppDurations.slow,
@@ -158,60 +163,68 @@ class _HeroCarouselState extends State<HeroCarousel> {
   @override
   Widget build(BuildContext context) {
     final config = context.watch<BusinessConfigProvider>().config;
-    final slides = (context.watch<CommerceStore>().heroSlides ??
-            defaultHeroSlides(config))
-        .where((slide) => slide.enabled)
-        .toList();
+    final slides =
+        (context.watch<CommerceStore>().heroSlides ?? defaultHeroSlides(config))
+            .where((slide) => slide.enabled)
+            .toList();
     _count = slides.length;
     if (slides.isEmpty) return const SizedBox.shrink();
     // §6.1: desktop keeps the wide band; phones get a taller portrait
-    // rectangle — bigger height at every class, full width across the page.
+    // rectangle; tablets sit in between instead of shrinking below both.
     final mobile = Responsive.isMobile(context);
     final height = Responsive.isDesktop(context)
-        ? 300.0
+        ? 320.0
         : mobile
         ? 400.0
-        : 224.0;
+        : 288.0;
     final images = widget.products
         .where((product) => product.images.isNotEmpty)
         .map((product) => product.images.first)
+        .toSet()
         .toList();
 
     final carousel = SizedBox(
       height: height,
-      child: PageView.builder(
-        controller: _controller,
-        itemCount: slides.length,
-        onPageChanged: (i) => setState(() => _page = i),
-        itemBuilder: (context, index) {
-          final slide = slides[index];
-          final imageUrl = slide.imageUrl.isNotEmpty
-              ? slide.imageUrl
-              : (images.isEmpty ? null : images[index % images.length]);
-          return _HeroSlide(
-            key: homeTileKey('hero', slide.cta, slide.location),
-            title: slide.title,
-            subtitle: slide.subtitle,
-            cta: slide.cta,
-            icon: config.icon,
-            imageUrl: imageUrl,
-            gradient: LinearGradient(
-              colors: [
-                config.primaryColor,
-                Color.lerp(
-                  config.primaryColor,
-                  config.secondaryColor,
-                  0.5,
-                )!,
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            onPrimary: Colors.white,
-            primaryColor: config.primaryColor,
-            onTap: () => navTo(context, slide.location),
-          );
+      child: NotificationListener<ScrollNotification>(
+        onNotification: (notification) {
+          if (notification is ScrollStartNotification &&
+              notification.dragDetails != null) {
+            _dragging = true;
+          } else if (notification is ScrollEndNotification) {
+            _dragging = false;
+          }
+          return false;
         },
+        child: PageView.builder(
+          controller: _controller,
+          itemCount: slides.length,
+          onPageChanged: (i) => setState(() => _page = i),
+          itemBuilder: (context, index) {
+            final slide = slides[index];
+            final imageUrl = slide.imageUrl.isNotEmpty
+                ? slide.imageUrl
+                : (images.isEmpty ? null : images[index % images.length]);
+            return _HeroSlide(
+              key: homeTileKey('hero', slide.cta, slide.location),
+              title: slide.title,
+              subtitle: slide.subtitle,
+              cta: slide.cta,
+              icon: config.icon,
+              imageUrl: imageUrl,
+              gradient: LinearGradient(
+                colors: [
+                  config.primaryColor,
+                  Color.lerp(config.primaryColor, config.secondaryColor, 0.5)!,
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              onPrimary: Colors.white,
+              primaryColor: config.primaryColor,
+              onTap: () => navTo(context, slide.location),
+            );
+          },
+        ),
       ),
     );
 
@@ -293,60 +306,61 @@ class _HeroSlide extends StatelessWidget {
                   placeholderColor: primaryColor.withValues(alpha: 0.12),
                   placeholderAccent: primaryColor,
                 ),
+              if (imageUrl != null)
+                const DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [
+                        Color(0x99000000),
+                        Color(0x4D000000),
+                        Color(0x00000000),
+                      ],
+                      stops: [0, 0.48, 1],
+                    ),
+                  ),
+                ),
               Padding(
-                padding: const EdgeInsets.all(AppSpacing.xl),
-                child: Row(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTypography.title.copyWith(
-                              color: onPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.xs),
-                          Text(
-                            subtitle,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTypography.caption.copyWith(
-                              color: onPrimary.withValues(alpha: 0.88),
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.md),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.md,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: onPrimary,
-                              borderRadius: AppRadius.allPill,
-                            ),
-                            child: Text(
-                              cta,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppTypography.label.copyWith(
-                                color: primaryColor,
-                              ),
-                            ),
-                          ),
-                        ],
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.title.copyWith(color: onPrimary),
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      subtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.caption.copyWith(
+                        color: onPrimary.withValues(alpha: 0.88),
                       ),
                     ),
-                    const SizedBox(width: AppSpacing.md),
-                    Icon(
-                      icon,
-                      size: 54,
-                      color: onPrimary.withValues(alpha: 0.28),
+                    const SizedBox(height: AppSpacing.md),
+                    FilledButton.icon(
+                      onPressed: onTap,
+                      icon: const Icon(Icons.arrow_forward, size: 16),
+                      label: Text(
+                        cta,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: onPrimary,
+                        foregroundColor: primaryColor,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md,
+                          vertical: AppSpacing.sm,
+                        ),
+                        textStyle: AppTypography.label,
+                      ),
                     ),
                   ],
                 ),
@@ -363,11 +377,17 @@ class _HeroSlide extends StatelessWidget {
 class ProductRail extends StatelessWidget {
   final List<Product> products;
   final bool autoSlideImages;
+  final bool compact;
+  final String? badgeOverride;
+  final Set<String>? bestsellerIds;
 
   const ProductRail({
     super.key,
     required this.products,
     this.autoSlideImages = false,
+    this.compact = false,
+    this.badgeOverride,
+    this.bestsellerIds,
   });
 
   @override
@@ -376,18 +396,22 @@ class ProductRail extends StatelessWidget {
 
     final config = context.watch<BusinessConfigProvider>().config;
     final store = context.watch<CommerceStore>();
-    final width = Responsive.isDesktop(context)
+    final width = compact && Responsive.isMobile(context)
+        ? 164.0
+        : Responsive.isDesktop(context)
         ? 288.0
         : Responsive.isTablet(context)
         ? 248.0
         : 216.0;
 
     return SizedBox(
-      height: Responsive.isDesktop(context)
-          ? 520
+      height: compact && Responsive.isMobile(context)
+          ? 350
+          : Responsive.isDesktop(context)
+          ? 560
           : Responsive.isTablet(context)
-          ? 470
-          : 430,
+          ? 510
+          : 420,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -402,12 +426,20 @@ class ProductRail extends StatelessWidget {
               primaryColor: config.primaryColor,
               accentColor: config.accentColor,
               currency: config.currencySymbol,
-              showRating: true,
+              badgeOverride:
+                  badgeOverride ??
+                  (bestsellerIds?.contains(product.id) == true
+                      ? 'Best seller'
+                      : null),
+              showRating: !compact,
               showPrice: config.rules.showPrices,
               autoSlideImages: autoSlideImages,
               liked: store.isWishlisted(product.id),
               onWishlist: () => store.toggleWishlist(product.id),
               onTap: () => navTo(context, '/product/${product.id}'),
+              onQuickAdd: !product.isAvailable
+                  ? null
+                  : () => showQuickAddSheet(context, product, store),
             ),
           );
         },
@@ -441,12 +473,95 @@ class NewArrivalsRail extends StatelessWidget {
       children: [
         _SectionLinkHeader(
           section: 'newArrivals',
-          title: 'Just In',
+          title: 'New Arrivals',
           actionLabel: 'View All',
-          route: catalogueLocation(),
+          route: '/catalogue?sort=Newest',
         ),
         const SizedBox(height: AppSpacing.md),
-        ProductRail(products: newest, autoSlideImages: true),
+        ProductRail(
+          products: newest,
+          autoSlideImages: true,
+          badgeOverride: 'New arrival',
+        ),
+      ],
+    );
+  }
+}
+
+/// Ranks recent order activity first, then review volume, for a live trending
+/// rail. Cancelled and returned orders do not contribute to the ranking.
+class TrendingRail extends StatelessWidget {
+  const TrendingRail({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final store = context.watch<CommerceStore>();
+    final cutoff = DateTime.now().subtract(const Duration(days: 30));
+    final recentSales = <String, int>{};
+    for (final order in store.allOrders) {
+      if (order.placedAt.isBefore(cutoff) ||
+          order.status == OrderStatus.cancelled ||
+          order.status == OrderStatus.returned) {
+        continue;
+      }
+      for (final item in order.items) {
+        recentSales.update(
+          item.productId,
+          (quantity) => quantity + item.quantity,
+          ifAbsent: () => item.quantity,
+        );
+      }
+    }
+    final products = [...store.shopProducts]
+      ..sort((a, b) {
+        final sales = (recentSales[b.id] ?? 0).compareTo(recentSales[a.id] ?? 0);
+        if (sales != 0) return sales;
+        // Homepage spec §1.03: with sales even, occasion-tagged designs
+        // (wedding, festive, party) surface as the trending picks.
+        final occasion = b.occasions.length.compareTo(a.occasions.length);
+        if (occasion != 0) return occasion;
+        final reviews = b.reviewCount.compareTo(a.reviewCount);
+        return reviews != 0 ? reviews : b.rating.compareTo(a.rating);
+      });
+    final trending = products.take(10).toList();
+    if (trending.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionLinkHeader(
+          section: 'trending',
+          title: 'Trending Jewellery',
+          actionLabel: 'View All',
+          route: '/catalogue',
+        ),
+        const SizedBox(height: AppSpacing.md),
+        ProductRail(products: trending, badgeOverride: 'Trending now'),
+      ],
+    );
+  }
+}
+
+/// Products a buyer has recently opened, surfaced again from shared store
+/// history so returning retailers can get back to a design quickly.
+class RecentlyViewedRail extends StatelessWidget {
+  const RecentlyViewedRail({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final products = context.watch<CommerceStore>().recentlyViewed;
+    if (products.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionLinkHeader(
+          section: 'recentlyViewed',
+          title: 'Recently Viewed',
+          actionLabel: 'View All',
+          route: '/catalogue',
+        ),
+        const SizedBox(height: AppSpacing.md),
+        ProductRail(products: products),
       ],
     );
   }
@@ -458,10 +573,11 @@ class PriceBands extends StatelessWidget {
   const PriceBands({super.key});
 
   static const List<({int? min, int? max})> bands = [
-    (min: null, max: 1500),
-    (min: 1500, max: 3000),
-    (min: 3000, max: 6000),
-    (min: 6000, max: null),
+    (min: null, max: 500),
+    (min: 501, max: 1500),
+    (min: 1501, max: 3000),
+    (min: 3001, max: 6000),
+    (min: 6001, max: null),
   ];
 
   @override
@@ -474,7 +590,8 @@ class PriceBands extends StatelessWidget {
       'Under ${Pricing.money(bands[0].max!, currencySymbol: symbol)}',
       '${Pricing.money(bands[1].min!, currencySymbol: symbol)} – ${Pricing.money(bands[1].max!, currencySymbol: symbol)}',
       '${Pricing.money(bands[2].min!, currencySymbol: symbol)} – ${Pricing.money(bands[2].max!, currencySymbol: symbol)}',
-      '${Pricing.money(bands[3].min!, currencySymbol: symbol)} & above',
+      '${Pricing.money(bands[3].min!, currencySymbol: symbol)} – ${Pricing.money(bands[3].max!, currencySymbol: symbol)}',
+      '${Pricing.money(bands[4].min!, currencySymbol: symbol)} & above',
     ];
 
     return Column(
@@ -483,7 +600,7 @@ class PriceBands extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenH),
           child: SectionHeader(
-            title: 'Curated by price',
+            title: 'Wholesale Deals by Price',
             padding: EdgeInsets.zero,
           ),
         ),
@@ -549,6 +666,38 @@ class PriceBands extends StatelessWidget {
   }
 }
 
+/// Discounted, available listings collected in one wholesale offer rail.
+class WholesaleDealsRail extends StatelessWidget {
+  const WholesaleDealsRail({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final config = context.watch<BusinessConfigProvider>().config;
+    if (!config.rules.showPrices) return const SizedBox.shrink();
+    final products = context
+        .watch<CommerceStore>()
+        .shopProducts
+        .where((product) => product.isAvailable && product.hasDiscount)
+        .toList()
+      ..sort((a, b) => b.discountPercent.compareTo(a.discountPercent));
+    final deals = products.take(10).toList();
+    if (deals.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionLinkHeader(
+          section: 'deals',
+          title: 'Wholesale Deals',
+          actionLabel: 'View All',
+          route: '/catalogue?sort=Discount',
+        ),
+        const SizedBox(height: AppSpacing.md),
+        ProductRail(products: deals, badgeOverride: 'Wholesale deal'),
+      ],
+    );
+  }
+}
+
 /// Hero band spanning the full page width, sourced straight from the live
 /// store.
 class HeroBanner extends StatelessWidget {
@@ -570,13 +719,22 @@ class HeroBanner extends StatelessWidget {
 class ShopByCategory extends StatelessWidget {
   const ShopByCategory({super.key});
 
-  String? _photoFor(CommerceStore store, String category) {
+  /// The rail shows photographs, never emoji: prefer an available listing's
+  /// shot, then any listing (a sold-out design still has its photo), and as a
+  /// last resort the catalogue's category→photo map — every configured
+  /// category has a real shot there.
+  String _photoFor(CommerceStore store, String category) {
     for (final product in store.shopProducts) {
       if (product.category == category && product.images.isNotEmpty) {
         return product.images.first;
       }
     }
-    return null;
+    for (final product in store.allProducts) {
+      if (product.category == category && product.images.isNotEmpty) {
+        return product.images.first;
+      }
+    }
+    return DemoCatalog.imageForCategory(category);
   }
 
   @override
@@ -757,7 +915,7 @@ class CollectionsRail extends StatelessWidget {
                         if (photo != null)
                           ProductImageTile(
                             url: photo,
-                            fit: BoxFit.contain,
+                            fit: BoxFit.cover,
                             placeholderIcon: StoreNav.categoryIcon(tile.name),
                           )
                         else
@@ -803,6 +961,187 @@ class CollectionsRail extends StatelessWidget {
   }
 }
 
+/// Matching-product recommendations (UI spec §1.06): necklace + earrings,
+/// chain + pendant, bangle + ring, and complete sets — a retailer can buy the
+/// pieces together. Each tile shows the piece with its wholesale price.
+class CompleteLookRail extends StatelessWidget {
+  const CompleteLookRail({super.key});
+
+  /// Title -> the pair of category needles that make a look.
+  static const List<(String, String, String)> pairings = [
+    ('Necklace + Earrings', 'necklace', 'earring'),
+    ('Chain + Pendant', 'chain', 'pendant'),
+    ('Bangle + Ring', 'bangle', 'ring'),
+    ('Complete Bridal Set', 'bridal', 'necklace'),
+  ];
+
+  static bool _matches(Product product, String needle) =>
+      product.category.toLowerCase().contains(needle);
+
+  List<Product> _candidates(List<Product> products, String needle) {
+    final candidates = products
+        .where(
+          (product) =>
+              _matches(product, needle) &&
+              product.images.isNotEmpty &&
+              product.isAvailable,
+        )
+        .toList()
+      ..sort((a, b) => b.rating.compareTo(a.rating));
+    return candidates;
+  }
+
+  (Product, Product)? _bestPair(
+    List<Product> products,
+    String firstNeedle,
+    String secondNeedle,
+  ) {
+    final first = _candidates(products, firstNeedle);
+    final second = _candidates(products, secondNeedle);
+    (Product, Product)? best;
+    var bestScore = -1.0;
+    for (final a in first) {
+      for (final b in second) {
+        if (a.id == b.id) continue;
+        final sharesOccasion = a.occasions.any(
+          (occasion) => b.occasions.any(
+            (other) => other.toLowerCase() == occasion.toLowerCase(),
+          ),
+        );
+        // Only recommend a set together when both pieces suit at least one
+        // of the same occasions; missing seller metadata should not invent a
+        // match.
+        if (!sharesOccasion) continue;
+        final score = a.rating + b.rating;
+        if (score > bestScore) {
+          best = (a, b);
+          bestScore = score;
+        }
+      }
+    }
+    return best;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final products = context.watch<CommerceStore>().shopProducts;
+    final looks = <({String title, List<Product> products})>[];
+    final used = <String>{};
+    for (final (title, first, second) in pairings) {
+      final pair = _bestPair(products, first, second);
+      if (pair == null) continue;
+      final (a, b) = pair;
+      // One shared piece (e.g. a bridal necklace) can complete two looks;
+      // keep each piece in a single look so the rail stays varied.
+      if (used.contains(a.id) || used.contains(b.id)) continue;
+      used
+        ..add(a.id)
+        ..add(b.id);
+      looks.add((title: title, products: [a, b]));
+    }
+    if (looks.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionLinkHeader(section: 'completeLook', title: 'Complete the Look'),
+        const SizedBox(height: AppSpacing.md),
+        SizedBox(
+          height: 196,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenH),
+            itemCount: looks.length,
+            separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
+            itemBuilder: (context, index) {
+              final look = looks[index];
+              return Container(
+                width: 300,
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: AppPalette.surface,
+                  borderRadius: AppRadius.allMd,
+                  border: Border.all(color: AppPalette.border),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(look.title, style: AppTypography.label),
+                    const SizedBox(height: AppSpacing.sm),
+                    Expanded(
+                      child: Row(
+                        children: [
+                          for (var i = 0; i < look.products.length; i++) ...[
+                            if (i > 0) const SizedBox(width: AppSpacing.sm),
+                            Expanded(
+                              child: _LookProduct(product: look.products[i]),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LookProduct extends StatelessWidget {
+  const _LookProduct({required this.product});
+
+  final Product product;
+
+  @override
+  Widget build(BuildContext context) {
+    final config = context.watch<BusinessConfigProvider>().config;
+    return InkWell(
+      onTap: () => navTo(context, '/product/${product.id}'),
+      borderRadius: AppRadius.allSm,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: ClipRRect(
+              borderRadius: AppRadius.allSm,
+              child: ProductImageTile(
+                url: product.images.first,
+                fit: BoxFit.cover,
+                placeholderIcon: product.icon,
+              ),
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            product.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTypography.caption.copyWith(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          if (config.rules.showPrices)
+            Text(
+              '${Pricing.money(product.price, currencySymbol: config.currencySymbol)} / unit',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTypography.caption.copyWith(
+                fontSize: 10.5,
+                color: AppPalette.goldDark,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 /// "Bestsellers" rail: badge holders first, then the best rated pieces, with a
 /// `View all` hop to the `/bestsellers` collection route.
 class BestsellersRail extends StatelessWidget {
@@ -811,8 +1150,24 @@ class BestsellersRail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final store = context.watch<CommerceStore>();
+    final soldUnits = <String, int>{};
+    for (final order in store.allOrders) {
+      if (order.status == OrderStatus.cancelled ||
+          order.status == OrderStatus.returned) {
+        continue;
+      }
+      for (final item in order.items) {
+        soldUnits.update(
+          item.productId,
+          (quantity) => quantity + item.quantity,
+          ifAbsent: () => item.quantity,
+        );
+      }
+    }
     final products = [...store.shopProducts]
       ..sort((a, b) {
+        final sales = (soldUnits[b.id] ?? 0).compareTo(soldUnits[a.id] ?? 0);
+        if (sales != 0) return sales;
         final aBest = a.badges.contains('Bestseller') ? 1 : 0;
         final bBest = b.badges.contains('Bestseller') ? 1 : 0;
         if (aBest != bBest) return bBest - aBest;
@@ -832,7 +1187,20 @@ class BestsellersRail extends StatelessWidget {
           route: '/bestsellers',
         ),
         const SizedBox(height: AppSpacing.md),
-        ProductRail(products: best),
+        ProductRail(
+          products: best,
+          bestsellerIds: {
+            for (final entry in soldUnits.entries)
+              if (entry.value > 0) entry.key,
+            // Merchandised bestsellers keep the badge even before real sales
+            // data exists (UI spec §1.01).
+            for (final product in products)
+              if (product.badges.any(
+                (badge) => badge.toLowerCase().contains('best'),
+              ))
+                product.id,
+          },
+        ),
       ],
     );
   }
@@ -891,11 +1259,7 @@ class ShopByOccasion extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          icon,
-                          size: 15,
-                          color: config.primaryColor,
-                        ),
+                        Icon(icon, size: 15, color: config.primaryColor),
                         const SizedBox(width: AppSpacing.xs),
                         // §11.5: keep the chip pill within the section at
                         // 200% text.
@@ -921,98 +1285,136 @@ class ShopByOccasion extends StatelessWidget {
   }
 }
 
-/// "Bridal banner (Bandhan)": full-width editorial band to `/realbrides`.
+/// "Bridal & Festive Collection": the full-width Bandhan editorial band plus a
+/// rail of wedding/festive stock so the section sells product, not just mood
+/// (homepage spec §1.04).
 class BridalBanner extends StatelessWidget {
   const BridalBanner({super.key});
+
+  /// Bridal, temple and matching-set stock, plus anything tagged for a
+  /// wedding or festival (homepage spec §1.04).
+  bool _isBridalOrFestive(Product product) {
+    final category = product.category.toLowerCase();
+    return category.contains('bridal') ||
+        category.contains('temple') ||
+        category.contains('set') ||
+        product.occasions.any((occasion) =>
+            occasion.toLowerCase().contains('wedding') ||
+            occasion.toLowerCase().contains('festive'));
+  }
 
   @override
   Widget build(BuildContext context) {
     final config = context.watch<BusinessConfigProvider>().config;
     if (config.type != BusinessType.jewellery) return const SizedBox.shrink();
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenH),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          key: homeTileKey('bridal', 'Bandhan', '/realbrides'),
-          borderRadius: AppRadius.allLg,
-          onTap: () => navTo(context, '/realbrides'),
-          child: Ink(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  config.primaryColor,
-                  Color.lerp(config.primaryColor, config.secondaryColor, 0.6)!,
-                ],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
+    final bridal = [...context.watch<CommerceStore>().shopProducts]
+        .where((product) => product.isAvailable && _isBridalOrFestive(product))
+        .toList()
+      ..sort((a, b) => b.rating.compareTo(a.rating));
+    final picks = bridal.take(10).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenH),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              key: homeTileKey('bridal', 'Bandhan', '/realbrides'),
               borderRadius: AppRadius.allLg,
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.xl),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'BANDHAN',
-                          style: AppTypography.eyebrow.copyWith(
-                            color: config.onPrimaryColor.withValues(alpha: 0.85),
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.xs),
-                        Text(
-                          'The bridal collection',
-                          style: AppTypography.title.copyWith(
-                            color: config.onPrimaryColor,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.xs),
-                        Text(
-                          'Temple sets, polki and kundan designs for the big day.',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTypography.caption.copyWith(
-                            color: config.onPrimaryColor.withValues(alpha: 0.88),
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.md,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: config.onPrimaryColor,
-                            borderRadius: AppRadius.allPill,
-                          ),
-                          child: Text(
-                            'EXPLORE BRIDAL',
-                            style: AppTypography.label.copyWith(
-                              color: config.primaryColor,
+              onTap: () => navTo(context, '/realbrides'),
+              child: Ink(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      config.primaryColor,
+                      Color.lerp(config.primaryColor, config.secondaryColor, 0.6)!,
+                    ],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
+                  borderRadius: AppRadius.allLg,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.xl),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'BANDHAN',
+                              style: AppTypography.eyebrow.copyWith(
+                                color: AppPalette.goldLight,
+                              ),
                             ),
-                          ),
+                            const SizedBox(height: AppSpacing.xs),
+                            Text(
+                              'The bridal collection',
+                              style: AppTypography.title.copyWith(
+                                color: config.onPrimaryColor,
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.xs),
+                            Text(
+                              'Temple sets, polki and kundan designs for the big day.',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTypography.caption.copyWith(
+                                color: config.onPrimaryColor.withValues(
+                                  alpha: 0.88,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            // UI spec §5.28: a clear call-to-action button,
+                            // never a plain text pill.
+                            FilledButton.icon(
+                              onPressed: () => navTo(context, '/realbrides'),
+                              icon: const Icon(Icons.arrow_forward, size: 15),
+                              label: const Text('EXPLORE BRIDAL'),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: config.onPrimaryColor,
+                                foregroundColor: config.primaryColor,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.md,
+                                  vertical: AppSpacing.sm,
+                                ),
+                                textStyle: AppTypography.label,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      Icon(
+                        Icons.favorite_outline,
+                        size: 54,
+                        color: config.onPrimaryColor.withValues(alpha: 0.35),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: AppSpacing.md),
-                  Icon(
-                    Icons.favorite_outline,
-                    size: 54,
-                    color: config.onPrimaryColor.withValues(alpha: 0.35),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
         ),
-      ),
+        if (picks.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.md),
+          const _SectionLinkHeader(
+            section: 'bridal',
+            title: 'Bridal & Festive',
+            actionLabel: 'View All',
+            route: '/catalogue',
+          ),
+          const SizedBox(height: AppSpacing.md),
+          ProductRail(products: picks, badgeOverride: 'Bridal & festive'),
+        ],
+      ],
     );
   }
 }
@@ -1056,10 +1458,7 @@ class GiftSplit extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        label,
-                        style: AppTypography.subtitle,
-                      ),
+                      Text(label, style: AppTypography.subtitle),
                       const SizedBox(height: 2),
                       Text(
                         'Curated picks, ready to gift',
@@ -1139,10 +1538,7 @@ class SocialStrip extends StatelessWidget {
     ];
     return Column(
       children: [
-        const _SectionLinkHeader(
-          section: 'social',
-          title: 'In the spotlight',
-        ),
+        const _SectionLinkHeader(section: 'social', title: 'In the spotlight'),
         const SizedBox(height: AppSpacing.md),
         Wrap(
           alignment: WrapAlignment.center,

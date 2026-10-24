@@ -480,7 +480,7 @@ class _TopProductRow extends StatelessWidget {
             ),
             Text(
               '$units sold',
-              style: TextStyle(fontSize: 12.5, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 12.5, color: AppPalette.textSecondary),
             ),
             const SizedBox(width: 12),
             Text(
@@ -537,7 +537,7 @@ class _LowStockRow extends StatelessWidget {
               ),
               Text(
                 label,
-                style: TextStyle(fontSize: 12.5, color: Colors.grey[600]),
+                style: TextStyle(fontSize: 12.5, color: AppPalette.textSecondary),
               ),
               const SizedBox(width: 6),
               const Icon(Icons.chevron_right, size: 18),
@@ -583,7 +583,7 @@ class _OrderRow extends StatelessWidget {
                       '${order.customerName} · ${order.itemCount} item(s)',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 12, color: AppPalette.textSecondary),
                     ),
                   ],
                 ),
@@ -615,7 +615,7 @@ class _EmptyState extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Icon(icon, size: 40, color: Colors.grey[500]),
+          Icon(icon, size: 40, color: AppPalette.textMuted),
           const SizedBox(height: 12),
           Text(
             title,

@@ -217,11 +217,11 @@ class BusinessConfig {
       name: 'Jewellery B2B',
       tagline: 'Private Wholesale Jewellery Platform',
       icon: Icons.diamond,
-      // Copper brand system from the storefront architecture (§2.1):
-      // primary #C87F44, dark #A9672F, tint #F3E3D3.
-      primaryColor: Color(0xFFC87F44),
-      secondaryColor: Color(0xFFA9672F),
-      accentColor: Color(0xFFF3E3D3),
+      // Restrained monochrome storefront with a gold accent for highlights;
+      // jewellery photography supplies the rest of the color.
+      primaryColor: Color(0xFF171717),
+      secondaryColor: Color(0xFF666666),
+      accentColor: Color(0xFFF2E8D5),
       categories: [
         'Gold Chains',
         'Gold Rings',
@@ -231,6 +231,8 @@ class BusinessConfig {
         'Pendants',
         'Necklaces',
         'Bridal Jewellery',
+        'Temple Jewellery',
+        'Jewellery Sets',
         "Children's Jewellery",
         "Men's Jewellery",
       ],
@@ -243,6 +245,8 @@ class BusinessConfig {
         'Pendants': '\u{1F3AF}',
         'Necklaces': '\u{1F4FF}',
         'Bridal Jewellery': '\u{1F470}',
+        'Temple Jewellery': '\u{1F3DB}',
+        'Jewellery Sets': '\u{1F48E}',
         "Children's Jewellery": '\u{1F476}',
         "Men's Jewellery": '\u{1F466}',
       },

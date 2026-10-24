@@ -75,8 +75,8 @@ class ProductBadge extends StatelessWidget {
   const ProductBadge({
     super.key,
     required this.label,
-    this.background = const Color(0xFF111827),
-    this.foreground = Colors.white,
+    this.background = AppPalette.gold,
+    this.foreground = AppPalette.onGold,
   });
 
   @override
@@ -168,10 +168,13 @@ class ProductCard extends StatefulWidget {
 
   /// Currency symbol from the business config, so every price respects it.
   final String currency;
+  final String? badgeOverride;
 
   /// Cards are compact inside dense grids; set false for a roomier rail.
+  /// The card keeps only identity + price + rating — SKU, MOQ, bulk tiers,
+  /// stock and added-date lines live on the detail page so the photograph
+  /// owns as much of the tile as possible.
   final bool showRating;
-  final bool showDelivery;
 
   /// Mirrors the business rule. When false the card shows a "Contact for
   /// Price" prompt instead of any figures.
@@ -180,6 +183,8 @@ class ProductCard extends StatefulWidget {
   /// Starts the product photo carousel after its normal interval. Used on the
   /// Home rails so shoppers can preview the available product views in place.
   final bool autoSlideImages;
+
+  final VoidCallback? onQuickAdd;
 
   /// Tanishq-style flush tile for the full-bleed catalogue grid: no border,
   /// radius or inset — the photograph runs edge to edge and owns the cell.
@@ -191,13 +196,14 @@ class ProductCard extends StatefulWidget {
     required this.primaryColor,
     required this.accentColor,
     this.currency = '₹',
+    this.badgeOverride,
     this.onTap,
     this.onWishlist,
     this.liked,
     this.showRating = true,
-    this.showDelivery = false,
     this.showPrice = true,
     this.autoSlideImages = false,
+    this.onQuickAdd,
     this.flush = false,
   });
 
@@ -222,10 +228,120 @@ class _ProductCardState extends State<ProductCard> {
     );
   }
 
+  /// Photograph, badges, wishlist and stock veil — shared by the flush grid
+  /// cell and the bordered/rail card.
+  Widget _imageWell() {
+    final p = widget.product;
+    final liked = widget.liked ?? _liked;
+    // The photo runs edge-to-edge: flush cells are square-cornered, bordered
+    // cards clip to the card's own rounded top so there is no inset ring of
+    // card background between the border and the image.
+    final clipRadius = widget.flush
+        ? BorderRadius.zero
+        : const BorderRadius.vertical(top: Radius.circular(AppRadius.lg));
+    return ClipRRect(
+      borderRadius: clipRadius,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          ProductImageCarousel(
+            key: _carouselKey,
+            images: p.images,
+            placeholderIcon: p.icon,
+            placeholderColor: widget.accentColor,
+            placeholderAccent: widget.primaryColor,
+            // Every layout frame paints edge-to-edge: the card's aspect owns
+            // the crop so no letterbox bars of background show between photos.
+            fit: BoxFit.cover,
+            autoSlide: widget.autoSlideImages,
+            showDots: p.hasMultipleImages,
+            showCounter: p.hasMultipleImages,
+            borderRadius: clipRadius,
+          ),
+          // §7.48: New Arrival / Best Seller / Sale — a discount with no
+          // merchandising badge still earns a "Sale" pill.
+          if (widget.badgeOverride != null ||
+              p.badges.isNotEmpty ||
+              (p.hasDiscount && widget.showPrice))
+            Positioned(
+              left: AppSpacing.sm,
+              top: AppSpacing.sm,
+              child: ProductBadge(
+                label:
+                    widget.badgeOverride ??
+                    (p.badges.isNotEmpty ? p.badges.first : 'Sale'),
+                background: Colors.white.withValues(alpha: .94),
+                foreground: AppPalette.goldDark,
+              ),
+            ),
+          if (p.hasDiscount && widget.showPrice)
+            Positioned(
+              left: AppSpacing.sm,
+              bottom: AppSpacing.sm,
+              child: ProductBadge(
+                label: '${p.discountPercent}% off',
+                background: AppPalette.gold,
+                foreground: AppPalette.onGold,
+              ),
+            ),
+          Positioned(
+            right: AppSpacing.sm,
+            top: AppSpacing.sm,
+            child: WishlistButton(
+              liked: liked,
+              onTap: () {
+                if (widget.liked == null) {
+                  setState(() => _liked = !_liked);
+                }
+                widget.onWishlist?.call();
+              },
+            ),
+          ),
+          if (p.images.isNotEmpty)
+            Positioned(
+              right: AppSpacing.sm,
+              top: 56,
+              child: Tooltip(
+                message: 'Zoom product image',
+                child: Material(
+                  color: Colors.white.withValues(alpha: .94),
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    onTap: _zoomCurrentImage,
+                    customBorder: const CircleBorder(),
+                    child: const Padding(
+                      padding: EdgeInsets.all(6),
+                      child: Icon(
+                        Icons.zoom_in,
+                        size: 16,
+                        color: AppPalette.textPrimary,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          if (!p.isAvailable)
+            Positioned.fill(
+              child: ColoredBox(
+                color: Colors.white.withValues(alpha: 0.72),
+                child: Center(
+                  child: ProductBadge(
+                    label: p.inStock ? 'Below minimum order' : 'Out of stock',
+                    background: AppPalette.textPrimary,
+                    foreground: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final p = widget.product;
-    final liked = widget.liked ?? _liked;
 
     return Material(
       color: AppPalette.surface,
@@ -237,115 +353,22 @@ class _ProductCardState extends State<ProductCard> {
           decoration: BoxDecoration(
             color: AppPalette.surface,
             borderRadius: widget.flush ? BorderRadius.zero : AppRadius.allLg,
-            border: widget.flush
-                ? null
-                : Border.all(color: AppPalette.border),
+            border: widget.flush ? null : Border.all(color: AppPalette.border),
             boxShadow: widget.flush ? const [] : AppShadows.subtle,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Padding(
-                  padding: widget.flush
-                      ? EdgeInsets.zero
-                      : const EdgeInsets.fromLTRB(7, 7, 7, 0),
-                  child: ClipRRect(
-                    borderRadius: widget.flush
-                        ? BorderRadius.zero
-                        : AppRadius.allMd,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        ProductImageCarousel(
-                          key: _carouselKey,
-                          images: p.images,
-                          placeholderIcon: p.icon,
-                          placeholderColor: widget.accentColor,
-                          placeholderAccent: widget.primaryColor,
-                          autoSlide: widget.autoSlideImages,
-                          showDots: p.hasMultipleImages,
-                          showCounter: p.hasMultipleImages,
-                          borderRadius: widget.flush
-                              ? BorderRadius.zero
-                              : AppRadius.allMd,
-                        ),
-                        if (p.badges.isNotEmpty)
-                          Positioned(
-                            left: AppSpacing.sm,
-                            top: AppSpacing.sm,
-                            child: ProductBadge(
-                              label: p.badges.first,
-                              background: Colors.white.withValues(alpha: .94),
-                              foreground: AppPalette.textPrimary,
-                            ),
-                          ),
-                        if (p.hasDiscount && widget.showPrice)
-                          Positioned(
-                            left: AppSpacing.sm,
-                            bottom: AppSpacing.sm,
-                            child: ProductBadge(
-                              label: '${p.discountPercent}% off',
-                              background: widget.primaryColor,
-                              foreground: Colors.white,
-                            ),
-                          ),
-                        Positioned(
-                          right: AppSpacing.sm,
-                          top: AppSpacing.sm,
-                          child: WishlistButton(
-                            liked: liked,
-                            onTap: () {
-                              if (widget.liked == null) {
-                                setState(() => _liked = !_liked);
-                              }
-                              widget.onWishlist?.call();
-                            },
-                          ),
-                        ),
-                        if (p.images.isNotEmpty)
-                          Positioned(
-                            right: AppSpacing.sm,
-                            top: 56,
-                            child: Tooltip(
-                              message: 'Zoom product image',
-                              child: Material(
-                                color: Colors.white.withValues(alpha: .94),
-                                shape: const CircleBorder(),
-                                child: InkWell(
-                                  onTap: _zoomCurrentImage,
-                                  customBorder: const CircleBorder(),
-                                  child: const Padding(
-                                    padding: EdgeInsets.all(6),
-                                    child: Icon(
-                                      Icons.zoom_in,
-                                      size: 16,
-                                      color: AppPalette.textPrimary,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        if (!p.inStock)
-                          Positioned.fill(
-                            child: ColoredBox(
-                              color: Colors.white.withValues(alpha: 0.72),
-                              child: const Center(
-                                child: ProductBadge(
-                                  label: 'Out of stock',
-                                  background: AppPalette.textPrimary,
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+              // Edge-to-edge photograph: no inset padding and no letterboxed
+              // 3:4 frame — the image consumes the whole card above the copy.
+              Expanded(child: _imageWell()),
               Padding(
-                padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.sm,
+                  AppSpacing.xs,
+                  AppSpacing.sm,
+                  AppSpacing.xs,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
@@ -360,7 +383,7 @@ class _ProductCardState extends State<ProductCard> {
                         color: AppPalette.goldDark,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: AppSpacing.xxs),
                     Text(
                       p.name,
                       maxLines: 2,
@@ -377,14 +400,27 @@ class _ProductCardState extends State<ProductCard> {
                       Row(
                         children: [
                           Flexible(
-                            child: Text(
-                              Pricing.money(
-                                p.price,
-                                currencySymbol: widget.currency,
+                            // §11.5: at 200% text the price line scales down
+                            // instead of overflowing the card.
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    Pricing.money(
+                                      p.price,
+                                      currencySymbol: widget.currency,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: AppTypography.price.copyWith(
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppTypography.price.copyWith(fontSize: 16),
                             ),
                           ),
                           if (p.hasDiscount) ...[
@@ -416,39 +452,47 @@ class _ProductCardState extends State<ProductCard> {
                           color: widget.primaryColor,
                         ),
                       ),
-                    if (widget.showRating || widget.showDelivery) ...[
+                    if (widget.showRating) ...[
                       const SizedBox(height: AppSpacing.xs),
-                      Row(
-                        children: [
-                          if (widget.showRating)
-                            // §11.5: at 200% text the chip scales down
-                            // instead of pushing the delivery label out.
-                            Flexible(
-                              child: FittedBox(
-                                fit: BoxFit.scaleDown,
-                                alignment: Alignment.centerLeft,
-                                child: RatingChip(
-                                  rating: p.rating,
-                                  reviewCount: p.reviewCount,
-                                  compact: false,
-                                ),
-                              ),
-                            ),
-                          if (widget.showDelivery) ...[
-                            const SizedBox(width: AppSpacing.xs),
-                            Flexible(
-                              child: Text(
-                                p.deliveryLabel,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: AppTypography.caption.copyWith(
-                                  fontSize: 10.5,
-                                  color: AppPalette.textHint,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
+                      // §11.5: at 200% text the chip scales down instead of
+                      // overflowing the card.
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: RatingChip(
+                          rating: p.rating,
+                          reviewCount: p.reviewCount,
+                          compact: false,
+                        ),
+                      ),
+                    ],
+                    if (widget.onQuickAdd != null) ...[
+                      const SizedBox(height: AppSpacing.xs),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 32,
+                        child: OutlinedButton.icon(
+                          onPressed: p.isAvailable ? widget.onQuickAdd : null,
+                          icon: Icon(
+                            p.needsVariantSelection
+                                ? Icons.tune
+                                : Icons.add_shopping_cart_outlined,
+                            size: 15,
+                          ),
+                          label: Text(
+                            p.needsVariantSelection
+                                ? 'Choose options'
+                                : 'Quick add',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 11.5),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            visualDensity: VisualDensity.compact,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                        ),
                       ),
                     ],
                   ],

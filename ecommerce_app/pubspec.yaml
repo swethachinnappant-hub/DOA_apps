@@ -15,6 +15,8 @@ dependencies:
   provider: ^6.1.2
   shared_preferences: ^2.3.4
   no_screenshot: ^1.0.0
+  image_picker: ^1.2.3
+  speech_to_text: ^7.4.0
 
 dev_dependencies:
   flutter_test:
@@ -24,6 +26,11 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+    - assets/demo_jewellery/bracelet_unsplash.jpg
+    - assets/demo_jewellery/earrings_unsplash.jpg
+    - assets/demo_jewellery/necklace_unsplash.jpg
+    - assets/demo_jewellery/pendant_unsplash.jpg
+    - assets/demo_jewellery/ring_unsplash.jpg
     - assets/demo_jewellery/bridal_necklace.jpg
     - assets/demo_jewellery/bridal_necklace_detail_motif.jpg
     - assets/demo_jewellery/bridal_necklace_detail_pendant.jpg
@@ -42,3 +49,8 @@ flutter:
     - assets/demo_jewellery/gold_ring.jpg
     - assets/demo_jewellery/gold_ring_detail_band.jpg
     - assets/demo_jewellery/gold_ring_detail_stone.jpg
+
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Variable.ttf

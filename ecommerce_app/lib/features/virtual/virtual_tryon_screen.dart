@@ -136,7 +136,7 @@ class _VirtualTryOnScreenState extends State<VirtualTryOnScreen> {
                           url: selected.images.isEmpty
                               ? ''
                               : selected.images.first,
-                          fit: BoxFit.contain,
+                          fit: BoxFit.cover,
                         ),
                       ),
                       const SizedBox(height: AppSpacing.sm),

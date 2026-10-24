@@ -63,21 +63,22 @@ class Responsive {
     }
   }
 
-  /// Horizontal page padding per class (§3.1): 16 / 24 / 32 / 40.
+  /// Horizontal page padding per class (§3.1): 12 / 16 / 24 / 28 — all on
+  /// the 4-point grid (§9.63).
   static double pageInset(BuildContext context) {
     switch (uiClass(context)) {
       case UiClass.wide:
-        return 40;
+        return 28;
       case UiClass.expanded:
-        return 32;
-      case UiClass.medium:
         return 24;
+      case UiClass.medium:
+        return 16;
       case UiClass.compact:
-        return AppSpacing.screenH;
+        return 12;
     }
   }
 
-  /// Section vertical rhythm per class (§2.3): 32 / 40 / 56.
+  /// Section vertical rhythm per class (§2.3): 16 / 24 / 28.
   static double sectionGap(BuildContext context) {
     switch (uiClass(context)) {
       case UiClass.wide:
@@ -90,7 +91,7 @@ class Responsive {
     }
   }
 
-  /// Grid gutter per class (§3.1): 12 / 16 / 24.
+  /// Grid gutter per class (§3.1): 4 / 8 / 12.
   static double gridGutter(BuildContext context) {
     switch (uiClass(context)) {
       case UiClass.wide:
@@ -155,12 +156,12 @@ class Responsive {
     final type = getDeviceType(context);
     switch (type) {
       case DeviceType.desktop:
-        // Taller cards → the photo takes the lion's share of the tile.
-        return 0.74;
+        // ~5:6 tiles give the 3:4 photograph room to breathe (UI spec §7.43).
+        return 0.62;
       case DeviceType.tablet:
-        return 0.66;
+        return 0.58;
       case DeviceType.mobile:
-        return 0.56;
+        return 0.52;
     }
   }
 

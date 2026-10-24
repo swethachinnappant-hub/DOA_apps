@@ -160,7 +160,8 @@ class _RateBox extends StatelessWidget {
                   style: AppTypography.buttonSmall.copyWith(
                     color: accent,
                     fontSize: 10.5,
-                    letterSpacing: 1.1,
+                    // §2.10: keep small-text tracking tight.
+                    letterSpacing: 0.4,
                     fontWeight: FontWeight.w700,
                   ),
                 ),

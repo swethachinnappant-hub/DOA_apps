@@ -263,14 +263,14 @@ class _OrderCard extends StatelessWidget {
               const SizedBox(height: 6),
               Row(
                 children: [
-                  Icon(Icons.person_outline, size: 14, color: Colors.grey[600]),
+                  Icon(Icons.person_outline, size: 14, color: AppPalette.textSecondary),
                   const SizedBox(width: 5),
                   Expanded(
                     child: Text(
                       order.customerName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 12.5, color: Colors.grey[700]),
+                      style: TextStyle(fontSize: 12.5, color: AppPalette.textSecondary),
                     ),
                   ),
                   Text(
@@ -287,7 +287,7 @@ class _OrderCard extends StatelessWidget {
                 '${order.itemCount} item(s) · ${order.status.hint}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                style: TextStyle(fontSize: 12, color: AppPalette.textSecondary),
               ),
               if (next != null) ...[
                 const SizedBox(height: 12),
@@ -335,7 +335,7 @@ class _EmptyQueue extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(18),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -362,7 +362,7 @@ class _EmptyQueue extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 height: 1.5,
-                color: Colors.grey[600],
+                color: AppPalette.textSecondary,
               ),
             ),
           ],

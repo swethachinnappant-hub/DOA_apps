@@ -135,10 +135,12 @@ class CommerceStore extends ChangeNotifier {
     return out;
   }
 
-  /// Records a detail-page view. Deliberately does not notify listeners: it
-  /// runs during the screen's `initState`, and the rail that reads it renders
-  /// in that same first frame.
+  /// Records a detail-page view. Notify after the current frame because this
+  /// is called from a detail screen's `initState`; the home rail then updates
+  /// when the buyer returns to the storefront.
   void recordView(String productId) {
+    final wasFirst =
+        _recentlyViewedIds.isNotEmpty && _recentlyViewedIds.first == productId;
     _recentlyViewedIds.remove(productId);
     _recentlyViewedIds.insert(0, productId);
     if (_recentlyViewedIds.length > _maxRecentlyViewed) {
@@ -146,6 +148,9 @@ class CommerceStore extends ChangeNotifier {
         _maxRecentlyViewed,
         _recentlyViewedIds.length,
       );
+    }
+    if (!wasFirst) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => notifyListeners());
     }
   }
 
@@ -423,15 +428,23 @@ class CommerceStore extends ChangeNotifier {
   /// already in the cart. Returns the resulting quantity in the cart.
   int addToCart(
     Product product, {
-    int quantity = 1,
+    int? quantity,
     String? selectedSize,
     String? selectedShade,
   }) {
-    if (quantity <= 0) return 0;
+    final requested = quantity ?? product.minimumOrderQuantity;
+    if (requested < product.minimumOrderQuantity) return 0;
+    final alreadyInCart = _cart
+        .where((line) => line.productId == product.id)
+        .fold<int>(0, (total, line) => total + line.quantity);
+    if (product.ownerId.isNotEmpty &&
+        alreadyInCart + requested > product.stock) {
+      return 0;
+    }
 
     final item = CartItem.fromProduct(
       product,
-      quantity: quantity,
+      quantity: requested,
       selectedSize: selectedSize,
       selectedShade: selectedShade,
     );
@@ -441,7 +454,10 @@ class CommerceStore extends ChangeNotifier {
       _cart.add(item);
     } else {
       _cart[index] = _cart[index].copyWith(
-        quantity: _cart[index].quantity + quantity,
+        quantity: _cart[index].quantity + requested,
+        unitPrice: product.unitPriceForQuantity(
+          _cart[index].quantity + requested,
+        ),
       );
     }
     _revalidateCoupon();
@@ -457,7 +473,26 @@ class CommerceStore extends ChangeNotifier {
     if (quantity <= 0) {
       _cart.removeAt(index);
     } else {
-      _cart[index] = _cart[index].copyWith(quantity: quantity);
+      final product = productById(_cart[index].productId);
+      final minimum = product?.minimumOrderQuantity ?? 1;
+      final remainingStock = product != null && product.ownerId.isNotEmpty
+          ? product.stock - _cart
+              .where((line) => line.productId == product.id && line.lineKey != lineKey)
+              .fold<int>(0, (total, line) => total + line.quantity)
+          : null;
+      if (remainingStock != null && remainingStock < minimum) {
+        _cart.removeAt(index);
+        _revalidateCoupon();
+        notifyListeners();
+        return;
+      }
+      final adjusted = remainingStock == null
+          ? (quantity < minimum ? minimum : quantity)
+          : quantity.clamp(minimum, remainingStock).toInt();
+      _cart[index] = _cart[index].copyWith(
+        quantity: adjusted,
+        unitPrice: product?.unitPriceForQuantity(adjusted),
+      );
     }
     _revalidateCoupon();
     notifyListeners();

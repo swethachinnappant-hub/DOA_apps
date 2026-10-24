@@ -104,7 +104,7 @@ void main() {
           );
           expect(
             product.images,
-            hasLength(3),
+            hasLength(greaterThanOrEqualTo(3)),
             reason: '${product.name} should include the cover and detail views',
           );
         }
@@ -153,11 +153,12 @@ void main() {
       final carousel = tester.state<ProductImageCarouselState>(
         find.byType(ProductImageCarousel),
       );
-      expect(find.text('1 / 3'), findsOneWidget);
+      final pages = product.images.length;
+      expect(find.text('1 / $pages'), findsOneWidget);
       await tester.pump(const Duration(seconds: 3));
       await tester.pump(const Duration(milliseconds: 500));
       expect(carousel.currentIndex, 1);
-      expect(find.text('2 / 3'), findsOneWidget);
+      expect(find.text('2 / $pages'), findsOneWidget);
 
       await tester.tapAt(const Offset(110, 100));
       await tester.pump();

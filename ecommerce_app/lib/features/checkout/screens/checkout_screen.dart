@@ -127,7 +127,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         appBar: AppBar(title: const Text('Checkout')),
         body: Center(
           child: Padding(
-            padding: const EdgeInsets.all(32),
+            padding: const EdgeInsets.all(18),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -141,7 +141,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 const SizedBox(height: 8),
                 Text(
                   'Add a product to your bag first.',
-                  style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+                  style: TextStyle(fontSize: 13, color: AppPalette.textMuted),
                 ),
                 const SizedBox(height: 20),
                 AppButton(
@@ -392,7 +392,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             fontWeight: FontWeight.w700,
                             color: done || current
                                 ? Colors.white
-                                : Colors.grey[600],
+                                : AppPalette.textSecondary,
                           ),
                         ),
                 ),
@@ -417,7 +417,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 12.5,
-                              color: Colors.grey[600],
+                              color: AppPalette.textSecondary,
                             ),
                           ),
                         ),
@@ -435,9 +435,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ],
             ),
             if (current) ...[
-              const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: AppSpacing.md),
               _stepBody(context, config, store, user, index),
-              const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: AppSpacing.md),
               Row(
                 children: [
                   if (index > 0) ...[
@@ -664,7 +664,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.md),
           Row(
             children: [
               Expanded(
@@ -768,7 +768,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 11.5,
-                          color: Colors.grey[600],
+                          color: AppPalette.textSecondary,
                         ),
                       ),
                     ),
@@ -864,7 +864,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       style: TextStyle(
                         fontSize: 13,
                         height: 1.35,
-                        color: Colors.grey[700],
+                        color: AppPalette.textSecondary,
                       ),
                     ),
                   ],
@@ -896,7 +896,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     const SizedBox(height: 2),
                     Text(
                       '${delivery.note} · ${_etaLabel(delivery.days)}',
-                      style: TextStyle(fontSize: 12.5, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 12.5, color: AppPalette.textSecondary),
                     ),
                   ],
                 ),
@@ -927,7 +927,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     const SizedBox(height: 2),
                     Text(
                       payment.note,
-                      style: TextStyle(fontSize: 12.5, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 12.5, color: AppPalette.textSecondary),
                     ),
                   ],
                 ),
@@ -944,7 +944,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             primary: config.primaryColor,
           ),
         ),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: AppSpacing.md),
       ],
     );
   }
@@ -1128,7 +1128,7 @@ class _AddressCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: Responsive.fontSize(context, mobile: 12.5),
-                      color: selected ? null : Colors.grey[600],
+                      color: selected ? null : AppPalette.textSecondary,
                       height: 1.35,
                     ),
                   ),
@@ -1185,7 +1185,7 @@ class _PaymentCard extends StatelessWidget {
             note,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 11.5, color: Colors.grey[600]),
+            style: TextStyle(fontSize: 11.5, color: AppPalette.textSecondary),
           ),
         ),
       ),
@@ -1232,7 +1232,7 @@ class _LineSummary extends StatelessWidget {
             style: TextStyle(
               fontSize: Responsive.fontSize(context, mobile: 13),
               fontWeight: FontWeight.w600,
-              color: showPrice ? null : Colors.grey,
+              color: showPrice ? null : AppPalette.textSecondary,
             ),
           ),
         ],

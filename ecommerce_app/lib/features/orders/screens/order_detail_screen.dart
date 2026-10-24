@@ -31,7 +31,7 @@ class OrderDetailScreen extends StatelessWidget {
         appBar: AppBar(title: const Text('Order')),
         body: Center(
           child: Padding(
-            padding: const EdgeInsets.all(32),
+            padding: const EdgeInsets.all(18),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -193,7 +193,7 @@ class OrderDetailScreen extends StatelessWidget {
                     'Paid via ${order.paymentMethod}',
                     style: TextStyle(
                       fontSize: Responsive.fontSize(context, mobile: 12),
-                      color: Colors.grey[600],
+                      color: AppPalette.textSecondary,
                     ),
                   ),
                 ),
@@ -227,7 +227,7 @@ class OrderDetailScreen extends StatelessWidget {
             const SizedBox(height: 10),
             Text(
               'A copy is also emailed to the address on the order.',
-              style: TextStyle(fontSize: 12.5, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 12.5, color: AppPalette.textSecondary),
             ),
           ],
         ),
@@ -336,7 +336,7 @@ class OrderDetailScreen extends StatelessWidget {
               label,
               style: TextStyle(
                 fontSize: Responsive.fontSize(context, mobile: 12),
-                color: Colors.grey[600],
+                color: AppPalette.textSecondary,
               ),
             ),
           ),
@@ -385,7 +385,7 @@ class OrderDetailScreen extends StatelessWidget {
               style: TextStyle(
                 fontSize: Responsive.fontSize(context, mobile: 13),
                 fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
-                color: showPrice ? null : Colors.grey,
+                color: showPrice ? null : AppPalette.textSecondary,
               ),
             ),
           ),
@@ -633,13 +633,13 @@ class _TimelineRow extends StatelessWidget {
                       fontWeight: current ? FontWeight.w700 : FontWeight.w500,
                       color: done || current
                           ? Theme.of(context).colorScheme.onSurface
-                          : Colors.grey[500],
+                          : AppPalette.textMuted,
                     ),
                   ),
                   if (current)
                     Text(
                       status.hint,
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 12, color: AppPalette.textSecondary),
                     ),
                 ],
               ),
@@ -691,7 +691,7 @@ class _ItemRow extends StatelessWidget {
                     )
                   : ProductImageTile(
                       url: item.images.first,
-                      fit: BoxFit.contain,
+                      fit: BoxFit.cover,
                       placeholderIcon: Icons.broken_image_outlined,
                       placeholderColor: accent,
                       placeholderAccent: brand,
@@ -718,14 +718,14 @@ class _ItemRow extends StatelessWidget {
                     item.variantLabel,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 11.5, color: Colors.grey[600]),
+                    style: TextStyle(fontSize: 11.5, color: AppPalette.textSecondary),
                   ),
                 ],
                 const SizedBox(height: 2),
                 Text(
                   'Qty ${item.quantity}',
                   maxLines: 1,
-                  style: TextStyle(fontSize: 11.5, color: Colors.grey[500]),
+                  style: TextStyle(fontSize: 11.5, color: AppPalette.textMuted),
                 ),
               ],
             ),
@@ -738,7 +738,7 @@ class _ItemRow extends StatelessWidget {
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: showPrice ? brand : Colors.grey,
+              color: showPrice ? brand : AppPalette.textSecondary,
             ),
           ),
         ],

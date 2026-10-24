@@ -180,11 +180,18 @@ GoRouter buildAppRouter({required AuthProvider auth}) {
           return CatalogueScreen(
             initialCategory: query['category'],
             initialQuery: query['search'],
+            initialSort: query['sort'],
             priceMin: int.tryParse(query['min'] ?? ''),
             priceMax: int.tryParse(query['max'] ?? ''),
             initialMetal: query['metal'],
           );
         },
+      ),
+      GoRoute(
+        path: '/bestsellers',
+        builder: (context, state) => const CatalogueScreen(
+          initialSort: 'Best sellers',
+        ),
       ),
       GoRoute(
         path: '/product/:id',
@@ -354,7 +361,7 @@ class _RouteFallback extends StatelessWidget {
       appBar: AppBar(title: const Text('Page not found')),
       body: Center(
         child: Padding(
-          padding: const EdgeInsets.all(32),
+          padding: const EdgeInsets.all(18),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [

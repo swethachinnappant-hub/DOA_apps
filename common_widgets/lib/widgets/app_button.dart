@@ -30,13 +30,16 @@ class AppButton extends StatelessWidget {
     this.height,
     this.width,
     this.padding,
-    this.radius = 10,
+    // Matches the theme's standard button radius (AppRadius.allMd = 12).
+    this.radius = 12,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final buttonHeight = height ?? Responsive.spacing(context, mobile: 48, tablet: 50, desktop: 52);
+    // The theme pins every button to 48px; stay on that baseline unless a
+    // caller overrides it (§9.62).
+    final buttonHeight = height ?? 48;
     final fontSize = Responsive.fontSize(context, mobile: 14, tablet: 15, desktop: 16);
 
     Widget button;

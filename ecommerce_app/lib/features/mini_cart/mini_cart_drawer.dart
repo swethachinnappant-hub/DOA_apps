@@ -26,7 +26,7 @@ Future<void> showMiniCart(BuildContext context) {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (_) => const FractionallySizedBox(
-        heightFactor: 0.9,
+        heightFactor: 0.66,
         child: MiniCartBody(),
       ),
     );
@@ -46,7 +46,7 @@ Future<void> showMiniCart(BuildContext context) {
             left: Radius.circular(20),
           ),
           child: SizedBox(
-            width: 420,
+            width: 380,
             height: double.infinity,
             child: MiniCartBody(),
           ),
@@ -255,7 +255,7 @@ class _MiniCartBodyState extends State<MiniCartBody> {
                   ? _fallback(product, config)
                   : Image.network(
                       line.images.first,
-                      fit: BoxFit.contain,
+                      fit: BoxFit.cover,
                       errorBuilder: (_, _, _) => _fallback(product, config),
                     ),
             ),

@@ -208,7 +208,7 @@ class SectionHeader extends StatelessWidget {
       padding: padding ??
           EdgeInsets.fromLTRB(
             AppSpacing.screenH,
-            AppSpacing.xl,
+            Responsive.spacing(context, mobile: 12, tablet: 16, desktop: 20),
             AppSpacing.screenH,
             AppSpacing.xs,
           ),

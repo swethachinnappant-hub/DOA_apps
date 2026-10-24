@@ -19,23 +19,24 @@ class AppSpacing {
 
   /// Section rhythm / grid gutters run tight — the storefront is image-first,
   /// so chrome spacing yields to photography (thin gutters, dense grids).
-  static const double sectionGap = 14;
+  /// §9.63: every helper below sits on the 4-point grid (most on 8).
+  static const double sectionGap = 16;
   static const double headerToContent = 12;
-  static const double gridCross = 6;
-  static const double gridMain = 6;
+  static const double gridCross = 4;
+  static const double gridMain = 4;
   static const double cardPadding = 12;
   static const double listGap = 12;
   static const double chipGap = 8;
 
   // Section rhythm per device class (architecture §2.3, tightened).
-  static const double sectionGapCompact = 18;
-  static const double sectionGapMedium = 22;
+  static const double sectionGapCompact = 16;
+  static const double sectionGapMedium = 24;
   static const double sectionGapExpanded = 28;
 
   // Grid gutters per device class (architecture §3.1, tightened to thin gaps).
   static const double gutterCompact = 4;
-  static const double gutterMedium = 6;
-  static const double gutterExpanded = 10;
+  static const double gutterMedium = 8;
+  static const double gutterExpanded = 12;
 
   static const EdgeInsets screen = EdgeInsets.symmetric(
     horizontal: 16,
@@ -70,54 +71,66 @@ class AppRadius {
 class AppPalette {
   const AppPalette._();
 
-  static const Color background = Color(0xFFFFFFFF);
+  /// Warm ivory page background (UI spec §9: `#FAF8F4`).
+  static const Color background = Color(0xFFFAF8F4);
+  /// Cards and inputs stay pure white so product photography reads cleanly.
   static const Color surface = Color(0xFFFFFFFF);
-  static const Color surfaceMuted = Color(0xFFF7F7F7);
-  /// Pure black — the storefront runs a strict black-on-white type scheme.
-  static const Color textPrimary = Color(0xFF000000);
+  static const Color surfaceMuted = Color(0xFFF4EFE7);
+  /// Primary text — near-black ink (UI spec §9: `#1C1B19`).
+  static const Color textPrimary = Color(0xFF1C1B19);
   static const Color textSecondary = Color(0xFF666666);
-  static const Color textHint = Color(0xFF888888);
-  static const Color divider = Color(0xFFE8E8E8);
-  static const Color border = Color(0xFFE5E5E5);
-  static const Color skeleton = Color(0xFFF0F0F0);
-  static const Color skeletonHighlight = Color(0xFFFAFAFA);
+  /// Hint text darkened from #888888 so small captions clear 4.5:1 AA on
+  /// both white and the warm ivory background (UI spec §10.73).
+  static const Color textHint = Color(0xFF707070);
+  static const Color divider = Color(0xFFE8E2D8);
+  static const Color border = Color(0xFFE5DFD5);
+  static const Color skeleton = Color(0xFFF0EBE3);
+  static const Color skeletonHighlight = Color(0xFFFAF8F4);
   static const Color success = Color(0xFF2D7D46);
   static const Color warning = Color(0xFFB8860B);
   static const Color error = Color(0xFFC0392B);
   static const Color info = Color(0xFF1E5F74);
   static const Color overlay = Color(0xCC171717);
-  static const Color gold = Color(0xFFC5A05E);
-  static const Color goldLight = Color(0xFFE8DCC8);
-  static const Color goldDark = Color(0xFF8B6914);
-  static const Color onGold = Color(0xFF171717);
+
+  /// Accent gold (UI spec §9: `#B18A45`) — highlights, badges, active states.
+  static const Color gold = Color(0xFFB18A45);
+
+  /// Pale gold tint for selected chips and soft highlight surfaces.
+  static const Color goldLight = Color(0xFFF2E8D5);
+
+  /// Darkened gold that stays AA for small text on light backgrounds.
+  static const Color goldDark = Color(0xFF8A6A33);
+
+  /// Ink used on gold fills (5.3:1 against [gold]).
+  static const Color onGold = Color(0xFF1C1B19);
 
   // --- Jewellery storefront brand (architecture §2.1) --------------------
-  /// Primary brand copper. Verified live site theme colour.
-  static const Color copper = Color(0xFFC87F44);
+  /// Monochrome primary retained under its legacy semantic name.
+  static const Color copper = Color(0xFF171717);
 
-  /// Hover / pressed copper. Also the smallest safe copper text on white.
-  static const Color copperDark = Color(0xFFA9672F);
+  /// Secondary ink used for muted links and controls.
+  static const Color copperDark = Color(0xFF333333);
 
-  /// Pressed state and body-size copper text (contrast-safe ≈ 4.5:1+).
-  static const Color copperPressed = Color(0xFF94592A);
+  /// Pressed state for monochrome controls.
+  static const Color copperPressed = Color(0xFF111111);
 
-  /// Selected chips, coupon background, eligible-state fill.
-  static const Color copperTint = Color(0xFFF3E3D3);
+  /// Selected chips and subtle eligible-state surfaces.
+  static const Color copperTint = Color(0xFFF1ECE3);
 
   /// Alternate warm section band.
-  static const Color warm = Color(0xFFFAF6F1);
+  static const Color warm = Color(0xFFF5F1EA);
 
   /// Hairline dividers / card borders on warm surfaces.
   static const Color hairline = Color(0xFFEAE3DB);
 
   /// Architectural ink (headings/body) per spec.
-  static const Color ink = Color(0xFF1E1E1E);
+  static const Color ink = Color(0xFF1C1B19);
 
   /// Supporting text per spec.
   static const Color textSupporting = Color(0xFF555555);
 
-  /// Captions / strikethrough MRP per spec.
-  static const Color textMuted = Color(0xFF8A8A8A);
+  /// Captions / strikethrough MRP per spec — AA on white and ivory (§10.73).
+  static const Color textMuted = Color(0xFF6B6B6B);
 
   /// Mobile drawer / dark chrome surface (inferred from white icon set).
   static const Color drawerSurface = Color(0xFF1E1E1E);
@@ -225,7 +238,7 @@ class AppTypography {
   static const TextStyle label = TextStyle(
     fontSize: 12,
     fontWeight: FontWeight.w600,
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
     height: 1.2,
     color: AppPalette.textPrimary,
   );
@@ -233,7 +246,8 @@ class AppTypography {
   static const TextStyle overline = TextStyle(
     fontSize: 11,
     fontWeight: FontWeight.w600,
-    letterSpacing: 1.0,
+    // UI spec §2.10: keep tracking tight on small text.
+    letterSpacing: 0.4,
     height: 1.2,
     color: AppPalette.textSecondary,
   );
@@ -272,7 +286,7 @@ class AppTypography {
   static const TextStyle buttonSmall = TextStyle(
     fontSize: 12,
     fontWeight: FontWeight.w600,
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
     height: 1.2,
   );
 
@@ -283,7 +297,8 @@ class AppTypography {
   static const TextStyle navLabel = TextStyle(
     fontSize: 13,
     fontWeight: FontWeight.w500,
-    letterSpacing: 0.8,
+    // UI spec §2.10: keep tracking tight on small text.
+    letterSpacing: 0.4,
     height: 1.2,
     color: AppPalette.textPrimary,
   );
@@ -292,7 +307,7 @@ class AppTypography {
   static const TextStyle buttonUppercase = TextStyle(
     fontSize: 13,
     fontWeight: FontWeight.w600,
-    letterSpacing: 0.6,
+    letterSpacing: 0.4,
     height: 1.2,
     color: Colors.white,
   );
@@ -306,20 +321,21 @@ class AppTypography {
     color: AppPalette.textPrimary,
   );
 
-  /// Small copper eyebrow above section titles.
+  /// Small muted eyebrow above section titles.
   static const TextStyle eyebrow = TextStyle(
     fontSize: 12,
     fontWeight: FontWeight.w600,
-    letterSpacing: 1.8,
+    // UI spec §2.10: mild tracking, legible at 12 px.
+    letterSpacing: 0.6,
     height: 1.3,
-    color: AppPalette.copperDark,
+    color: AppPalette.goldDark,
   );
 
   /// Footer column heading (§5.8).
   static const TextStyle footerHeading = TextStyle(
     fontSize: 13,
     fontWeight: FontWeight.w600,
-    letterSpacing: 0.6,
+    letterSpacing: 0.4,
     height: 1.3,
     color: AppPalette.textPrimary,
   );

@@ -47,7 +47,14 @@ class SearchIndex {
     final out = <Product>[];
     for (final product in pool) {
       if (out.length >= limit) break;
-      if (<String>[product.name, product.brand, product.category]
+      if (<String>[
+        product.name,
+        product.brand,
+        product.category,
+        product.sku,
+        product.description,
+        ...product.specs.values,
+      ]
           .any((value) => value.toLowerCase().contains(q))) {
         out.add(product);
       }

@@ -67,7 +67,7 @@ class ProfileScreen extends StatelessWidget {
             padding: Responsive.padding(context),
             children: [
               Container(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: const Color(0xFF171717),
                   borderRadius: BorderRadius.circular(18),

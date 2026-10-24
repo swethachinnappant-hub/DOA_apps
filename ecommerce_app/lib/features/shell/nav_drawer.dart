@@ -50,8 +50,8 @@ class _NavDrawerState extends State<NavDrawer> {
                 padding: EdgeInsets.zero,
                 children: [
                   for (var i = 0; i < menus.length; i++)
-                    _topRow(i, menus[i]),
-                  const SizedBox(height: AppSpacing.lg),
+                  _topRow(i, menus[i]),
+                  const SizedBox(height: AppSpacing.sm),
                   const Divider(height: 1, color: AppPalette.hairline),
                   _footerRow(
                     label: user?.name.isNotEmpty == true
@@ -77,7 +77,7 @@ class _NavDrawerState extends State<NavDrawer> {
                       line2: 'Support: ${StoreNav.whatsappSupport}',
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.xxl),
+                  const SizedBox(height: AppSpacing.md),
                 ],
               ),
             ),

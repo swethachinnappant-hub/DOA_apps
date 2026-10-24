@@ -13,6 +13,18 @@ class ProductVariant {
   bool get isShade => swatch != null;
 }
 
+/// Unit price that applies when a wholesale buyer reaches a quantity break.
+@immutable
+class WholesalePriceTier {
+  final int minimumQuantity;
+  final int unitPrice;
+
+  const WholesalePriceTier({
+    required this.minimumQuantity,
+    required this.unitPrice,
+  });
+}
+
 /// A catalogue product.
 ///
 /// [images] holds every uploaded angle of the product. A single image renders
@@ -57,6 +69,11 @@ class Product {
   /// Units on hand. Owners edit this; customers never see it directly.
   final int stock;
 
+  /// Smallest quantity a buyer can order. Wholesale listings default to one
+  /// until the seller sets a larger pack quantity.
+  final int minimumOrderQuantity;
+  final List<WholesalePriceTier> wholesalePriceTiers;
+
   /// When the listing was last changed, used to order "recently added".
   final DateTime? createdAt;
 
@@ -80,6 +97,10 @@ class Product {
   final List<String> occasions;
   final List<String> collectionIds;
 
+  /// Supplier verification badge (§6.40). Demo platform stock is verified;
+  /// owner listings start unverified until the platform vetts them.
+  final bool isVerifiedSupplier;
+
   const Product({
     required this.id,
     required this.name,
@@ -102,6 +123,8 @@ class Product {
     this.deliveryDays = 3,
     this.ownerId = '',
     this.stock = 0,
+    this.minimumOrderQuantity = 1,
+    this.wholesalePriceTiers = const [],
     this.createdAt,
     this.slug = '',
     this.seoTitle = '',
@@ -113,6 +136,7 @@ class Product {
     this.audience = '',
     this.occasions = const [],
     this.collectionIds = const [],
+    this.isVerifiedSupplier = false,
   });
 
   /// Percentage saved off the MRP, e.g. 42 for "42% OFF".
@@ -147,10 +171,20 @@ class Product {
 
   /// True when the seller has run out. Seeded listings carry no stock count,
   /// so they fall back to the explicit [inStock] flag.
-  bool get isAvailable => inStock && (ownerId.isEmpty || stock > 0);
+  bool get isAvailable =>
+      inStock &&
+      (ownerId.isEmpty || stock >= minimumOrderQuantity);
 
   /// Low-stock threshold used for the "only N left" nudge on cards.
   bool get isLowStock => ownerId.isNotEmpty && stock > 0 && stock <= 5;
+
+  int unitPriceForQuantity(int quantity) {
+    final eligible = wholesalePriceTiers
+        .where((tier) => tier.minimumQuantity <= quantity)
+        .toList()
+      ..sort((a, b) => b.minimumQuantity.compareTo(a.minimumQuantity));
+    return eligible.isEmpty ? price : eligible.first.unitPrice;
+  }
 
   Product copyWith({
     String? id,
@@ -174,6 +208,8 @@ class Product {
     int? deliveryDays,
     String? ownerId,
     int? stock,
+    int? minimumOrderQuantity,
+    List<WholesalePriceTier>? wholesalePriceTiers,
     DateTime? createdAt,
     String? slug,
     String? seoTitle,
@@ -185,6 +221,7 @@ class Product {
     String? audience,
     List<String>? occasions,
     List<String>? collectionIds,
+    bool? isVerifiedSupplier,
   }) {
     return Product(
       id: id ?? this.id,
@@ -208,6 +245,8 @@ class Product {
       deliveryDays: deliveryDays ?? this.deliveryDays,
       ownerId: ownerId ?? this.ownerId,
       stock: stock ?? this.stock,
+      minimumOrderQuantity: minimumOrderQuantity ?? this.minimumOrderQuantity,
+      wholesalePriceTiers: wholesalePriceTiers ?? this.wholesalePriceTiers,
       createdAt: createdAt ?? this.createdAt,
       slug: slug ?? this.slug,
       seoTitle: seoTitle ?? this.seoTitle,
@@ -219,6 +258,7 @@ class Product {
       audience: audience ?? this.audience,
       occasions: occasions ?? this.occasions,
       collectionIds: collectionIds ?? this.collectionIds,
+      isVerifiedSupplier: isVerifiedSupplier ?? this.isVerifiedSupplier,
     );
   }
 }

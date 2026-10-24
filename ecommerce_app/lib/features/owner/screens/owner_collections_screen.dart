@@ -92,7 +92,7 @@ class _OwnerCollectionsScreenState extends State<OwnerCollectionsScreen> {
                                   borderRadius: AppRadius.allSm,
                                   child: Image.network(
                                     collection.imageUrl,
-                                    fit: BoxFit.contain,
+                                    fit: BoxFit.cover,
                                     errorBuilder: (_, _, _) => Icon(
                                       StoreNav.categoryIcon(collection.name),
                                       color: AppPalette.copperDark,

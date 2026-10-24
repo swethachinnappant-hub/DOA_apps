@@ -15,6 +15,7 @@ class CatalogueScreen extends StatelessWidget {
   final int? priceMin;
   final int? priceMax;
   final String? initialQuery;
+  final String? initialSort;
 
   /// Metal shade from a home hero or nav link, e.g. `/catalogue?metal=Rose%20Gold`.
   final String? initialMetal;
@@ -29,6 +30,7 @@ class CatalogueScreen extends StatelessWidget {
     this.priceMin,
     this.priceMax,
     this.initialQuery,
+    this.initialSort,
     this.initialMetal,
     this.onExit,
   });
@@ -40,28 +42,35 @@ class CatalogueScreen extends StatelessWidget {
         ? 'Jewellery'
         : 'Catalogue';
 
+    // Keep the back control and title on a shared compact baseline.
+    final canBack = onExit != null || Navigator.of(context).canPop();
+
     return Scaffold(
-      // One AppBar shape at every layout class: the back affordance and the
-      // title sit on the same metrics as every other pushed screen, whether
-      // the listing is a tab (onExit) or a pushed route.
       appBar: AppBar(
+        automaticallyImplyLeading: false,
+        leadingWidth: canBack ? 48 : null,
+        titleSpacing: canBack ? 0 : null,
         title: Text(
           title,
-          style: AppTypography.title.copyWith(letterSpacing: 0.2),
+          style: AppTypography.title.copyWith(
+            fontSize: 18,
+            letterSpacing: 0,
+          ),
         ),
-        leading: onExit != null
+        leading: canBack
             ? IconButton(
-                tooltip: 'Back to home',
-                onPressed: onExit,
+                tooltip: onExit != null ? 'Back to home' : 'Back',
+                onPressed: onExit ?? () => Navigator.of(context).maybePop(),
                 icon: const Icon(Icons.arrow_back),
               )
             : null,
       ),
       body: ListingView(
-        categoryChips: ['All', ...config.categories],
+        categoryChips: config.categories,
         showSearchField: true,
         initialCategory: initialCategory,
         initialQuery: initialQuery,
+        initialSort: initialSort,
         initialPriceMin: priceMin,
         initialPriceMax: priceMax,
         initialMetal: initialMetal,

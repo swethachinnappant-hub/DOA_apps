@@ -33,6 +33,8 @@ class _OwnerProductFormScreenState extends State<OwnerProductFormScreen> {
   final _price = TextEditingController();
   final _mrp = TextEditingController();
   final _stock = TextEditingController();
+  final _minimumOrderQuantity = TextEditingController(text: '1');
+  final _wholesalePriceTiers = TextEditingController();
   final _highlights = TextEditingController();
   final _description = TextEditingController();
 
@@ -79,6 +81,10 @@ class _OwnerProductFormScreenState extends State<OwnerProductFormScreen> {
         _price.text = '${found.price}';
         _mrp.text = '${found.mrp}';
         _stock.text = '${found.stock}';
+        _minimumOrderQuantity.text = '${found.minimumOrderQuantity}';
+        _wholesalePriceTiers.text = found.wholesalePriceTiers
+            .map((tier) => '${tier.minimumQuantity}:${tier.unitPrice}')
+            .join(', ');
         _highlights.text = found.highlights.join('\n');
         _description.text = found.description;
         _images.addAll(found.images);
@@ -119,6 +125,8 @@ class _OwnerProductFormScreenState extends State<OwnerProductFormScreen> {
     _price.dispose();
     _mrp.dispose();
     _stock.dispose();
+    _minimumOrderQuantity.dispose();
+    _wholesalePriceTiers.dispose();
     _highlights.dispose();
     _description.dispose();
     _slug.dispose();
@@ -171,6 +179,21 @@ class _OwnerProductFormScreenState extends State<OwnerProductFormScreen> {
     });
   }
 
+  List<WholesalePriceTier> _parseWholesalePriceTiers(String raw) {
+    final tiers = <WholesalePriceTier>[];
+    for (final pair in raw.split(',')) {
+      final values = pair.trim().split(':');
+      if (values.length != 2) continue;
+      final quantity = int.tryParse(values[0].trim());
+      final unitPrice = int.tryParse(values[1].trim());
+      if (quantity == null || unitPrice == null) continue;
+      tiers.add(
+        WholesalePriceTier(minimumQuantity: quantity, unitPrice: unitPrice),
+      );
+    }
+    return tiers;
+  }
+
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     if (_category == null) {
@@ -196,6 +219,11 @@ class _OwnerProductFormScreenState extends State<OwnerProductFormScreen> {
     final mrpRaw = int.tryParse(_mrp.text.trim());
     final mrp = mrpRaw == null || mrpRaw <= price ? price : mrpRaw;
     final stock = int.tryParse(_stock.text.trim()) ?? 0;
+    final minimumOrderQuantity =
+        int.tryParse(_minimumOrderQuantity.text.trim()) ?? 1;
+    final wholesalePriceTiers = _parseWholesalePriceTiers(
+      _wholesalePriceTiers.text,
+    );
 
     final existingVariants = <String, ProductVariant>{
       for (final v in [...?_existing?.sizes, ...?_existing?.shades]) v.name: v,
@@ -249,6 +277,8 @@ class _OwnerProductFormScreenState extends State<OwnerProductFormScreen> {
       deliveryDays: _existing?.deliveryDays ?? 3,
       ownerId: user.id,
       stock: stock,
+      minimumOrderQuantity: minimumOrderQuantity,
+      wholesalePriceTiers: wholesalePriceTiers,
       createdAt: _existing?.createdAt ?? DateTime.now(),
     );
 
@@ -405,6 +435,60 @@ class _OwnerProductFormScreenState extends State<OwnerProductFormScreen> {
                       if (value < 0) return 'Cannot be negative';
                       return null;
                     },
+                  ),
+                  SizedBox(height: spacing),
+                  AppTextField(
+                    controller: _minimumOrderQuantity,
+                    label: 'Minimum order quantity (MOQ)',
+                    hint: 'Units per order, default 1',
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    validator: (v) {
+                      final value = int.tryParse((v ?? '').trim());
+                      if (value == null || value < 1) {
+                        return 'MOQ must be at least 1';
+                      }
+                      final available = int.tryParse(_stock.text.trim()) ?? 0;
+                      if (available > 0 && value > available) {
+                        return 'MOQ cannot exceed current stock';
+                      }
+                      return null;
+                    },
+                  ),
+                  SizedBox(height: spacing),
+                  AppTextField(
+                    controller: _wholesalePriceTiers,
+                    label: 'Bulk unit prices (optional)',
+                    hint: '6:850, 12:800',
+                    validator: (raw) {
+                      final value = (raw ?? '').trim();
+                      if (value.isEmpty) return null;
+                      final tiers = _parseWholesalePriceTiers(value);
+                      if (tiers.length != value.split(',').length) {
+                        return 'Use quantity:price pairs, such as 6:850, 12:800';
+                      }
+                      final minimum = int.tryParse(_minimumOrderQuantity.text) ?? 1;
+                      final basePrice = int.tryParse(_price.text) ?? 0;
+                      for (var i = 0; i < tiers.length; i++) {
+                        final tier = tiers[i];
+                        if (tier.minimumQuantity < minimum ||
+                            tier.unitPrice <= 0 ||
+                            tier.unitPrice > basePrice ||
+                            (i > 0 &&
+                                (tier.minimumQuantity <= tiers[i - 1].minimumQuantity ||
+                                    tier.unitPrice > tiers[i - 1].unitPrice))) {
+                          return 'Quantities must rise from the MOQ and unit prices must stay the same or decrease';
+                        }
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Enter quantity:unit price pairs, from lowest to highest quantity.',
+                    style: AppTypography.caption.copyWith(
+                      color: AppPalette.textSecondary,
+                    ),
                   ),
                   SizedBox(height: spacing),
 
@@ -640,7 +724,7 @@ class _OwnerProductFormScreenState extends State<OwnerProductFormScreen> {
                     isExpanded: true,
                     onPressed: _save,
                   ),
-                  SizedBox(height: Responsive.spacing(context, mobile: 28)),
+                  SizedBox(height: Responsive.spacing(context, mobile: 16)),
                 ],
               ),
             ),
@@ -701,7 +785,7 @@ class _SectionLabel extends StatelessWidget {
               hint!,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+              style: TextStyle(fontSize: 11, color: AppPalette.textMuted),
             ),
           ),
         ],
@@ -800,7 +884,7 @@ class _ImageTile extends StatelessWidget {
             height: 132,
             child: ProductImageTile(
               url: url,
-              fit: BoxFit.contain,
+              fit: BoxFit.cover,
               placeholderIcon: Icons.broken_image_outlined,
             ),
           ),
@@ -970,7 +1054,7 @@ class _ChipInput extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             'Shoppers will see a plain listing without $label options.',
-            style: TextStyle(fontSize: 11.5, color: Colors.grey[500]),
+            style: TextStyle(fontSize: 11.5, color: AppPalette.textMuted),
           ),
         ],
       ],
@@ -1004,7 +1088,7 @@ class _CollectionsPicker extends StatelessWidget {
         if (collections.isEmpty)
           Text(
             'No collections yet — create them in the seller studio.',
-            style: TextStyle(fontSize: 11.5, color: Colors.grey[500]),
+            style: TextStyle(fontSize: 11.5, color: AppPalette.textMuted),
           )
         else
           Wrap(
@@ -1143,7 +1227,7 @@ class _ImageUrlDialogState extends State<_ImageUrlDialog> {
           Text(
             'Paste a direct link to a photo. A backend upload can replace this '
             'later without changing the form.',
-            style: TextStyle(fontSize: 11.5, color: Colors.grey[600]),
+            style: TextStyle(fontSize: 11.5, color: AppPalette.textSecondary),
           ),
         ],
       ),

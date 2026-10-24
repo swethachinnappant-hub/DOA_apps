@@ -15,7 +15,7 @@ void showContactSheet(
     context: context,
     builder: (context) => SafeArea(
       child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xxl),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -27,7 +27,7 @@ void showContactSheet(
               const SizedBox(height: AppSpacing.xs),
               SelectableText(line2, style: AppTypography.bodyMuted),
             ],
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.sm),
             Text(
               'Dialling and WhatsApp deep links activate once contact '
               'handling is wired up.',

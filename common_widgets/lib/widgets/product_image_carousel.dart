@@ -67,7 +67,8 @@ class ProductImageTile extends StatelessWidget {
     this.placeholderIcon = Icons.image_outlined,
     this.placeholderColor = AppPalette.surfaceMuted,
     this.placeholderAccent = AppPalette.textHint,
-    this.fit = BoxFit.contain,
+    // Layout frames paint edge-to-edge: the box aspect owns the crop.
+    this.fit = BoxFit.cover,
   });
 
   @override
@@ -81,21 +82,34 @@ class ProductImageTile extends StatelessWidget {
     if (url.isEmpty) return placeholder;
 
     final isRemote = url.startsWith('https://') || url.startsWith('http://');
-    if (isRemote) {
-      return Image.network(
-        url,
-        fit: fit,
-        gaplessPlayback: true,
-        errorBuilder: (_, _, _) => placeholder,
-        loadingBuilder: (context, child, progress) =>
-            progress == null ? child : placeholder,
-      );
-    }
-    return Image.asset(
-      url,
-      fit: fit,
-      gaplessPlayback: true,
-      errorBuilder: (_, _, _) => placeholder,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final cacheWidth = width.isFinite && width > 0
+            ? (width * MediaQuery.devicePixelRatioOf(context))
+                  .round()
+                  .clamp(1, 2048)
+                  .toInt()
+            : null;
+        if (isRemote) {
+          return Image.network(
+            url,
+            fit: fit,
+            cacheWidth: cacheWidth,
+            gaplessPlayback: true,
+            errorBuilder: (_, _, _) => placeholder,
+            loadingBuilder: (context, child, progress) =>
+                progress == null ? child : placeholder,
+          );
+        }
+        return Image.asset(
+          url,
+          fit: fit,
+          cacheWidth: cacheWidth,
+          gaplessPlayback: true,
+          errorBuilder: (_, _, _) => placeholder,
+        );
+      },
     );
   }
 }
@@ -163,7 +177,9 @@ class ProductImageCarousel extends StatefulWidget {
     this.interval = AppDurations.carousel,
     this.showDots = true,
     this.showCounter = false,
-    this.fit = BoxFit.contain,
+    // Frames own their aspect; the photo fills them edge-to-edge so no
+    // letterbox bars of empty background show in any layout.
+    this.fit = BoxFit.cover,
     this.borderRadius = BorderRadius.zero,
     this.onImageTap,
     this.onZoomRequested,

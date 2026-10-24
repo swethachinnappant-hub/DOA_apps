@@ -43,6 +43,8 @@ class DemoCatalog {
       ProductVariant('Yellow Gold', swatch: Color(0xFFD4A843)),
       ProductVariant('Antique Gold', swatch: Color(0xFFC9A227)),
       ProductVariant('Rose Gold', swatch: Color(0xFFB76E79)),
+      // White Gold so the Shop by Metal chip always has real stock to land on.
+      ProductVariant('White Gold', swatch: Color(0xFFD9DDE3)),
     ],
   ];
 
@@ -59,11 +61,11 @@ class DemoCatalog {
     ],
   ];
 
-  static const String _ring = 'assets/demo_jewellery/gold_ring.jpg';
-  static const String _earrings = 'assets/demo_jewellery/gold_earrings.jpg';
-  static const String _bangles = 'assets/demo_jewellery/gold_bangles.jpg';
-  static const String _pendant = 'assets/demo_jewellery/gold_pendant.jpg';
-  static const String _necklace = 'assets/demo_jewellery/bridal_necklace.jpg';
+  static const String _ring = 'assets/demo_jewellery/ring_unsplash.jpg';
+  static const String _earrings = 'assets/demo_jewellery/earrings_unsplash.jpg';
+  static const String _bangles = 'assets/demo_jewellery/bracelet_unsplash.jpg';
+  static const String _pendant = 'assets/demo_jewellery/pendant_unsplash.jpg';
+  static const String _necklace = 'assets/demo_jewellery/necklace_unsplash.jpg';
   static const String _bridalSet = 'assets/demo_jewellery/bridal_set.jpg';
 
   /// Demo pieces include the full product image plus two close-up detail
@@ -73,6 +75,7 @@ class DemoCatalog {
     if (value.contains('bridal')) {
       return const [
         _bridalSet,
+        _necklace,
         'assets/demo_jewellery/bridal_set_detail_necklace.jpg',
         'assets/demo_jewellery/bridal_set_detail_earrings.jpg',
       ];
@@ -80,6 +83,7 @@ class DemoCatalog {
     if (value.contains('ring')) {
       return const [
         _ring,
+        'assets/demo_jewellery/gold_ring.jpg',
         'assets/demo_jewellery/gold_ring_detail_stone.jpg',
         'assets/demo_jewellery/gold_ring_detail_band.jpg',
       ];
@@ -87,6 +91,7 @@ class DemoCatalog {
     if (value.contains('earring')) {
       return const [
         _earrings,
+        'assets/demo_jewellery/gold_earrings.jpg',
         'assets/demo_jewellery/gold_earrings_detail_left.jpg',
         'assets/demo_jewellery/gold_earrings_detail_right.jpg',
       ];
@@ -94,6 +99,7 @@ class DemoCatalog {
     if (value.contains('bangle') || value.contains('bracelet')) {
       return const [
         _bangles,
+        'assets/demo_jewellery/gold_bangles.jpg',
         'assets/demo_jewellery/gold_bangles_detail_left.jpg',
         'assets/demo_jewellery/gold_bangles_detail_right.jpg',
       ];
@@ -104,12 +110,14 @@ class DemoCatalog {
         value.contains('men')) {
       return const [
         _pendant,
+        'assets/demo_jewellery/gold_pendant.jpg',
         'assets/demo_jewellery/gold_pendant_detail.jpg',
         'assets/demo_jewellery/gold_pendant_chain_detail.jpg',
       ];
     }
     return const [
       _necklace,
+      _bridalSet,
       'assets/demo_jewellery/bridal_necklace_detail_pendant.jpg',
       'assets/demo_jewellery/bridal_necklace_detail_motif.jpg',
     ];
@@ -142,10 +150,30 @@ class DemoCatalog {
     return 'Gold Jewellery Sample ${index + 1}';
   }
 
-  /// Builds [count] demo products for the supplied category list.
-  static List<Product> build(List<String> categories, {int count = 14}) {
+  static String _imageFamilyForCategory(String category) {
+    final value = category.toLowerCase();
+    if (value.contains('bridal')) return 'bridal';
+    if (value.contains('ring')) return 'ring';
+    if (value.contains('earring')) return 'earring';
+    if (value.contains('bangle') || value.contains('bracelet')) return 'bangle';
+    if (value.contains('pendant') ||
+        value.contains('chain') ||
+        value.contains('children') ||
+        value.contains('men')) {
+      return 'chain-pendant';
+    }
+    return 'necklace';
+  }
+
+  /// Builds [count] demo products for the supplied category list. The
+  /// default covers every configured category twice over for the first six
+  /// (14 was too thin — ten of twelve categories held a single design), while
+  /// staying at 18: tests rely on there being no second Necklaces design and
+  /// no LOAD MORE page past 24.
+  static List<Product> build(List<String> categories, {int count = 18}) {
     if (categories.isEmpty) return const [];
 
+    final familyUsage = <String, int>{};
     return List.generate(count, (i) {
       final category = categories[i % categories.length];
       final brand = _brands[i % _brands.length];
@@ -156,6 +184,17 @@ class DemoCatalog {
       final deliveryDays = 2 + (i % 5);
       final shades = _shadeSets[i % _shadeSets.length];
       final shadeNames = shades.map((s) => s.name).join(', ');
+      final categoryImages = imagesForCategory(category);
+      final family = _imageFamilyForCategory(category);
+      final imageOffset = familyUsage.update(
+        family,
+        (count) => count + 1,
+        ifAbsent: () => 0,
+      ) % categoryImages.length;
+      final productImages = [
+        ...categoryImages.skip(imageOffset),
+        ...categoryImages.take(imageOffset),
+      ];
 
       return Product(
         id: 'p$i',
@@ -167,7 +206,7 @@ class DemoCatalog {
         mrp: mrp,
         rating: 3.6 + ((i * 7) % 14) / 10,
         reviewCount: 24 + (i * 137) % 4200,
-        images: imagesForCategory(category),
+        images: productImages,
         icon: icon,
         sizes: _sizeSets[i % _sizeSets.length],
         shades: shades,
@@ -186,6 +225,22 @@ class DemoCatalog {
         inStock: i % 11 != 0,
         deliveryDays: deliveryDays,
         createdAt: DateTime.now().subtract(Duration(hours: i)),
+        wholesalePriceTiers: [
+          WholesalePriceTier(minimumQuantity: 6, unitPrice: price * 95 ~/ 100),
+          WholesalePriceTier(minimumQuantity: 12, unitPrice: price * 90 ~/ 100),
+        ],
+        occasions: category.toLowerCase().contains('bridal')
+            ? const ['Wedding', 'Festive']
+            : (i.isEven
+                  ? const ['Daily wear', 'Festive']
+                  : const ['Daily wear']),
+        // Structured metal family so the Shop by Metal filter matches on data
+        // (the tone itself lives in the shades, which the chips also match).
+        // 'Gold' keeps the value inside the owner console's Taxonomy.metals.
+        metal: 'Gold',
+        // Seeded platform stock ships verified (§6.40); owner listings
+        // start unverified.
+        isVerifiedSupplier: true,
       );
     });
   }

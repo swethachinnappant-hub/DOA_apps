@@ -47,7 +47,7 @@ void main() {
     expect(find.byType(SearchOverlay, skipOffstage: false), findsNothing);
   });
 
-  testWidgets('the empty query opens clean with no popular searches', (
+  testWidgets('the empty query opens with recent and popular searches', (
     tester,
   ) async {
     final (router, _, _) = await pumpShop(
@@ -60,7 +60,8 @@ void main() {
 
     await pressCtrlK(tester);
     expect(find.byType(SearchOverlay, skipOffstage: false), findsOneWidget);
-    expect(find.text('POPULAR SEARCHES'), findsNothing);
+    // §15: a fresh panel suggests what to search for instead of opening blank.
+    expect(find.text('POPULAR SEARCHES'), findsOneWidget);
     expect(find.text('RECENT SEARCHES'), findsNothing);
     expect(find.byType(TextField), findsWidgets);
     expect(tester.takeException(), isNull);

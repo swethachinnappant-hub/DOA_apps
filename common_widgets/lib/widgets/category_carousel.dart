@@ -35,6 +35,9 @@ class CategoryCarousel extends StatefulWidget {
   final List<CategoryCarouselItem> items;
   final Color primaryColor;
   final Color? accentColor;
+  /// Square-ish photo tile used by the storefront category rail. Kept large
+  /// enough to make the jewellery recognizable on phones while the carousel
+  /// still fits five categories across a typical handset.
   final double itemExtent;
   final double itemSpacing;
   final int? perPage;
@@ -48,8 +51,8 @@ class CategoryCarousel extends StatefulWidget {
     required this.items,
     required this.primaryColor,
     this.accentColor,
-    this.itemExtent = 68,
-    this.itemSpacing = 3,
+    this.itemExtent = 112,
+    this.itemSpacing = 8,
     this.perPage,
     this.autoSlide = true,
     this.interval = AppDurations.carousel,
@@ -144,9 +147,12 @@ class _CategoryCarouselState extends State<CategoryCarousel> {
         // shows at most one full set of items, all pages wrap around.
         final perPage = resolved < 1
             ? 1
-            : (resolved > widget.items.length
-                  ? widget.items.length
-                  : resolved);
+            : (resolved > widget.items.length ? widget.items.length : resolved);
+        // Keep the photo frame square at every breakpoint. Previously the
+        // fixed image height was much taller than a five-column tile was wide.
+        final tileWidth =
+            (usable - (perPage - 1) * widget.itemSpacing) / perPage;
+        final imageExtent = tileWidth.clamp(0.0, widget.itemExtent);
         _pageCount = (widget.items.length / perPage).ceil();
         _total = _pageCount * _cycles;
         _controller ??= PageController(
@@ -158,7 +164,7 @@ class _CategoryCarouselState extends State<CategoryCarousel> {
           mainAxisSize: MainAxisSize.min,
           children: [
             SizedBox(
-              height: widget.itemExtent + _labelBlockHeight + AppSpacing.sm,
+              height: imageExtent + _labelBlockHeight + AppSpacing.sm,
               child: NotificationListener<ScrollNotification>(
                 onNotification: (notification) {
                   if (notification is ScrollStartNotification &&
@@ -198,9 +204,7 @@ class _CategoryCarouselState extends State<CategoryCarousel> {
                                 ),
                                 child: _CategoryTile(
                                   item: slice[i],
-                                  height: widget.itemExtent,
-                                  primaryColor: widget.primaryColor,
-                                  accentColor: widget.accentColor,
+                                  height: imageExtent,
                                 ),
                               ),
                             ),
@@ -229,35 +233,37 @@ class _CategoryCarouselState extends State<CategoryCarousel> {
 class _CategoryTile extends StatelessWidget {
   final CategoryCarouselItem item;
   final double height;
-  final Color primaryColor;
-  final Color? accentColor;
 
-  const _CategoryTile({
-    required this.item,
-    required this.height,
-    required this.primaryColor,
-    this.accentColor,
-  });
+  const _CategoryTile({required this.item, required this.height});
 
   @override
   Widget build(BuildContext context) {
-    final tint = accentColor ?? primaryColor.withValues(alpha: 0.10);
-    return GestureDetector(
-      onTap: item.onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Column(
+    const tileSurface = AppPalette.surface;
+    final cacheWidth = (height * MediaQuery.devicePixelRatioOf(context))
+        .round()
+        .clamp(1, 2048)
+        .toInt();
+    return Semantics(
+      button: true,
+      label: 'Shop ${item.label}',
+      child: InkWell(
+        onTap: item.onTap,
+        borderRadius: AppRadius.allMd,
+        child: SizedBox(
+          width: double.infinity,
+          child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
+          Align(
+            alignment: Alignment.topCenter,
+            child: Container(
+            width: height,
             height: height,
             decoration: BoxDecoration(
               borderRadius: AppRadius.allMd,
-              color: tint,
-              border: Border.all(
-                color: primaryColor.withValues(alpha: 0.18),
-                width: 1,
-              ),
+              color: tileSurface,
+              border: Border.all(color: AppPalette.border),
             ),
             clipBehavior: Clip.antiAlias,
             alignment: Alignment.center,
@@ -267,23 +273,41 @@ class _CategoryTile extends StatelessWidget {
                           item.imageUrl!,
                           width: double.infinity,
                           height: height,
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, _, _) => _imageFallback(tint),
+                          cacheWidth: cacheWidth,
+                          // cover so every tile is filled edge-to-edge at the
+                          // same size — contain letterboxed each photo to a
+                          // different visual scale on a white pad.
+                          fit: BoxFit.cover,
+                          frameBuilder: (context, child, frame, syncLoaded) =>
+                              frame != null || syncLoaded
+                                  ? child
+                                  : _imageFallback(),
+                          errorBuilder: (_, _, _) => _imageFallback(),
                         )
                       : Image.network(
                           item.imageUrl!,
                           width: double.infinity,
                           height: height,
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, _, _) => _imageFallback(tint),
+                          cacheWidth: cacheWidth,
+                          fit: BoxFit.cover,
+                          frameBuilder: (context, child, frame, syncLoaded) =>
+                              frame != null || syncLoaded
+                                  ? child
+                                  : _imageFallback(),
+                          errorBuilder: (_, _, _) => _imageFallback(),
                         ))
                 : item.icon != null
-                ? Icon(item.icon, size: height * 0.42, color: primaryColor)
+                ? Icon(
+                    item.icon,
+                    size: height * 0.42,
+                    color: AppPalette.textSecondary,
+                  )
                 : Text(
                     item.emoji ?? '',
                     style: TextStyle(fontSize: height * 0.40),
                     textAlign: TextAlign.center,
                   ),
+            ),
           ),
           const SizedBox(height: AppSpacing.xs),
           // §11.5: keep the label inside the fixed cell even when
@@ -303,15 +327,17 @@ class _CategoryTile extends StatelessWidget {
             ),
           ),
         ],
+          ),
+        ),
       ),
     );
   }
 
-  Widget _imageFallback(Color tint) => Container(
-    color: tint,
+  Widget _imageFallback() => Container(
+    color: AppPalette.surfaceMuted,
     alignment: Alignment.center,
     child: item.icon != null
-        ? Icon(item.icon, size: height * 0.42, color: primaryColor)
+        ? Icon(item.icon, size: height * 0.42, color: AppPalette.textSecondary)
         : Text(
             item.emoji ?? '',
             style: TextStyle(fontSize: height * 0.40),
@@ -386,12 +412,8 @@ class CategoryGrid extends StatelessWidget {
         mainAxisSpacing: AppSpacing.lg,
         childAspectRatio: 0.70,
       ),
-      itemBuilder: (context, index) => _CategoryTile(
-        item: items[index],
-        height: itemExtent,
-        primaryColor: primaryColor,
-        accentColor: accentColor,
-      ),
+      itemBuilder: (context, index) =>
+          _CategoryTile(item: items[index], height: itemExtent),
     );
   }
 }

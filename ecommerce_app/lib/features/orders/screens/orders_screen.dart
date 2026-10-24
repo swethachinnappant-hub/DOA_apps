@@ -45,10 +45,45 @@ class OrdersScreen extends StatelessWidget {
                   brand: config.primaryColor,
                   showPrice: rules.showPrices,
                   currency: config.currencySymbol,
+                  // §6.41: one-tap reorder straight from the history list.
+                  onReorder: () => _reorder(context, store, order),
                 );
               },
             ),
     );
+  }
+
+  /// Re-adds every line of [order] to the bag (§6.41), mirroring the
+  /// order-detail action so a returning retailer can restock in one tap.
+  void _reorder(BuildContext context, CommerceStore store, Order order) {
+    var added = 0;
+    for (final item in order.items) {
+      final product = store.productById(item.productId);
+      if (product == null) continue;
+      store.addToCart(
+        product,
+        quantity: item.quantity,
+        selectedSize: item.selectedSize,
+        selectedShade: item.selectedShade,
+      );
+      added += item.quantity;
+    }
+    final messenger = ScaffoldMessenger.of(context);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            added == 0
+                ? 'Those designs are no longer available'
+                : '$added item${added == 1 ? '' : 's'} added to your bag',
+          ),
+          action: SnackBarAction(
+            label: 'View bag',
+            onPressed: () => context.go('/cart'),
+          ),
+        ),
+      );
   }
 }
 
@@ -58,12 +93,14 @@ class _OrderCard extends StatelessWidget {
     required this.brand,
     required this.showPrice,
     required this.currency,
+    this.onReorder,
   });
 
   final Order order;
   final Color brand;
   final bool showPrice;
   final String currency;
+  final VoidCallback? onReorder;
 
   @override
   Widget build(BuildContext context) {
@@ -105,7 +142,7 @@ class _OrderCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: Responsive.fontSize(context, mobile: 12),
-                    color: Colors.grey[600],
+                    color: AppPalette.textSecondary,
                   ),
                 ),
               ),
@@ -119,7 +156,7 @@ class _OrderCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: Responsive.fontSize(context, mobile: 14),
                     fontWeight: FontWeight.bold,
-                    color: showPrice ? brand : Colors.grey,
+                    color: showPrice ? brand : AppPalette.textSecondary,
                   ),
                 ),
               ),
@@ -145,7 +182,7 @@ class _OrderCard extends StatelessWidget {
                           )
                         : ProductImageTile(
                             url: order.items[i].images.first,
-                            fit: BoxFit.contain,
+                            fit: BoxFit.cover,
                             placeholderIcon: Icons.image_outlined,
                             placeholderColor: brand,
                             placeholderAccent: brand,
@@ -163,8 +200,22 @@ class _OrderCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: Responsive.fontSize(context, mobile: 12),
                       fontWeight: FontWeight.w600,
-                      color: Colors.grey[600],
+                      color: AppPalette.textSecondary,
                     ),
+                  ),
+                ),
+              const Spacer(),
+              // §6.41: quick reorder from the history list itself.
+              if (onReorder != null)
+                TextButton.icon(
+                  onPressed: onReorder,
+                  icon: const Icon(Icons.replay, size: 16),
+                  label: const Text('Reorder'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: brand,
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    minimumSize: const Size(0, 36),
+                    visualDensity: VisualDensity.compact,
                   ),
                 ),
             ],
@@ -202,7 +253,7 @@ class _EmptyOrders extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(18),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -217,7 +268,7 @@ class _EmptyOrders extends StatelessWidget {
               style: TextStyle(
                 fontSize: Responsive.fontSize(context, mobile: 16),
                 fontWeight: FontWeight.w600,
-                color: Colors.grey[600],
+                color: AppPalette.textSecondary,
               ),
             ),
             const SizedBox(height: 8),
@@ -226,7 +277,7 @@ class _EmptyOrders extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13,
-                color: Colors.grey[500],
+                color: AppPalette.textMuted,
                 height: 1.5,
               ),
             ),

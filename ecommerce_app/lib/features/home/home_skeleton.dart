@@ -27,38 +27,43 @@ class HomeSkeleton extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenH),
-          child: SkeletonBox(
-            height: Responsive.isDesktop(context) ? 300 : 224,
-            borderRadius: 16,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xxl),
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: AppSpacing.screenH),
           child: SkeletonBox(width: 180, height: 18, borderRadius: 4),
         ),
         const SizedBox(height: AppSpacing.md),
         const SizedBox(
-          height: 96,
+          height: 144,
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             physics: NeverScrollableScrollPhysics(),
             padding: EdgeInsets.symmetric(horizontal: AppSpacing.screenH),
             child: Row(
               children: [
-                SkeletonCircle(size: 68),
-                SizedBox(width: AppSpacing.md),
-                SkeletonCircle(size: 68),
-                SizedBox(width: AppSpacing.md),
-                SkeletonCircle(size: 68),
-                SizedBox(width: AppSpacing.md),
-                SkeletonCircle(size: 68),
-                SizedBox(width: AppSpacing.md),
-                SkeletonCircle(size: 68),
+                SkeletonBox(width: 112, height: 112, borderRadius: 12),
+                SizedBox(width: AppSpacing.sm),
+                SkeletonBox(width: 112, height: 112, borderRadius: 12),
+                SizedBox(width: AppSpacing.sm),
+                SkeletonBox(width: 112, height: 112, borderRadius: 12),
+                SizedBox(width: AppSpacing.sm),
+                SkeletonBox(width: 112, height: 112, borderRadius: 12),
+                SizedBox(width: AppSpacing.sm),
+                SkeletonBox(width: 112, height: 112, borderRadius: 12),
               ],
             ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenH),
+          child: SkeletonBox(
+            // Mirrors the real hero band (§5.30) so the swap does not jump.
+            height: Responsive.isDesktop(context)
+                ? 320
+                : Responsive.isMobile(context)
+                ? 400
+                : 288,
+            borderRadius: 16,
           ),
         ),
         const SizedBox(height: AppSpacing.xxl),

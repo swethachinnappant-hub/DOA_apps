@@ -26,8 +26,11 @@ void main() {
   const viewports = <String, Size>{
     'small phone 320x568': Size(320, 568),
     'phone 360x800': Size(360, 800),
+    'mobile 390x844': Size(390, 844),
     'landscape 640x360': Size(640, 360),
+    'tablet 768x1024': Size(768, 1024),
     'tablet 1024x1366': Size(1024, 1366),
+    'desktop 1440x900': Size(1440, 900),
   };
 
   testWidgets('store-backed customer screens render cleanly at every viewport',

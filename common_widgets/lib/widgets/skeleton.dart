@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
+import '../core/design_tokens.dart';
 import '../core/responsive.dart';
 
 class SkeletonBox extends StatelessWidget {
@@ -17,12 +18,14 @@ class SkeletonBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
+      // Warm ivory shimmer on light themes, matching AppPalette.skeleton
+      // so loading states stay on-palette (§9.64).
       baseColor: Theme.of(context).brightness == Brightness.dark
           ? Colors.grey[800]!
-          : Colors.grey[300]!,
+          : AppPalette.skeleton,
       highlightColor: Theme.of(context).brightness == Brightness.dark
           ? Colors.grey[700]!
-          : Colors.grey[100]!,
+          : AppPalette.skeletonHighlight,
       child: Container(
         width: width,
         height: height,
@@ -83,10 +86,10 @@ class SkeletonCard extends StatelessWidget {
     return Shimmer.fromColors(
       baseColor: Theme.of(context).brightness == Brightness.dark
           ? Colors.grey[800]!
-          : Colors.grey[300]!,
+          : AppPalette.skeleton,
       highlightColor: Theme.of(context).brightness == Brightness.dark
           ? Colors.grey[700]!
-          : Colors.grey[100]!,
+          : AppPalette.skeletonHighlight,
       child: Container(
         height: height,
         margin: margin,

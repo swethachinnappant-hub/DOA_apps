@@ -46,7 +46,7 @@ class OrderSuccessScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('Order confirmed')),
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.xxl),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -89,7 +89,7 @@ class OrderSuccessScreen extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
               ],
-              const SizedBox(height: AppSpacing.xxl),
+              const SizedBox(height: AppSpacing.md),
               SizedBox(
                 width: 280,
                 child: AppButton(

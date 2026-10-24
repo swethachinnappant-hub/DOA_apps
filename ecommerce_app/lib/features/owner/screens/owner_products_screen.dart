@@ -120,7 +120,7 @@ class _ProductRow extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey[600],
+                            color: AppPalette.textSecondary,
                           ),
                         ),
                         const SizedBox(height: 6),
@@ -172,7 +172,7 @@ class _ProductRow extends StatelessWidget {
                     'Stock',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.grey[700],
+                      color: AppPalette.textSecondary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -281,7 +281,7 @@ class _Thumb extends StatelessWidget {
               )
             : ProductImageTile(
                 url: url!,
-                fit: BoxFit.contain,
+                fit: BoxFit.cover,
                 placeholderIcon: Icons.broken_image_outlined,
               ),
       ),
@@ -298,7 +298,7 @@ class _EmptyInventory extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(18),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -317,7 +317,7 @@ class _EmptyInventory extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 height: 1.5,
-                color: Colors.grey[600],
+                color: AppPalette.textSecondary,
               ),
             ),
             const SizedBox(height: 24),

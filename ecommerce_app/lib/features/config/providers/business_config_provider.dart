@@ -11,6 +11,7 @@ class BusinessConfigProvider extends ChangeNotifier {
   static const String _kPrimary = 'brand_primary';
   static const String _kSecondary = 'brand_secondary';
   static const String _kAccent = 'brand_accent';
+  static const String _kJewelleryPaletteVersion = 'jewellery_palette_version';
 
   BusinessConfig _config = BusinessConfig.getConfig(BusinessType.jewellery);
   bool _loaded = false;
@@ -27,23 +28,27 @@ class BusinessConfigProvider extends ChangeNotifier {
       final savedPrimary = prefs.getInt(_kPrimary);
       final savedSecondary = prefs.getInt(_kSecondary);
       final savedAccent = prefs.getInt(_kAccent);
-      final isOldJewelleryDefault =
+      final migrateJewelleryPalette =
           type == BusinessType.jewellery &&
-          savedPrimary == const Color(0xFF8B6914).toARGB32() &&
-          savedSecondary == const Color(0xFFD4A843).toARGB32() &&
-          savedAccent == const Color(0xFFF5E6C8).toARGB32();
+          (prefs.getInt(_kJewelleryPaletteVersion) ?? 0) < 1;
 
       _config = base.copyWith(
-        primaryColor: isOldJewelleryDefault
+        primaryColor: migrateJewelleryPalette
             ? base.primaryColor
             : _decodeColor(savedPrimary) ?? base.primaryColor,
-        secondaryColor: isOldJewelleryDefault
+        secondaryColor: migrateJewelleryPalette
             ? base.secondaryColor
             : _decodeColor(savedSecondary) ?? base.secondaryColor,
-        accentColor: isOldJewelleryDefault
+        accentColor: migrateJewelleryPalette
             ? base.accentColor
             : _decodeColor(savedAccent) ?? base.accentColor,
       );
+      if (migrateJewelleryPalette) {
+        await prefs.setInt(_kJewelleryPaletteVersion, 1);
+        await prefs.setInt(_kPrimary, base.primaryColor.toARGB32());
+        await prefs.setInt(_kSecondary, base.secondaryColor.toARGB32());
+        await prefs.setInt(_kAccent, base.accentColor.toARGB32());
+      }
     } catch (_) {
       _config = BusinessConfig.getConfig(BusinessType.jewellery);
     }

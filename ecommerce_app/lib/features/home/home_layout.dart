@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../core/store/commerce_store.dart';
+import '../../widgets/jewellery_collage_hero.dart';
 import '../shell/site_footer.dart';
 import 'home_sections.dart';
 
@@ -22,18 +24,24 @@ class HomeLayout {
 
   final List<HomeSection> sections;
 
-  /// The §6.1 stack, top to bottom — the category rail always leads,
-  /// then the hero (order fixed at every width).
+  /// The buyer journey follows the homepage spec order: promotional hero,
+  /// discovery rails, wholesale deals, bridal, collections, recently viewed,
+  /// then the editorial collage and story sections.
   factory HomeLayout.standard() => HomeLayout([
-    const HomeSection('categories', _categories),
     const HomeSection('hero', _hero),
-    const HomeSection('metal', _metal),
-    const HomeSection('collections', _collections),
+    const HomeSection('categories', _categories),
     const HomeSection('bestsellers', _bestsellers),
     const HomeSection('newArrivals', _newArrivals),
-    const HomeSection('occasion', _occasion),
+    const HomeSection('metal', _metal),
+    const HomeSection('trending', _trending),
     const HomeSection('price', _price),
+    const HomeSection('deals', _deals),
     const HomeSection('bridal', _bridal),
+    const HomeSection('collections', _collections),
+    const HomeSection('completeLook', _completeLook),
+    const HomeSection('recentlyViewed', _recentlyViewed),
+    const HomeSection('details', _details),
+    const HomeSection('occasion', _occasion),
     const HomeSection('gifts', _gifts),
     const HomeSection('social', _social),
     const HomeSection('about', _about),
@@ -58,10 +66,29 @@ class HomeLayout {
 
 Widget _hero(BuildContext context) => const HeroBanner();
 Widget _categories(BuildContext context) => const ShopByCategory();
+
+/// The editorial "Made to be noticed" collage — now a first-class section so
+/// the Home Builder can reorder or hide it like every other block.
+Widget _details(BuildContext context) {
+  final products = [...context.watch<CommerceStore>().shopProducts]
+    ..sort((a, b) {
+      final rating = b.rating.compareTo(a.rating);
+      return rating != 0 ? rating : b.reviewCount.compareTo(a.reviewCount);
+    });
+  // The editorial collage needs three distinct picks; skipping ten on a
+  // small demo catalogue left two (the hero collapsed to nothing).
+  final source = products.length > 8 ? products.sublist(4) : products;
+  return JewelleryCollageHero(products: source);
+}
+
 Widget _metal(BuildContext context) => const ShopByMetal();
 Widget _collections(BuildContext context) => const CollectionsRail();
 Widget _bestsellers(BuildContext context) => const BestsellersRail();
 Widget _newArrivals(BuildContext context) => const NewArrivalsRail();
+Widget _trending(BuildContext context) => const TrendingRail();
+Widget _deals(BuildContext context) => const WholesaleDealsRail();
+Widget _completeLook(BuildContext context) => const CompleteLookRail();
+Widget _recentlyViewed(BuildContext context) => const RecentlyViewedRail();
 Widget _occasion(BuildContext context) => const ShopByOccasion();
 Widget _price(BuildContext context) => const PriceBands();
 Widget _bridal(BuildContext context) => const BridalBanner();

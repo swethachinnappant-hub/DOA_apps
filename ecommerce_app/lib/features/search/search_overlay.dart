@@ -12,6 +12,7 @@ import '../../core/product.dart';
 import '../../core/router/app_router.dart';
 import '../../core/store/commerce_store.dart';
 import '../config/providers/business_config_provider.dart';
+import '../../widgets/search_action_buttons.dart';
 import 'search_provider.dart';
 
 /// App-level shortcut intent: Ctrl+K (Windows/Linux) or Cmd+K (macOS).
@@ -221,7 +222,9 @@ class _SearchPanelState extends State<SearchPanel> {
   Widget build(BuildContext context) {
     final config = context.watch<BusinessConfigProvider>().config;
     final provider = context.watch<SearchProvider>();
-    final hint = config.searchHint.isEmpty ? 'Search jewellery…' : config.searchHint;
+    final hint = config.searchHint.isEmpty
+        ? 'Search jewellery…'
+        : config.searchHint;
 
     return Focus(
       onKeyEvent: (node, event) {
@@ -238,7 +241,7 @@ class _SearchPanelState extends State<SearchPanel> {
           Container(
             padding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.md,
-              vertical: AppSpacing.sm,
+              vertical: 6,
             ),
             decoration: const BoxDecoration(
               border: Border(bottom: BorderSide(color: AppPalette.divider)),
@@ -248,12 +251,17 @@ class _SearchPanelState extends State<SearchPanel> {
                 if (widget.compact)
                   IconButton(
                     tooltip: 'Back',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints.tightFor(
+                      width: 40,
+                      height: 40,
+                    ),
                     icon: const Icon(Icons.arrow_back),
                     onPressed: widget.onClose,
                   )
                 else
                   const SizedBox(width: AppSpacing.xs),
-                const Icon(Icons.search, size: 20, color: AppPalette.textMuted),
+                const Icon(Icons.search, size: 18, color: AppPalette.textMuted),
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: TextField(
@@ -268,51 +276,12 @@ class _SearchPanelState extends State<SearchPanel> {
                       ),
                       border: InputBorder.none,
                       isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                      suffixIcon: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            tooltip: 'Search by image',
-                            constraints: const BoxConstraints.tightFor(
-                              width: 40,
-                              height: 40,
-                            ),
-                            icon: const Icon(
-                              Icons.camera_alt_outlined,
-                              size: 20,
-                              color: AppPalette.textMuted,
-                            ),
-                            onPressed: () => ScaffoldMessenger.of(context)
-                              ..hideCurrentSnackBar()
-                              ..showSnackBar(
-                                const SnackBar(
-                                  content: Text('Image search is coming soon.'),
-                                  duration: Duration(seconds: 2),
-                                ),
-                              ),
-                          ),
-                          IconButton(
-                            tooltip: 'Voice search',
-                            constraints: const BoxConstraints.tightFor(
-                              width: 40,
-                              height: 40,
-                            ),
-                            icon: const Icon(
-                              Icons.mic_none,
-                              size: 20,
-                              color: AppPalette.textMuted,
-                            ),
-                            onPressed: () => ScaffoldMessenger.of(context)
-                              ..hideCurrentSnackBar()
-                              ..showSnackBar(
-                                const SnackBar(
-                                  content: Text('Voice search is coming soon.'),
-                                  duration: Duration(seconds: 2),
-                                ),
-                              ),
-                          ),
-                        ],
+                      contentPadding: const EdgeInsets.symmetric(vertical: 6),
+                      suffixIcon: SearchActionButtons(
+                        onVoiceQuery: (query) {
+                          _controller.text = query;
+                          provider.type(query);
+                        },
                       ),
                     ),
                     onChanged: provider.type,
@@ -322,7 +291,12 @@ class _SearchPanelState extends State<SearchPanel> {
                 if (!widget.compact)
                   IconButton(
                     tooltip: 'Close',
-                    icon: const Icon(Icons.close),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints.tightFor(
+                      width: 40,
+                      height: 40,
+                    ),
+                    icon: const Icon(Icons.close, size: 20),
                     onPressed: widget.onClose,
                   ),
               ],
@@ -360,9 +334,44 @@ class _SearchPanelState extends State<SearchPanel> {
           );
         }
       }
+      // Real demand first (ranked by product count), category names as the
+      // fallback for a fresh or empty catalogue (§15).
+      final recent = provider.recentSearches
+          .map((term) => term.toLowerCase())
+          .toSet();
+      final popular = provider.popularSearches.isNotEmpty
+          ? provider.popularSearches
+          : config.categories
+                .where((category) => !recent.contains(category.toLowerCase()))
+                .take(6)
+                .toList();
+      if (popular.isNotEmpty) {
+        if (children.isNotEmpty) children.add(const SizedBox(height: AppSpacing.md));
+        children.add(_heading('Popular Searches'));
+        for (final category in popular) {
+          children.add(
+            _row(
+              icon: Icons.trending_up,
+              label: category,
+              onTap: () => _searchTerm(provider, category),
+            ),
+          );
+        }
+      }
+      if (children.isEmpty) return _emptyState();
+      // §3.16: a visible, labelled photo-search entry at the top of the
+      // resting state — the suffix icon alone left it undiscoverable.
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: children,
+        children: [
+          OutlinedButton.icon(
+            onPressed: () => showPhotoSearch(context),
+            icon: const Icon(Icons.camera_alt_outlined, size: 18),
+            label: const Text('Search by photo'),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          ...children,
+        ],
       );
     }
 
@@ -392,7 +401,51 @@ class _SearchPanelState extends State<SearchPanel> {
         children.add(_productRow(config, product));
       }
     }
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: children);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: children,
+    );
+  }
+
+  /// No history and no suggestions yet: a designed resting state with a way
+  /// back to shopping, instead of a blank panel (§15).
+  Widget _emptyState() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.search_rounded,
+              size: 34,
+              color: AppPalette.goldDark,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Text('Start typing to search', style: AppTypography.subtitle),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              'Try a category, metal or design name.',
+              textAlign: TextAlign.center,
+              style: AppTypography.caption.copyWith(
+                color: AppPalette.textSecondary,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            OutlinedButton.icon(
+              onPressed: () => showPhotoSearch(context),
+              icon: const Icon(Icons.camera_alt_outlined, size: 18),
+              label: const Text('Search by photo'),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            OutlinedButton(
+              onPressed: () => _navigate('/catalogue'),
+              child: const Text('Continue shopping'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _heading(String text) {
@@ -466,7 +519,7 @@ class _SearchPanelState extends State<SearchPanel> {
                       )
                     : Image.network(
                         product.images.first,
-                        fit: BoxFit.contain,
+                        fit: BoxFit.cover,
                         errorBuilder: (_, _, _) => ColoredBox(
                           color: AppPalette.surfaceMuted,
                           child: Icon(

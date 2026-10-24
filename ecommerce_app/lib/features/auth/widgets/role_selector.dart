@@ -43,7 +43,7 @@ class RoleSelector extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: Responsive.fontSize(context, mobile: 13),
-                color: Colors.grey[600],
+                color: AppPalette.textSecondary,
               ),
             ),
             const SizedBox(height: 10),

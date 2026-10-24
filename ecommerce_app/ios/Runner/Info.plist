@@ -26,6 +26,12 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Take a jewellery photo to use with search.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Use your voice to search for jewellery.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Convert your spoken jewellery search into text.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

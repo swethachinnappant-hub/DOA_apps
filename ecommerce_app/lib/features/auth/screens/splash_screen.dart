@@ -91,8 +91,8 @@ class _SplashScreenState extends State<SplashScreen>
                           url: 'assets/demo_jewellery/bridal_set.jpg',
                           fit: BoxFit.cover,
                           placeholderIcon: Icons.diamond_outlined,
-                          placeholderColor: Color(0xFF211D17),
-                          placeholderAccent: Color(0xFFD8C39A),
+                          placeholderColor: Color(0xFF222222),
+                          placeholderAccent: Color(0xFFE5E5E5),
                         )
                       else
                         ColoredBox(color: config.primaryColor),
@@ -124,7 +124,7 @@ class _SplashScreenState extends State<SplashScreen>
                                   Icon(
                                     config.icon,
                                     size: 17,
-                                    color: const Color(0xFFE4D6B7),
+                                    color: const Color(0xFFF1F1F1),
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
@@ -168,7 +168,7 @@ class _SplashScreenState extends State<SplashScreen>
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: AppTypography.overline.copyWith(
-                                color: const Color(0xFFE4D6B7),
+                                color: const Color(0xFFF1F1F1),
                                 letterSpacing: 2,
                               ),
                             ),
@@ -201,7 +201,7 @@ class _SplashScreenState extends State<SplashScreen>
                                 Container(
                                   width: 34,
                                   height: 1,
-                                  color: const Color(0xFFD8C39A),
+                                  color: const Color(0xFFE5E5E5),
                                 ),
                                 const SizedBox(width: 12),
                                 SizedBox(
@@ -211,7 +211,7 @@ class _SplashScreenState extends State<SplashScreen>
                                     strokeWidth: 1.5,
                                     valueColor:
                                         const AlwaysStoppedAnimation<Color>(
-                                          Color(0xFFD8C39A),
+                                          Color(0xFFE5E5E5),
                                         ),
                                   ),
                                 ),

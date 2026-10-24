@@ -110,7 +110,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final isWide = Responsive.isDesktop(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F1EA),
+      backgroundColor: AppPalette.surfaceMuted,
       body: SafeArea(
         child: isWide
             ? Row(
@@ -145,9 +145,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1E6D3),
+                  color: AppPalette.surfaceMuted,
                   shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFFD8C3A0)),
+                  border: Border.all(color: AppPalette.border),
                 ),
                 child: Icon(config.icon, color: AppPalette.goldDark, size: 21),
               ),
@@ -171,7 +171,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: TextStyle(
                         fontSize: 9,
                         letterSpacing: 1.7,
-                        color: Color(0xFF85765F),
+                        color: AppPalette.textSecondary,
                       ),
                     ),
                   ],
@@ -189,7 +189,7 @@ class _LoginScreenState extends State<LoginScreen> {
           height: Responsive.isTablet(context) ? 218 : 202,
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            color: const Color(0xFFF1E9DC),
+            color: AppPalette.surfaceMuted,
             borderRadius: BorderRadius.circular(18),
           ),
           child: Row(
@@ -205,7 +205,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       const Text(
                         'THE ART OF GOLD',
                         style: TextStyle(
-                          color: Color(0xFF866D47),
+                          color: AppPalette.textSecondary,
                           fontSize: 9,
                           letterSpacing: 1.6,
                           fontWeight: FontWeight.w600,
@@ -219,7 +219,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: AppTypography.display.copyWith(
                           fontSize: 20,
                           height: 1.06,
-                          color: const Color(0xFF342B20),
+                          color: AppPalette.textPrimary,
                         ),
                       ),
                     ],
@@ -236,7 +236,7 @@ class _LoginScreenState extends State<LoginScreen> {
           style: AppTypography.headline.copyWith(
             fontSize: 28,
             fontWeight: FontWeight.w500,
-            color: const Color(0xFF29241D),
+            color: AppPalette.textPrimary,
           ),
         ),
         const SizedBox(height: 5),
@@ -246,7 +246,7 @@ class _LoginScreenState extends State<LoginScreen> {
               : 'Sign in to discover your next favourite piece.',
           style: AppTypography.body.copyWith(
             fontSize: 13,
-            color: const Color(0xFF777169),
+            color: AppPalette.textSecondary,
           ),
         ),
         const SizedBox(height: 15),
@@ -270,9 +270,9 @@ class _LoginScreenState extends State<LoginScreen> {
             framed ? (Responsive.isDesktop(context) ? 30 : 18) : 0,
           ),
           decoration: BoxDecoration(
-            color: framed ? const Color(0xFFFFFEFC) : Colors.transparent,
+            color: framed ? AppPalette.surface : Colors.transparent,
             borderRadius: BorderRadius.circular(24),
-            border: framed ? Border.all(color: const Color(0xFFEAE3D8)) : null,
+            border: framed ? Border.all(color: AppPalette.border) : null,
             boxShadow: framed
                 ? const [
                     BoxShadow(
@@ -326,10 +326,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: Responsive.fontSize(context, mobile: 13),
-                        color: Colors.grey[600],
+                        color: AppPalette.textSecondary,
                       ),
                     ),
-                    SizedBox(height: Responsive.spacing(context, mobile: 20)),
+                    SizedBox(height: Responsive.spacing(context, mobile: 12)),
                   ],
                   RoleSelector(
                     role: _role,
@@ -372,7 +372,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       'Demo code: ${AuthProvider.demoOtp}',
                       style: TextStyle(
                         fontSize: Responsive.fontSize(context, mobile: 12),
-                        color: Colors.grey[500],
+                        color: AppPalette.textMuted,
                       ),
                     ),
                     SizedBox(height: spacing),
@@ -407,7 +407,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         'New here?',
                         style: TextStyle(
                           fontSize: Responsive.fontSize(context, mobile: 13),
-                          color: Colors.grey[600],
+                          color: AppPalette.textSecondary,
                         ),
                       ),
                       TextButton(
@@ -498,7 +498,7 @@ class _JewelleryGalleryState extends State<_JewelleryGallery> {
     return ClipRRect(
       borderRadius: BorderRadius.circular(18),
       child: ColoredBox(
-        color: const Color(0xFFF1E9DC),
+        color: AppPalette.surfaceMuted,
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -520,7 +520,7 @@ class _JewelleryGalleryState extends State<_JewelleryGallery> {
                 onPageChanged: (page) => setState(() => _page = page),
                 itemBuilder: (context, index) => Image.asset(
                   _images[index],
-                  fit: BoxFit.contain,
+                  fit: BoxFit.cover,
                   errorBuilder: (_, _, _) => Icon(
                     Icons.diamond_outlined,
                     color: widget.config.primaryColor,
@@ -573,7 +573,7 @@ class _BrandPanel extends StatelessWidget {
             .clamp(220.0, 360.0)
             .toDouble();
         return ColoredBox(
-          color: const Color(0xFFF3EBDD),
+          color: AppPalette.surfaceMuted,
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(44, 36, 44, 42),
             child: ConstrainedBox(
@@ -591,9 +591,9 @@ class _BrandPanel extends StatelessWidget {
                         width: 42,
                         height: 42,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE7D9C2),
+                          color: const Color(0xFFE5E5E5),
                           shape: BoxShape.circle,
-                          border: Border.all(color: const Color(0xFFD1BC98)),
+                          border: Border.all(color: AppPalette.border),
                         ),
                         child: Icon(config.icon, color: AppPalette.goldDark),
                       ),
@@ -605,7 +605,7 @@ class _BrandPanel extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: AppTypography.title.copyWith(
                             fontSize: 20,
-                            color: const Color(0xFF30291F),
+                            color: AppPalette.textPrimary,
                           ),
                         ),
                       ),
@@ -615,7 +615,7 @@ class _BrandPanel extends StatelessWidget {
                   const Text(
                     'FINE GOLD  ·  DIAMONDS  ·  SILVER',
                     style: TextStyle(
-                      color: Color(0xFF887657),
+                      color: AppPalette.textSecondary,
                       fontSize: 9,
                       letterSpacing: 1.3,
                     ),
@@ -637,7 +637,7 @@ class _BrandPanel extends StatelessWidget {
                     style: AppTypography.display.copyWith(
                       fontSize: 37,
                       height: 1.08,
-                      color: const Color(0xFF30291F),
+                      color: AppPalette.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 9),
@@ -645,7 +645,7 @@ class _BrandPanel extends StatelessWidget {
                     config.tagline,
                     style: AppTypography.body.copyWith(
                       fontSize: 14,
-                      color: const Color(0xFF71685B),
+                      color: AppPalette.textSecondary,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -654,7 +654,7 @@ class _BrandPanel extends StatelessWidget {
                     style: AppTypography.body.copyWith(
                       fontSize: 13,
                       height: 1.5,
-                      color: const Color(0xFF71685B),
+                      color: AppPalette.textSecondary,
                     ),
                   ),
                 ],

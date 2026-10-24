@@ -85,8 +85,6 @@ class FilterPanel extends StatefulWidget {
     super.key,
     required this.filters,
     required this.currencySymbol,
-    required this.primaryColor,
-    required this.onPrimaryColor,
     required this.purityOptions,
     required this.onApply,
     required this.onClear,
@@ -98,8 +96,6 @@ class FilterPanel extends StatefulWidget {
 
   final ListingFilters filters;
   final String currencySymbol;
-  final Color primaryColor;
-  final Color onPrimaryColor;
   final List<String> purityOptions;
 
   /// Metal facets that actually match at least one product in the current
@@ -201,6 +197,7 @@ class _FilterPanelState extends State<FilterPanel> {
       setState(() => _error = 'Minimum price must be below maximum price');
       return;
     }
+    _error = null;
     widget.onApply(_current);
     Navigator.pop(context);
   }
@@ -212,8 +209,11 @@ class _FilterPanelState extends State<FilterPanel> {
 
   @override
   Widget build(BuildContext context) {
+    // One shared left/right edge (16 = screenH) for every surface of the
+    // panel: header, sort radios, filter fields and footer buttons all
+    // start and end on the same line.
     final filtersTab = SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
       child: _filterFields(),
     );
 
@@ -223,8 +223,9 @@ class _FilterPanelState extends State<FilterPanel> {
         children: [
           Expanded(child: filtersTab),
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
             child: OutlinedButton(
+              style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
               onPressed: () {
                 widget.onClear();
               },
@@ -241,11 +242,11 @@ class _FilterPanelState extends State<FilterPanel> {
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 12, 4),
+            padding: const EdgeInsets.fromLTRB(20, 8, 8, 0),
             child: Row(
               children: [
                 Expanded(
-                  child: Text('Refine collection', style: AppTypography.headline),
+                  child: Text('Filters & sort', style: AppTypography.headline),
                 ),
                 IconButton(
                   tooltip: 'Close filters and sort',
@@ -256,9 +257,14 @@ class _FilterPanelState extends State<FilterPanel> {
             ),
           ),
           const TabBar(
+            indicatorColor: AppPalette.textPrimary,
+            labelColor: AppPalette.textPrimary,
+            unselectedLabelColor: AppPalette.textSecondary,
+            labelStyle: AppTypography.label,
+            dividerColor: AppPalette.divider,
             tabs: [
-              Tab(icon: Icon(Icons.tune_rounded), text: 'Filter'),
-              Tab(icon: Icon(Icons.swap_vert_rounded), text: 'Sort by'),
+              Tab(text: 'FILTER'),
+              Tab(text: 'SORT BY'),
             ],
           ),
           Expanded(
@@ -266,20 +272,48 @@ class _FilterPanelState extends State<FilterPanel> {
               children: [
                 filtersTab,
                 ListView(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
                   children: [
                     for (final option in kSortOptions)
-                      ListTile(
-                        title: Text(option, style: AppTypography.body),
-                        leading: Icon(
-                          _sort == option
-                              ? Icons.radio_button_checked
-                              : Icons.radio_button_off,
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Material(
                           color: _sort == option
-                              ? AppPalette.textPrimary
-                              : AppPalette.textHint,
+                              ? AppPalette.surfaceMuted
+                              : Colors.transparent,
+                          borderRadius: AppRadius.allSm,
+                          child: InkWell(
+                            borderRadius: AppRadius.allSm,
+                            onTap: () => setState(() => _sort = option),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 13,
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      option,
+                                      style: AppTypography.body.copyWith(
+                                        fontSize: 14,
+                                        fontWeight: _sort == option
+                                            ? FontWeight.w600
+                                            : FontWeight.w400,
+                                      ),
+                                    ),
+                                  ),
+                                  if (_sort == option)
+                                    const Icon(
+                                      Icons.check_rounded,
+                                      size: 18,
+                                      color: AppPalette.textPrimary,
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
-                        onTap: () => setState(() => _sort = option),
                       ),
                   ],
                 ),
@@ -289,21 +323,26 @@ class _FilterPanelState extends State<FilterPanel> {
           SafeArea(
             top: false,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
               child: Row(
                 children: [
                   Expanded(
                     child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 44),
+                      ),
                       onPressed: _clearAll,
                       child: const Text('Clear filters'),
                     ),
                   ),
-                  const SizedBox(width: AppSpacing.md),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: FilledButton(
                       style: FilledButton.styleFrom(
-                        backgroundColor: widget.primaryColor,
-                        foregroundColor: widget.onPrimaryColor,
+                        backgroundColor: AppPalette.textPrimary,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(0, 44),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
                       ),
                       onPressed: _validateAndApply,
                       child: const Text('Show pieces'),
@@ -324,6 +363,8 @@ class _FilterPanelState extends State<FilterPanel> {
       children: [
         Text('Availability', style: AppTypography.subtitle),
         CheckboxListTile(
+          dense: true,
+          visualDensity: const VisualDensity(horizontal: -3, vertical: -3),
           contentPadding: EdgeInsets.zero,
           controlAffinity: ListTileControlAffinity.leading,
           value: _inStockOnly,
@@ -332,7 +373,6 @@ class _FilterPanelState extends State<FilterPanel> {
             _commit();
           },
           title: const Text('Available now'),
-          subtitle: const Text('Ready to order'),
         ),
         if (widget.purityOptions.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.md),
@@ -343,8 +383,8 @@ class _FilterPanelState extends State<FilterPanel> {
             runSpacing: AppSpacing.sm,
             children: [
               for (final purity in widget.purityOptions)
-                ChoiceChip(
-                  label: Text(purity),
+                _facetChip(
+                  label: purity,
                   selected: _purity == purity,
                   onSelected: (selected) {
                     _purity = selected ? purity : null;
@@ -363,8 +403,8 @@ class _FilterPanelState extends State<FilterPanel> {
             runSpacing: AppSpacing.sm,
             children: [
               for (final metal in widget.metalOptions)
-                ChoiceChip(
-                  label: Text(metal),
+                _facetChip(
+                  label: metal,
                   selected: _metal == metal,
                   onSelected: (selected) {
                     _metal = selected ? metal : null;
@@ -375,7 +415,7 @@ class _FilterPanelState extends State<FilterPanel> {
           ),
         ],
         if (widget.showPriceRange) ...[
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.md),
           Text('Price range', style: AppTypography.subtitle),
           const SizedBox(height: AppSpacing.md),
           Row(
@@ -389,8 +429,13 @@ class _FilterPanelState extends State<FilterPanel> {
                     _commit();
                   },
                   decoration: InputDecoration(
-                    labelText: 'Minimum',
+                    labelText: 'From',
                     prefixText: '${widget.currencySymbol} ',
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
                     border: const OutlineInputBorder(),
                   ),
                 ),
@@ -405,8 +450,13 @@ class _FilterPanelState extends State<FilterPanel> {
                     _commit();
                   },
                   decoration: InputDecoration(
-                    labelText: 'Maximum',
+                    labelText: 'To',
                     prefixText: '${widget.currencySymbol} ',
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
                     border: const OutlineInputBorder(),
                   ),
                 ),
@@ -422,6 +472,30 @@ class _FilterPanelState extends State<FilterPanel> {
           ],
         ],
       ],
+    );
+  }
+
+  Widget _facetChip({
+    required String label,
+    required bool selected,
+    required ValueChanged<bool> onSelected,
+  }) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: onSelected,
+      showCheckmark: false,
+      visualDensity: VisualDensity.compact,
+      selectedColor: AppPalette.textPrimary,
+      backgroundColor: Colors.white,
+      side: BorderSide(
+        color: selected ? AppPalette.textPrimary : AppPalette.border,
+      ),
+      shape: const RoundedRectangleBorder(borderRadius: AppRadius.allPill),
+      labelStyle: AppTypography.label.copyWith(
+        color: selected ? Colors.white : AppPalette.textPrimary,
+        fontSize: 12,
+      ),
     );
   }
 }

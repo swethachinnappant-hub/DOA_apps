@@ -101,8 +101,19 @@ class _EcommerceAppState extends State<EcommerceApp> {
             theme: config.getTheme(),
             themeMode: ThemeMode.light,
             routerConfig: _router,
-            builder: (context, child) =>
-                SearchShortcutHost(child: child ?? const SizedBox.shrink()),
+            // §10.73: typography stays scalable but bounded — system settings
+            // up to 1.3× apply, beyond that the dense B2B layouts clamp so
+            // nothing clips or overflows.
+            builder: (context, child) {
+              final media = MediaQuery.of(context);
+              final scale = media.textScaler.scale(1.0).clamp(1.0, 1.3);
+              return SearchShortcutHost(
+                child: MediaQuery(
+                  data: media.copyWith(textScaler: TextScaler.linear(scale)),
+                  child: child ?? const SizedBox.shrink(),
+                ),
+              );
+            },
           );
         },
       ),

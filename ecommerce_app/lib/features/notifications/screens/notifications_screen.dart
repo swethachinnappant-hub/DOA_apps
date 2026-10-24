@@ -165,7 +165,7 @@ class _Row extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: Responsive.fontSize(context, mobile: 12),
-                    color: Colors.grey[600],
+                    color: AppPalette.textSecondary,
                     height: 1.35,
                   ),
                 ),
@@ -190,7 +190,7 @@ class _Row extends StatelessWidget {
             icon: Icon(
               note.read ? Icons.mark_email_read_outlined : Icons.mark_email_unread_outlined,
               size: 18,
-              color: Colors.grey[500],
+              color: AppPalette.textMuted,
             ),
           ),
         ],
@@ -208,7 +208,7 @@ class _Empty extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(18),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -219,7 +219,7 @@ class _Empty extends StatelessWidget {
               style: TextStyle(
                 fontSize: Responsive.fontSize(context, mobile: 16),
                 fontWeight: FontWeight.w600,
-                color: Colors.grey[600],
+                color: AppPalette.textSecondary,
               ),
             ),
             const SizedBox(height: 8),
@@ -228,7 +228,7 @@ class _Empty extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13,
-                color: Colors.grey[500],
+                color: AppPalette.textMuted,
                 height: 1.5,
               ),
             ),

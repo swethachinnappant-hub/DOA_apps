@@ -39,12 +39,12 @@ void main() {
     binding.platformDispatcher.views.first.resetDevicePixelRatio();
   });
 
-  testWidgets('renders 4 items per page on a 360dp screen', (tester) async {
+  testWidgets('renders 3 items per page on a 360dp screen', (tester) async {
     await tester.pumpWidget(_host(_items(10)));
 
     expect(find.text('Item 0'), findsOneWidget);
-    expect(find.text('Item 3'), findsOneWidget);
-    expect(find.text('Item 4'), findsNothing);
+    expect(find.text('Item 2'), findsOneWidget);
+    expect(find.text('Item 3'), findsNothing);
   });
 
   testWidgets('lays out with no overflow on a 360dp screen', (tester) async {
@@ -121,10 +121,11 @@ void main() {
     await tester.fling(find.byType(PageView), const Offset(-180, 0), 1200);
     await tester.pumpAndSettle();
 
-    // Page 1 (items 4-7) is now shown; page 0 has been scrolled away.
-    expect(find.text('Item 4'), findsOneWidget);
-    expect(find.text('Item 7'), findsOneWidget);
+    // Page 1 (items 3-5) is now shown; page 0 has been scrolled away.
+    expect(find.text('Item 3'), findsOneWidget);
+    expect(find.text('Item 5'), findsOneWidget);
     expect(find.text('Item 0'), findsNothing);
+    expect(find.text('Item 7'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 

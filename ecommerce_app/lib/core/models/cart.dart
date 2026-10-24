@@ -36,7 +36,7 @@ class CartItem {
       productId: product.id,
       name: product.name,
       brand: product.brand,
-      unitPrice: product.price,
+      unitPrice: product.unitPriceForQuantity(quantity),
       quantity: quantity,
       images: product.images,
       selectedSize: selectedSize,

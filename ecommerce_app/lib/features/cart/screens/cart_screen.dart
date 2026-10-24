@@ -131,9 +131,9 @@ class _CartScreenState extends State<CartScreen> {
                   onCheckout: () => context.push('/checkout'),
                 ),
                 if (config.rules.coupons) ...[
-                  const SizedBox(height: AppSpacing.xl),
+                  const SizedBox(height: AppSpacing.md),
                   const Divider(height: 1),
-                  const SizedBox(height: AppSpacing.lg),
+                  const SizedBox(height: AppSpacing.sm),
                   CouponSection(
                     subtotal: store.cartSubtotal,
                     appliedCode: store.appliedCoupon?.code,
@@ -173,7 +173,7 @@ class _CartScreenState extends State<CartScreen> {
           SizedBox(height: Responsive.spacing(context, mobile: 16)),
           AppCard(child: _CartPincode(accent: config.accentColor)),
           if (config.rules.coupons) ...[
-            SizedBox(height: Responsive.spacing(context, mobile: 20)),
+            SizedBox(height: Responsive.spacing(context, mobile: 12)),
             CouponSection(
               subtotal: store.cartSubtotal,
               appliedCode: store.appliedCoupon?.code,
@@ -181,7 +181,7 @@ class _CartScreenState extends State<CartScreen> {
               onRemove: store.removeCoupon,
             ),
           ],
-          SizedBox(height: Responsive.spacing(context, mobile: 20)),
+          SizedBox(height: Responsive.spacing(context, mobile: 12)),
           const Divider(height: 1),
           SizedBox(height: Responsive.spacing(context, mobile: 16)),
           OrderSummary(
@@ -339,19 +339,25 @@ class _CartScreenState extends State<CartScreen> {
     BusinessConfig config,
     CommerceStore store,
   ) {
+    // The rail carries its own 16px inset, so the wrapper must not add a
+    // second one — the header and the first card now share one left edge.
     return SingleChildScrollView(
-      padding: Responsive.padding(context),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(height: Responsive.spacing(context, mobile: 24)),
-          _EmptyCart(brand: config.primaryColor, icon: config.icon),
-          SizedBox(height: Responsive.spacing(context, mobile: 24)),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+            child: _EmptyCart(brand: config.primaryColor, icon: config.icon),
+          ),
           SectionHeader(
             title: 'Recommended for you',
-            padding: EdgeInsets.zero,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
           ),
-          SizedBox(height: Responsive.spacing(context, mobile: 12)),
-          ProductRail(products: store.shopProducts.take(6).toList()),
+          const SizedBox(height: 6),
+          ProductRail(
+            products: store.shopProducts.take(6).toList(),
+            compact: true,
+          ),
         ],
       ),
     );
@@ -421,7 +427,7 @@ class _CartLine extends StatelessWidget {
                     )
                   : ProductImageTile(
                       url: images.first,
-                      fit: BoxFit.contain,
+                      fit: BoxFit.cover,
                       placeholderIcon: fallbackIcon,
                       placeholderColor: accent,
                       placeholderAccent: brandColor,
@@ -492,7 +498,7 @@ class _CartLine extends StatelessWidget {
                                 context,
                                 mobile: 11,
                               ),
-                              color: Colors.grey[700],
+                              color: AppPalette.textSecondary,
                             ),
                           ),
                         ),
@@ -516,7 +522,7 @@ class _CartLine extends StatelessWidget {
                       icon: Icon(
                         Icons.favorite_border,
                         size: 18,
-                        color: Colors.grey[500],
+                        color: AppPalette.textMuted,
                       ),
                     ),
                     IconButton(
@@ -526,7 +532,7 @@ class _CartLine extends StatelessWidget {
                       icon: Icon(
                         Icons.delete_outline,
                         size: 18,
-                        color: Colors.grey[500],
+                        color: AppPalette.textMuted,
                       ),
                     ),
                   ],
@@ -739,27 +745,27 @@ class _EmptyCart extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 64, color: Colors.grey[300]),
-            const SizedBox(height: 16),
+            Icon(icon, size: 48, color: Colors.grey[400]),
+            const SizedBox(height: 8),
             Text(
               'Your bag is empty',
               style: TextStyle(
                 fontSize: Responsive.fontSize(context, mobile: 16),
                 fontWeight: FontWeight.w600,
-                color: Colors.grey[600],
+                color: AppPalette.textSecondary,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             Text(
               'Add something you love and it will show up here.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+              style: TextStyle(fontSize: 13, color: AppPalette.textMuted),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
             AppButton(
               text: 'Start shopping',
               icon: Icons.shopping_bag_outlined,

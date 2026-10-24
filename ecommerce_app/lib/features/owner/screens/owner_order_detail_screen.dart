@@ -31,7 +31,7 @@ class OwnerOrderDetailScreen extends StatelessWidget {
         appBar: AppBar(title: const Text('Order')),
         body: Center(
           child: Padding(
-            padding: const EdgeInsets.all(32),
+            padding: const EdgeInsets.all(18),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -392,13 +392,13 @@ class _TimelineRow extends StatelessWidget {
                       fontWeight: current ? FontWeight.w700 : FontWeight.w500,
                       color: done || current
                           ? Theme.of(context).colorScheme.onSurface
-                          : Colors.grey[500],
+                          : AppPalette.textMuted,
                     ),
                   ),
                   if (current)
                     Text(
                       status.hint,
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 12, color: AppPalette.textSecondary),
                     ),
                 ],
               ),
@@ -430,13 +430,13 @@ class _InfoRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 17, color: Colors.grey[600]),
+          Icon(icon, size: 17, color: AppPalette.textSecondary),
           const SizedBox(width: 10),
           SizedBox(
             width: 74,
             child: Text(
               label,
-              style: TextStyle(fontSize: 12.5, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 12.5, color: AppPalette.textSecondary),
             ),
           ),
           Expanded(
@@ -487,7 +487,7 @@ class _ItemRow extends StatelessWidget {
                     )
                   : ProductImageTile(
                       url: item.images.first,
-                      fit: BoxFit.contain,
+                      fit: BoxFit.cover,
                       placeholderIcon: Icons.broken_image_outlined,
                     ),
             ),
@@ -512,7 +512,7 @@ class _ItemRow extends StatelessWidget {
                     item.variantLabel,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 11.5, color: Colors.grey[600]),
+                    style: TextStyle(fontSize: 11.5, color: AppPalette.textSecondary),
                   ),
                 ],
               ],
@@ -531,7 +531,7 @@ class _ItemRow extends StatelessWidget {
               ),
               Text(
                 '×${item.quantity}',
-                style: TextStyle(fontSize: 11.5, color: Colors.grey[600]),
+                style: TextStyle(fontSize: 11.5, color: AppPalette.textSecondary),
               ),
             ],
           ),
