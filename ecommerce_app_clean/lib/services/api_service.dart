@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../utils/token_manager.dart';
-import 'api_constants.dart';
+import 'package:ecommerce_app_clean/utils/token_manager.dart';
+import 'package:ecommerce_app_clean/constants/api_constants.dart';
 
 class ApiService {
   final http.Client _client = http.Client();
@@ -133,10 +133,6 @@ class ApiService {
     final response = await _client.get(uri, headers: _authHeaders()).timeout(const Duration(seconds: 30));
     if (response.statusCode == 200) return jsonDecode(response.body);
     return null;
-  }
-
-  void dispose() {
-    _client.dispose();
   }
 
   Map<String, String> _authHeaders() {

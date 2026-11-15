@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:ecommerce_app_clean/services/api_service.dart';
 import 'package:ecommerce_app_clean/utils/token_manager.dart';
-import 'constants/api_constants.dart';
+import 'package:ecommerce_app_clean/constants/api_constants.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState;
+  _HomeScreenState createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
