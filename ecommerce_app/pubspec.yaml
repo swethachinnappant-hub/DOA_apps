@@ -1,56 +1,22 @@
 name: ecommerce_app
-description: "Chirag Associates - Dynamic B2B E-Commerce Platform"
-publish_to: 'none'
+description: Jewelry B2B ECommerce Flutter App
+publish_to: "none"
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.10.0
+  sdk: ">=3.0.0 <4.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
-  common_widgets:
-    path: ../common_widgets
-  go_router: ^14.8.1
-  provider: ^6.1.2
-  shared_preferences: ^2.3.4
-  no_screenshot: ^1.0.0
-  image_picker: ^1.2.3
-  speech_to_text: ^7.4.0
+  http: ^1.1.0
+  shared_preferences: ^2.2.0
+  jwt_decode: ^0.3.1
+  cached_network_image: ^3.3.0
+  flutter_svg: ^2.0.7
+  url_launcher: ^6.2.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^6.0.0
-
-flutter:
-  uses-material-design: true
-  assets:
-    - assets/demo_jewellery/bracelet_unsplash.jpg
-    - assets/demo_jewellery/earrings_unsplash.jpg
-    - assets/demo_jewellery/necklace_unsplash.jpg
-    - assets/demo_jewellery/pendant_unsplash.jpg
-    - assets/demo_jewellery/ring_unsplash.jpg
-    - assets/demo_jewellery/bridal_necklace.jpg
-    - assets/demo_jewellery/bridal_necklace_detail_motif.jpg
-    - assets/demo_jewellery/bridal_necklace_detail_pendant.jpg
-    - assets/demo_jewellery/bridal_set.jpg
-    - assets/demo_jewellery/bridal_set_detail_earrings.jpg
-    - assets/demo_jewellery/bridal_set_detail_necklace.jpg
-    - assets/demo_jewellery/gold_bangles.jpg
-    - assets/demo_jewellery/gold_bangles_detail_left.jpg
-    - assets/demo_jewellery/gold_bangles_detail_right.jpg
-    - assets/demo_jewellery/gold_earrings.jpg
-    - assets/demo_jewellery/gold_earrings_detail_left.jpg
-    - assets/demo_jewellery/gold_earrings_detail_right.jpg
-    - assets/demo_jewellery/gold_pendant.jpg
-    - assets/demo_jewellery/gold_pendant_chain_detail.jpg
-    - assets/demo_jewellery/gold_pendant_detail.jpg
-    - assets/demo_jewellery/gold_ring.jpg
-    - assets/demo_jewellery/gold_ring_detail_band.jpg
-    - assets/demo_jewellery/gold_ring_detail_stone.jpg
-
-  fonts:
-    - family: Inter
-      fonts:
-        - asset: assets/fonts/Inter-Variable.ttf
+  flutter_lints: ^3.0.0

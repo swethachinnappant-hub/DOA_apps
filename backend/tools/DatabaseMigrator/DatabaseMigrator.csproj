@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\BuildingBlocks\BuildingBlocks.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Identity\Identity.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Catalog\Catalog.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Ordering\Ordering.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Payments\Payments.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Promotions\Promotions.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Engagement\Engagement.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Content\Content.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

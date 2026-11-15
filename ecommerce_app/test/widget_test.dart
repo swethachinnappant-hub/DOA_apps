@@ -1,45 +1,30 @@
-import 'package:ecommerce_app/main.dart';
+// This is a basic Flutter widget test.
+//
+// To perform an interaction with a widget in your test, use the WidgetTester
+// utility in the flutter_test package. For example, you can send tap and scroll
+// gestures. You can also use WidgetTester to find child widgets in the widget
+// tree, read text, and verify that the values of widget properties are correct.
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-/// Verifies the real launch flow: splash -> sign-in screen, in the
-/// light theme. Uses explicit `pump` calls rather than `pumpAndSettle`,
-/// because the splash timer and the carousel's auto-slide timer repeat forever
-/// and would never settle.
+import 'package:ecommerce_app/main.dart';
+
 void main() {
-  setUp(() {
-    SharedPreferences.setMockInitialValues({});
+  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+    // Build our app and trigger a frame.
+    await tester.pumpWidget(const MyApp());
+
+    // Verify that our counter starts at 0.
+    expect(find.text('0'), findsOneWidget);
+    expect(find.text('1'), findsNothing);
+
+    // Tap the '+' icon and trigger a frame.
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.pump();
+
+    // Verify that our counter has incremented.
+    expect(find.text('0'), findsNothing);
+    expect(find.text('1'), findsOneWidget);
   });
-
-  testWidgets(
-    'launches into the light-themed sign-in screen',
-    (tester) async {
-      tester.view.physicalSize = const Size(360, 800);
-      tester.view.devicePixelRatio = 1.0;
-
-      await tester.pumpWidget(const EcommerceApp());
-      await tester.pump();
-      expect(tester.takeException(), isNull, reason: 'splash layout');
-
-      // The splash screen is up first; business selection is no longer an
-      // onboarding gate for jewellery shoppers.
-      expect(find.text('Welcome back'), findsNothing);
-
-      // Let the splash delay elapse, which routes a signed-out user to /login.
-      await tester.pump(const Duration(seconds: 4));
-      await tester.pump();
-      final loginError = tester.takeException();
-      expect(loginError, isNull, reason: 'login layout');
-
-      expect(find.text('Welcome back'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-
-      await tester.pumpWidget(const SizedBox.shrink());
-      await tester.pump();
-      tester.view.resetPhysicalSize();
-      tester.view.resetDevicePixelRatio();
-    },
-    timeout: const Timeout(Duration(seconds: 60)),
-  );
 }

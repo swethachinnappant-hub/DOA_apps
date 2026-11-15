@@ -1,0 +1,32 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Api/Api.csproj" />
+    <Project Path="src/BuildingBlocks/BuildingBlocks.csproj" />
+    <Project Path="src/Worker/Worker.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/">
+    <Project Path="src/Modules/Catalog.Contracts/Catalog.Contracts.csproj" />
+    <Project Path="src/Modules/Catalog/Catalog.csproj" />
+    <Project Path="src/Modules/Content.Contracts/Content.Contracts.csproj" />
+    <Project Path="src/Modules/Content/Content.csproj" />
+    <Project Path="src/Modules/Engagement.Contracts/Engagement.Contracts.csproj" />
+    <Project Path="src/Modules/Engagement/Engagement.csproj" />
+    <Project Path="src/Modules/Identity.Contracts/Identity.Contracts.csproj" />
+    <Project Path="src/Modules/Identity/Identity.csproj" />
+    <Project Path="src/Modules/Ordering.Contracts/Ordering.Contracts.csproj" />
+    <Project Path="src/Modules/Ordering/Ordering.csproj" />
+    <Project Path="src/Modules/Payments.Contracts/Payments.Contracts.csproj" />
+    <Project Path="src/Modules/Payments/Payments.csproj" />
+    <Project Path="src/Modules/Promotions.Contracts/Promotions.Contracts.csproj" />
+    <Project Path="src/Modules/Promotions/Promotions.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Architecture.Tests/Architecture.Tests.csproj" />
+    <Project Path="tests/Contract.Tests/Contract.Tests.csproj" />
+    <Project Path="tests/Integration.Tests/Integration.Tests.csproj" />
+    <Project Path="tests/Unit.Tests/Unit.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/DatabaseMigrator/DatabaseMigrator.csproj" />
+  </Folder>
+</Solution>

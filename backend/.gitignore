@@ -1,0 +1,13 @@
+bin/
+obj/
+*.user
+.vs/
+.idea/
+*.pem
+*.key
+.env
+appsettings.*.Local.json
+TestResults/
+artifacts/
+**/App_Data/media/
+**/App_Data/dev-jwt/
